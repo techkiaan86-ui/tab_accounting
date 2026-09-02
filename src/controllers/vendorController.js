@@ -1,0 +1,910 @@
+const prisma = require('../config/prisma');
+const { getCompanyCurrency, getCompanyHistoricalCurrency, getConversionRate } = require('../utils/currencyConverter');
+
+// Create Vendor with Automatic Ledger Creation
+const createVendor = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+        const vendorData = req.body;
+
+        // Validate required fields
+        if (!vendorData.name) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vendor name is required'
+            });
+        }
+
+        // Find Accounts Payable SubGroup
+        const accountsPayableSubGroup = await prisma.accountsubgroup.findFirst({
+            where: {
+                companyId: companyId,
+                name: 'Accounts Payable'
+            },
+            include: {
+                accountgroup: true
+            }
+        });
+
+        if (!accountsPayableSubGroup) {
+            return res.status(404).json({
+                success: false,
+                message: 'Accounts Payable sub-group not found. Please initialize Chart of Accounts first.'
+            });
+        }
+
+        // Check if vendor with same name/email already exists in the same company
+        const existingVendor = await prisma.vendor.findFirst({
+            where: {
+                companyId: companyId,
+                OR: [
+                    { name: vendorData.name },
+                    { email: vendorData.email && vendorData.email !== '' ? vendorData.email : undefined }
+                ].filter(Boolean)
+            }
+        });
+
+        if (existingVendor) {
+            return res.status(409).json({
+                success: false,
+                message: 'A vendor with this name or email already exists in this company.'
+            });
+        }
+
+        // Check if a ledger with same name already exists in this company
+        const existingLedger = await prisma.ledger.findFirst({
+            where: {
+                companyId: companyId,
+                name: vendorData.name
+            }
+        });
+
+        if (existingLedger) {
+            return res.status(409).json({
+                success: false,
+                message: 'A ledger with this name already exists. Please use a unique name.'
+            });
+        }
+
+        // Create Vendor and Ledger in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const companyCurrency = await getCompanyCurrency(companyId);
+            const histCurr = await getCompanyHistoricalCurrency(companyId);
+            const writeRate = await getConversionRate(companyCurrency, histCurr);
+
+            const ledgerName = vendorData.name;
+            const rawBalanceInput = parseFloat(vendorData.accountBalance) || 0;
+            const convertedRawBalance = rawBalanceInput * writeRate;
+            const initialBalance = vendorData.balanceType === 'Debit' ? -Math.abs(convertedRawBalance) : Math.abs(convertedRawBalance);
+            
+            // Create Vendor with nested Ledger
+            const vendor = await tx.vendor.create({
+                data: {
+                    name: vendorData.name,
+                    nameArabic: vendorData.nameArabic,
+                    companyName: vendorData.companyName,
+                    companyLocation: vendorData.companyLocation,
+                    profileImage: vendorData.profileImage,
+                    anyFile: vendorData.anyFile,
+                    accountType: vendorData.accountType,
+                    balanceType: vendorData.balanceType || 'Credit',
+                    accountName: ledgerName,
+                    accountBalance: rawBalanceInput,
+                    creationDate: vendorData.creationDate ? new Date(vendorData.creationDate) : new Date(),
+                    bankAccountNumber: vendorData.bankAccountNumber,
+                    bankIFSC: vendorData.bankIFSC,
+                    bankNameBranch: vendorData.bankNameBranch,
+                    phone: vendorData.phone,
+                    email: vendorData.email,
+                    creditPeriod: vendorData.creditPeriod ? parseInt(vendorData.creditPeriod) : null,
+                    gstNumber: vendorData.gstNumber,
+                    gstEnabled: vendorData.gstEnabled || false,
+
+                    // Billing Address
+                    billingName: vendorData.billingName,
+                    billingPhone: vendorData.billingPhone,
+                    billingAddress: vendorData.billingAddress,
+                    billingCity: vendorData.billingCity,
+                    billingState: vendorData.billingState,
+                    billingCountry: vendorData.billingCountry,
+                    billingZipCode: vendorData.billingZipCode,
+
+                    // Shipping Address (Legacy fields)
+                    shippingSameAsBilling: vendorData.shippingSameAsBilling || false,
+                    shippingName: vendorData.shippingName,
+                    shippingPhone: vendorData.shippingPhone,
+                    shippingAddress: vendorData.shippingAddress,
+                    shippingCity: vendorData.shippingCity,
+                    shippingState: vendorData.shippingState,
+                    shippingCountry: vendorData.shippingCountry,
+                    shippingZipCode: vendorData.shippingZipCode,
+
+                    companyId: companyId,
+                    
+                    // Link Ledger via nested create
+                    ledger: {
+                        create: {
+                            name: ledgerName,
+                            groupId: accountsPayableSubGroup.groupId,
+                            subGroupId: accountsPayableSubGroup.id,
+                            companyId: companyId,
+                            openingBalance: initialBalance,
+                            currentBalance: initialBalance,
+                            isControlAccount: false,
+                            isEnabled: true,
+                            description: `Vendor Ledger for ${ledgerName}`
+                        }
+                    },
+
+                    // Multiple Shipping Addresses
+                    shippingaddress: {
+                        create: (vendorData.shippingAddresses && Array.isArray(vendorData.shippingAddresses)) ? vendorData.shippingAddresses.map(addr => ({
+                            name: addr.name,
+                            phone: addr.phone,
+                            address: addr.address,
+                            city: addr.city,
+                            state: addr.state,
+                            country: addr.country,
+                            zipCode: addr.zipCode,
+                            isDefault: addr.isDefault || false
+                        })) : []
+                    }
+                },
+                include: {
+                    ledger: true
+                }
+            });
+
+            // Update cross-references within the same transaction
+            const ledgerId = vendor.ledger.id;
+            const vendorId = vendor.id;
+
+            await tx.vendor.update({
+                where: { id: vendorId },
+                data: { ledgerId: ledgerId }
+            });
+
+            await tx.ledger.update({
+                where: { id: ledgerId },
+                data: { vendorId: vendorId }
+            });
+
+            return { vendor: { ...vendor, ledgerId }, ledger: { ...vendor.ledger, vendorId } };
+        }, {
+            timeout: 15000, 
+            maxWait: 5000
+        });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'CREATE', 'Vendor', result.vendor.id, `Vendor ${result.vendor.name} created`);
+        res.status(201).json({
+            success: true,
+            message: 'Vendor created successfully with linked ledger',
+            data: result
+        });
+    } catch (error) {
+        console.error('Error creating vendor:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({
+                success: false,
+                message: 'Vendor with this email already exists'
+            });
+        }
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to create vendor'
+        });
+    }
+};
+
+// Get All Vendors
+const getAllVendors = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+
+        const vendors = await prisma.vendor.findMany({
+            where: { companyId },
+            include: {
+                ledger: true,
+                shippingaddress: true,
+                purchasebill: {
+                    select: {
+                        id: true,
+                        billNumber: true,
+                        totalAmount: true,
+                        balanceAmount: true,
+                        status: true
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Calculate dynamic ledger balances to ensure they align with the Chart of Accounts
+        try {
+            const chartOfAccountsService = require('../services/chartOfAccountsService');
+            const inventoryValue = await chartOfAccountsService.calculateInventoryValue(companyId);
+            const balanceMap = await chartOfAccountsService.calculateDynamicLedgerBalances(companyId, inventoryValue);
+
+            vendors.forEach(vendor => {
+                if (vendor.ledgerId && vendor.ledger) {
+                    const entry = balanceMap.get(vendor.ledgerId);
+                    if (entry) {
+                        vendor.ledger.currentBalance = entry.dynamicBalance;
+                        vendor.ledger.balance = entry.dynamicBalance;
+                    }
+                }
+            });
+        } catch (dynamicErr) {
+            console.error('Error calculating dynamic balances in getAllVendors:', dynamicErr);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: vendors
+        });
+    } catch (error) {
+        console.error('Error fetching vendors:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch vendors'
+        });
+    }
+};
+
+// Get Vendor by ID
+const getVendorById = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+        const { id } = req.params;
+
+        const vendor = await prisma.vendor.findFirst({
+            where: {
+                id: parseInt(id),
+                companyId: companyId
+            },
+            include: {
+                ledger: {
+                    include: {
+                        transaction_transaction_debitLedgerIdToledger: {
+                            orderBy: { date: 'desc' },
+                            take: 50
+                        },
+                        transaction_transaction_creditLedgerIdToledger: {
+                            orderBy: { date: 'desc' },
+                            take: 50
+                        }
+                    }
+                },
+                purchasebill: {
+                    include: {
+                        purchasebillitem: true,
+                        payment: true
+                    }
+                },
+                purchaseorder: {
+                    orderBy: { date: 'desc' }
+                },
+                purchasequotation: {
+                    orderBy: { date: 'desc' }
+                },
+                goodsreceiptnote: true,
+                payment: {
+                    orderBy: { date: 'desc' }
+                },
+                purchasereturn: {
+                    orderBy: { date: 'desc' }
+                },
+                shippingaddress: true
+            }
+        });
+
+        if (!vendor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+
+        // Calculate dynamic ledger balance to ensure it aligns with the Chart of Accounts
+        try {
+            if (vendor.ledgerId && vendor.ledger) {
+                const chartOfAccountsService = require('../services/chartOfAccountsService');
+                const inventoryValue = await chartOfAccountsService.calculateInventoryValue(companyId);
+                const balanceMap = await chartOfAccountsService.calculateDynamicLedgerBalances(companyId, inventoryValue);
+                const entry = balanceMap.get(vendor.ledgerId);
+                if (entry) {
+                    vendor.ledger.currentBalance = entry.dynamicBalance;
+                }
+            }
+        } catch (dynamicErr) {
+            console.error('Error calculating dynamic balance in getVendorById:', dynamicErr);
+        }
+
+        res.status(200).json({
+            success: true,
+            data: vendor
+        });
+    } catch (error) {
+        console.error('Error fetching vendor detailed:', error); // Log full error including Prisma relation errors
+        res.status(500).json({
+            success: false,
+            message: `Failed to fetch vendor: ${error.message}` // Send error message to frontend for easier debugging
+        });
+    }
+};
+
+// Update Vendor
+const updateVendor = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+        const { id } = req.params;
+        const vendorData = req.body;
+
+        // Check if vendor exists
+        const existingVendor = await prisma.vendor.findFirst({
+            where: {
+                id: parseInt(id),
+                companyId: companyId
+            },
+            include: { ledger: true }
+        });
+
+        if (!existingVendor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+
+        // Update in transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const companyCurrency = await getCompanyCurrency(companyId);
+            const histCurr = await getCompanyHistoricalCurrency(companyId);
+            const writeRate = await getConversionRate(companyCurrency, histCurr);
+
+            const rawBalanceInput = parseFloat(vendorData.accountBalance) || 0;
+            const convertedRawBalance = rawBalanceInput * writeRate;
+            const targetBalance = vendorData.balanceType === 'Debit' ? -Math.abs(convertedRawBalance) : Math.abs(convertedRawBalance);
+
+            let transactionsNet = 0;
+
+            if (existingVendor.ledgerId) {
+                // Fetch all transactions involving vendor's ledger
+                const transactions = await tx.transaction.findMany({
+                    where: {
+                        companyId: companyId,
+                        OR: [
+                            { debitLedgerId: existingVendor.ledgerId },
+                            { creditLedgerId: existingVendor.ledgerId }
+                        ]
+                    }
+                });
+
+                for (const txn of transactions) {
+                    if (txn.creditLedgerId === existingVendor.ledgerId) {
+                        transactionsNet += txn.amount;
+                    } else {
+                        transactionsNet -= txn.amount;
+                    }
+                }
+            }
+
+            const newCurrentBalance = targetBalance;
+            const newOpeningBalance = targetBalance - transactionsNet;
+
+            // Update Vendor
+            const vendor = await tx.vendor.update({
+                where: { id: parseInt(id) },
+                data: {
+                    name: vendorData.name,
+                    nameArabic: vendorData.nameArabic,
+                    companyName: vendorData.companyName,
+                    companyLocation: vendorData.companyLocation,
+                    profileImage: vendorData.profileImage,
+                    anyFile: vendorData.anyFile,
+                    accountType: vendorData.accountType,
+                    balanceType: vendorData.balanceType,
+                    accountBalance: rawBalanceInput,
+                    bankAccountNumber: vendorData.bankAccountNumber,
+                    bankIFSC: vendorData.bankIFSC,
+                    bankNameBranch: vendorData.bankNameBranch,
+                    phone: vendorData.phone,
+                    email: vendorData.email,
+                    creditPeriod: vendorData.creditPeriod ? parseInt(vendorData.creditPeriod) : null,
+                    gstNumber: vendorData.gstNumber,
+                    gstEnabled: vendorData.gstEnabled,
+
+                    // Billing Address
+                    billingName: vendorData.billingName,
+                    billingPhone: vendorData.billingPhone,
+                    billingAddress: vendorData.billingAddress,
+                    billingCity: vendorData.billingCity,
+                    billingState: vendorData.billingState,
+                    billingCountry: vendorData.billingCountry,
+                    billingZipCode: vendorData.billingZipCode,
+
+                    // Shipping Address
+                    shippingSameAsBilling: vendorData.shippingSameAsBilling,
+                    shippingName: vendorData.shippingName,
+                    shippingPhone: vendorData.shippingPhone,
+                    shippingAddress: vendorData.shippingAddress,
+                    shippingCity: vendorData.shippingCity,
+                    shippingState: vendorData.shippingState,
+                    shippingCountry: vendorData.shippingCountry,
+                    shippingZipCode: vendorData.shippingZipCode,
+
+                    // Update Shipping Addresses
+                    shippingaddress: {
+                        deleteMany: {},
+                        create: (vendorData.shippingAddresses && Array.isArray(vendorData.shippingAddresses)) ? vendorData.shippingAddresses.map(addr => ({
+                            name: addr.name,
+                            phone: addr.phone,
+                            address: addr.address,
+                            city: addr.city,
+                            state: addr.state,
+                            country: addr.country,
+                            zipCode: addr.zipCode,
+                            isDefault: addr.isDefault || false
+                        })) : []
+                    }
+                }
+            });
+
+            // Update Ledger: sync name AND balance when vendor is edited
+            if (existingVendor.ledgerId) {
+                const newLedgerName = vendorData.name;
+                await tx.ledger.update({
+                    where: { id: existingVendor.ledgerId },
+                    data: {
+                        name: newLedgerName,
+                        description: `Vendor Ledger for ${newLedgerName}`,
+                        openingBalance: newOpeningBalance,
+                        currentBalance: newCurrentBalance
+                    }
+                });
+            }
+
+            return vendor;
+        }, {
+            maxWait: 5000,
+            timeout: 15000
+        });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'UPDATE', 'Vendor', result.id, `Vendor ${result.name} updated`);
+        res.status(200).json({
+            success: true,
+            message: 'Vendor updated successfully',
+            data: result
+        });
+    } catch (error) {
+        console.error('Error updating vendor:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({
+                success: false,
+                message: 'Vendor with this email already exists'
+            });
+        }
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update vendor'
+        });
+    }
+};
+
+// Recalculate Vendor Ledger Balance
+const recalculateBalance = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.user.companyId;
+
+        const vendor = await prisma.vendor.findFirst({
+            where: { id: parseInt(id), companyId: companyId },
+            include: { ledger: true }
+        });
+
+        if (!vendor || !vendor.ledgerId) {
+            return res.status(404).json({ success: false, message: 'Vendor or Ledger not found' });
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where: {
+                companyId: companyId,
+                OR: [
+                    { debitLedgerId: vendor.ledgerId },
+                    { creditLedgerId: vendor.ledgerId }
+                ]
+            }
+        });
+
+        let newBalance = vendor.ledger.openingBalance || 0;
+        for (const tx of transactions) {
+            if (tx.creditLedgerId === vendor.ledgerId) {
+                newBalance += tx.amount;
+            } else {
+                newBalance -= tx.amount;
+            }
+        }
+
+        await prisma.ledger.update({
+            where: { id: vendor.ledgerId },
+            data: { currentBalance: newBalance }
+        });
+
+        await prisma.vendor.update({
+            where: { id: vendor.id },
+            data: { accountBalance: newBalance }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'Balance recalculated successfully',
+            data: {
+                oldBalance: vendor.ledger.currentBalance,
+                newBalance: newBalance
+            }
+        });
+    } catch (error) {
+        console.error('Recalculate Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Recalculate All Vendors Ledger Balances
+const recalculateAllBalances = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+
+        const vendors = await prisma.vendor.findMany({
+            where: { companyId: companyId },
+            include: { ledger: true }
+        });
+
+        const results = [];
+
+        await prisma.$transaction(async (tx) => {
+            for (const vendor of vendors) {
+                if (!vendor.ledgerId) continue;
+
+                const transactions = await tx.transaction.findMany({
+                    where: {
+                        companyId: companyId,
+                        OR: [
+                            { debitLedgerId: vendor.ledgerId },
+                            { creditLedgerId: vendor.ledgerId }
+                        ]
+                    }
+                });
+
+                let newBalance = vendor.ledger.openingBalance || 0;
+                for (const txn of transactions) {
+                    if (txn.creditLedgerId === vendor.ledgerId) {
+                        newBalance += txn.amount;
+                    } else {
+                        newBalance -= txn.amount;
+                    }
+                }
+
+                await tx.ledger.update({
+                    where: { id: vendor.ledgerId },
+                    data: { currentBalance: newBalance }
+                });
+
+                await tx.vendor.update({
+                    where: { id: vendor.id },
+                    data: { accountBalance: newBalance }
+                });
+
+                results.push({
+                    vendorId: vendor.id,
+                    vendorName: vendor.name,
+                    oldBalance: vendor.accountBalance,
+                    newBalance: newBalance
+                });
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'All vendor balances recalculated successfully',
+            data: results
+        });
+    } catch (error) {
+        console.error('Recalculate All Balances Error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Failed to recalculate balances' });
+    }
+};
+
+// Get Vendor Statement (Ledger History)
+const getVendorStatement = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { startDate, endDate, billId } = req.query;
+        const companyId = req.user.companyId;
+
+        const vendor = await prisma.vendor.findFirst({
+            where: { id: parseInt(id), companyId: companyId },
+            include: { ledger: true }
+        });
+
+        if (!vendor || !vendor.ledgerId) {
+            return res.status(404).json({ success: false, message: 'Vendor or Ledger not found' });
+        }
+
+        const dateRange = {};
+        if (startDate) dateRange.gte = new Date(startDate);
+        if (endDate) dateRange.lte = new Date(endDate);
+
+        const whereClause = {
+            companyId: companyId,
+            date: Object.keys(dateRange).length > 0 ? dateRange : undefined,
+            OR: [
+                { debitLedgerId: vendor.ledgerId },
+                { creditLedgerId: vendor.ledgerId }
+            ]
+        };
+
+        if (billId) {
+            whereClause.purchaseBillId = parseInt(billId);
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where: whereClause,
+            include: {
+                purchasebill: {
+                    select: {
+                        billNumber: true, subtotal: true, totalAmount: true, paidAmount: true, balanceAmount: true, discountAmount: true, taxAmount: true, currency: true, exchangeRate: true, overallDiscount: true, overallDiscountType: true, customFields: true,
+                        purchasebillitem: { include: { product: { select: { name: true, sku: true, unit: true } } } }
+                    }
+                },
+                payment: { select: { paymentNumber: true, amount: true } },
+                journalentry: true
+            },
+            orderBy: { date: 'asc' }
+        });
+
+        // Group transactions by voucher / doc key to combine multiple split postings into 1 row
+        const groupedMap = new Map();
+        transactions.forEach(tx => {
+            let key = `tx_${tx.id}`;
+            if (tx.paymentId) key = `pay_${tx.paymentId}`;
+            else if (tx.purchaseReturnId) key = `preturn_${tx.purchaseReturnId}`;
+            else if (tx.purchaseBillId) key = `pbill_${tx.purchaseBillId}`;
+            else if (tx.voucherNumber) key = `v_${tx.voucherType}_${tx.voucherNumber}_${new Date(tx.date).toISOString().split('T')[0]}`;
+
+            if (!groupedMap.has(key)) {
+                groupedMap.set(key, []);
+            }
+            groupedMap.get(key).push(tx);
+        });
+
+        // Calculate Statements with Running Balance per grouped voucher for Vendors (Liabilities)
+        let runningBalance = billId ? 0 : vendor.ledger.openingBalance;
+        const statement = [];
+
+        for (const [key, txList] of groupedMap.entries()) {
+            const primaryTx = txList[0];
+
+            let debitSum = 0;
+            let creditSum = 0;
+
+            txList.forEach(tx => {
+                const isDebit = tx.debitLedgerId === vendor.ledgerId;
+                if (isDebit) debitSum += parseFloat(tx.amount || 0);
+                else creditSum += parseFloat(tx.amount || 0);
+            });
+
+            // For Vendors (Liabilities): Credit increases (+), Debit decreases (-)
+            const netAmount = creditSum - debitSum;
+            let debit = 0;
+            let credit = 0;
+
+            if (netAmount >= 0) {
+                credit = netAmount;
+                runningBalance += netAmount;
+            } else {
+                debit = Math.abs(netAmount);
+                runningBalance -= Math.abs(netAmount);
+            }
+
+            // Extract items and breakdown for hover popup
+            let items = [];
+            let doc = primaryTx.purchasebill;
+            if (primaryTx.purchasebill && primaryTx.purchasebill.purchasebillitem) {
+                items = primaryTx.purchasebill.purchasebillitem.map(item => ({
+                    name: item.product?.name || item.description || 'Item',
+                    qty: item.quantity,
+                    rate: item.rate,
+                    amount: item.amount
+                }));
+            }
+
+            const itemsSub = items.reduce((s, i) => s + (parseFloat(i.amount) || (parseFloat(i.rate || 0) * parseFloat(i.qty || 0))), 0);
+            const subtotal = doc?.subtotal || itemsSub;
+
+            let discountAmount = doc?.discountAmount || 0;
+            if (!discountAmount && doc?.overallDiscount) {
+                if (doc.overallDiscountType === 'percentage') {
+                    discountAmount = (subtotal * parseFloat(doc.overallDiscount)) / 100;
+                } else {
+                    discountAmount = parseFloat(doc.overallDiscount) || 0;
+                }
+            }
+
+            let taxAmount = doc?.taxAmount || 0;
+            let otherCharges = doc?.otherCharges || 0;
+
+            if (!otherCharges && doc?.customFields) {
+                try {
+                    const cf = typeof doc.customFields === 'string' ? JSON.parse(doc.customFields) : doc.customFields;
+                    if (Array.isArray(cf?._otherCharges)) {
+                        otherCharges = cf._otherCharges.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+                    }
+                } catch (e) {}
+            }
+
+            const totalAmount = doc?.totalAmount || primaryTx.payment?.amount || (debit || credit) || 0;
+
+            const netCalc = subtotal - discountAmount + taxAmount;
+            if (!otherCharges && totalAmount > netCalc + 0.01) {
+                otherCharges = totalAmount - netCalc;
+            } else if (!discountAmount && netCalc > totalAmount + 0.01 && !taxAmount) {
+                discountAmount = subtotal - totalAmount;
+            }
+
+            const paidAmount = doc?.paidAmount || 0;
+            const balanceAmount = doc?.balanceAmount ?? Math.max(0, totalAmount - paidAmount);
+
+            statement.push({
+                id: primaryTx.id,
+                date: primaryTx.date,
+                voucherType: primaryTx.voucherType,
+                voucherNumber: primaryTx.voucherNumber,
+                narration: primaryTx.narration || `${primaryTx.voucherType} #${primaryTx.voucherNumber}`,
+                debit,
+                credit,
+                balance: runningBalance,
+                purchaseBillId: primaryTx.purchaseBillId || null,
+                paymentId: primaryTx.paymentId || null,
+                purchaseReturnId: primaryTx.purchaseReturnId || null,
+                items,
+                subtotal,
+                totalAmount,
+                paidAmount,
+                balanceAmount,
+                discountAmount,
+                taxAmount,
+                otherCharges
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                vendor: {
+                    name: vendor.name,
+                    ledgerName: vendor.ledger.name,
+                    openingBalance: vendor.ledger.openingBalance
+                },
+                statement
+            }
+        });
+    } catch (error) {
+        console.error('Vendor Statement Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Delete Vendor
+const deleteVendor = async (req, res) => {
+    try {
+        const companyId = req.user.companyId;
+        const { id } = req.params;
+
+        // Check if vendor exists
+        const vendor = await prisma.vendor.findFirst({
+            where: {
+                id: parseInt(id),
+                companyId: companyId
+            },
+            include: {
+                purchasebill: true,
+                purchaseorder: true,
+                purchasequotation: true,
+                payment: true,
+                goodsreceiptnote: true,
+                ledger: true
+            }
+        });
+
+        if (!vendor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Vendor not found'
+            });
+        }
+
+        // Check for dependencies
+        const dependencies = [];
+        if (vendor.purchasebill && vendor.purchasebill.length > 0) dependencies.push('purchase bills');
+        if (vendor.purchaseorder && vendor.purchaseorder.length > 0) dependencies.push('purchase orders');
+        if (vendor.purchasequotation && vendor.purchasequotation.length > 0) dependencies.push('purchase quotations');
+        if (vendor.payment && vendor.payment.length > 0) dependencies.push('payments');
+        if (vendor.goodsreceiptnote && vendor.goodsreceiptnote.length > 0) dependencies.push('GRNs');
+
+        if (dependencies.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot delete vendor with existing ${dependencies.join(', ')}. Please delete them first.`
+            });
+        }
+
+        // Delete in transaction
+        await prisma.$transaction(async (tx) => {
+            let ledgerExists = false;
+            if (vendor.ledgerId) {
+                const ledger = await tx.ledger.findUnique({
+                    where: { id: vendor.ledgerId }
+                });
+                if (ledger) {
+                    ledgerExists = true;
+                }
+            }
+
+            // 1. Nullify references to avoid FK constraints during deletion
+            if (ledgerExists) {
+                // Update vendor to remove ledger reference
+                await tx.vendor.update({
+                    where: { id: vendor.id },
+                    data: { ledgerId: null }
+                });
+
+                // Update ledger to remove vendor reference
+                await tx.ledger.update({
+                    where: { id: vendor.ledgerId },
+                    data: { vendorId: null }
+                });
+            }
+
+            // 2. Delete Vendor
+            await tx.vendor.delete({
+                where: { id: vendor.id }
+            });
+
+            // 3. Delete associated Ledger if exists
+            if (ledgerExists) {
+                await tx.ledger.delete({
+                    where: { id: vendor.ledgerId }
+                });
+            }
+        }, {
+            timeout: 15000,
+            maxWait: 5000
+        });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'DELETE', 'Vendor', vendor.id, `Vendor ${vendor.name} deleted`);
+        res.status(200).json({
+            success: true,
+            message: 'Vendor deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting vendor details:', error);
+        res.status(500).json({
+            success: false,
+            message: `Failed to delete vendor: ${error.message}`
+        });
+    }
+};
+
+module.exports = {
+    createVendor,
+    getAllVendors,
+    getVendorById,
+    updateVendor,
+    deleteVendor,
+    getVendorStatement,
+    recalculateBalance,
+    recalculateAllBalances
+};

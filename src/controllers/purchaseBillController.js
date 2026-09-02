@@ -1,0 +1,2032 @@
+
+const prisma = require('../config/prisma');
+const numberingService = require('../services/numberingService');
+const {
+    getInventoryConfig,
+    recordStockIn,
+    reverseStockIn,
+    calculateNetRate
+} = require('../services/inventoryValuationService');
+
+// Helper to dynamically adjust Purchase Bill quantities and amounts by associated returns
+const adjustBillWithReturns = (bill) => {
+    if (!bill) return bill;
+
+    const returns = bill.purchasereturn || [];
+    let returnedTotal = 0;
+    const returnedItemsMap = {}; // productId -> { quantity, amount }
+
+    for (const ret of returns) {
+        returnedTotal += ret.totalAmount || 0;
+        const retItems = ret.purchasereturnitem || [];
+        for (const item of retItems) {
+            if (item.productId) {
+                if (!returnedItemsMap[item.productId]) {
+                    returnedItemsMap[item.productId] = { quantity: 0, amount: 0 };
+                }
+                returnedItemsMap[item.productId].quantity += item.quantity || 0;
+                returnedItemsMap[item.productId].amount += item.amount || 0;
+            }
+        }
+    }
+
+    if (bill.purchasebillitem) {
+        bill.purchasebillitem = bill.purchasebillitem.map(item => {
+            const ret = returnedItemsMap[item.productId];
+            if (ret) {
+                const adjustedQty = Math.max(0, item.quantity - ret.quantity);
+                const adjustedAmt = Math.max(0, item.amount - ret.amount);
+                return {
+                    ...item,
+                    quantity: adjustedQty,
+                    amount: adjustedAmt
+                };
+            }
+            return item;
+        });
+    }
+
+    const adjustedTotal = Math.max(0, bill.totalAmount - returnedTotal);
+    const paidAmount = bill.paidAmount || 0;
+    const adjustedBalance = Math.max(0, adjustedTotal - paidAmount);
+
+    let adjustedStatus = bill.status;
+    if (bill.manualStatus === true || bill.manualStatus === 'true') {
+        adjustedStatus = bill.status;
+    } else if (adjustedBalance <= 0) {
+        adjustedStatus = 'PAID';
+    } else if (paidAmount > 0) {
+        adjustedStatus = 'PARTIAL';
+    } else {
+        adjustedStatus = 'UNPAID';
+    }
+
+    return {
+        ...bill,
+        totalAmount: adjustedTotal,
+        balanceAmount: adjustedBalance,
+        status: adjustedStatus
+    };
+};
+
+// Create Purchase Bill (Financial Posting)
+const createBill = async (req, res) => {
+    try {
+        const { billNumber, date, dueDate, vendorId, purchaseOrderId, grnId, items, notes, discountAmount, taxAmount, totalAmount, billingName, billingAddress, billingCity, billingState, billingZipCode, billingCountry, shippingName, shippingAddress, shippingCity, shippingState, shippingZipCode, shippingCountry, overallDiscount, overallDiscountType, currency, exchangeRate, customFields, manualStatus, status, manualReference } = req.body;
+        const companyId = req.user?.companyId || req.query.companyId || req.body.companyId;
+
+        const docCurrency = currency || 'USD';
+        const docExchangeRate = parseFloat(exchangeRate) || 1.0;
+
+        if (!billNumber || !vendorId || !items || items.length === 0) {
+            return res.status(400).json({ success: false, message: 'Please provide all required fields' });
+        }
+
+        // Pre-flight: Check if this manual reference is already in use
+        if (manualReference && req.query.allowDuplicate !== 'true') {
+            const existingManual = await prisma.purchasebill.findFirst({
+                where: { companyId: parseInt(companyId), manualReference }
+            });
+            if (existingManual) {
+                let suffix = 1;
+                let nextUniqueRef = `${manualReference}-${suffix}`;
+                while (await prisma.purchasebill.findFirst({ where: { companyId: parseInt(companyId), manualReference: nextUniqueRef } })) {
+                    suffix++;
+                    nextUniqueRef = `${manualReference}-${suffix}`;
+                }
+                return res.status(400).json({
+                    success: false,
+                    isDuplicate: true,
+                    nextUniqueRef,
+                    message: `Manual Reference '${manualReference}' already exists.`
+                });
+            }
+        }
+
+        // Check if Journal Entry / Voucher Number is already in use
+        const existingJournal = await prisma.journalentry.findFirst({
+            where: {
+                companyId: parseInt(companyId),
+                voucherNumber: billNumber
+            }
+        });
+
+        if (existingJournal) {
+            return res.status(400).json({
+                success: false,
+                message: `Voucher Number '${billNumber}' is already in use by another transaction (e.g. Sales Invoice or POS Invoice). Please use a unique bill number.`
+            });
+        }
+
+        // Validate bill date is not before vendor's account creation date
+        const vendorForDateCheck = await prisma.vendor.findUnique({
+            where: { id: parseInt(vendorId) },
+            select: { creationDate: true }
+        });
+        if (vendorForDateCheck?.creationDate && date) {
+            const txDate = new Date(date);
+            const accountDate = new Date(vendorForDateCheck.creationDate);
+            txDate.setHours(0, 0, 0, 0);
+            accountDate.setHours(0, 0, 0, 0);
+            if (txDate < accountDate) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Bill date (${txDate.toDateString()}) cannot be before the vendor's account creation date (${accountDate.toDateString()}).`
+                });
+            }
+        }
+
+        const companyRec = await prisma.company.findUnique({
+            where: { id: parseInt(companyId) },
+            select: { state: true, inventoryConfig: true }
+        });
+        const compStateStr = (companyRec?.state || '').toLowerCase().trim();
+        const vendorRec = await prisma.vendor.findUnique({
+            where: { id: parseInt(vendorId) },
+            select: { billingState: true }
+        });
+        const vendStateStr = (req.body.billingState || vendorRec?.billingState || '').toLowerCase().trim();
+        const isInterState = Boolean(compStateStr && vendStateStr && compStateStr !== vendStateStr);
+
+        let defaultWhId = req.body.warehouseId ? parseInt(req.body.warehouseId) : null;
+        if (!defaultWhId) {
+            let cfg = {};
+            try {
+                cfg = typeof companyRec?.inventoryConfig === 'string' ? JSON.parse(companyRec.inventoryConfig) : (companyRec?.inventoryConfig || {});
+            } catch (e) { }
+            if (cfg.defaultPurchaseWarehouseId) defaultWhId = parseInt(cfg.defaultPurchaseWarehouseId);
+        }
+        if (!defaultWhId) {
+            const firstWh = await prisma.warehouse.findFirst({ where: { companyId: parseInt(companyId) } });
+            if (firstWh) defaultWhId = firstWh.id;
+        }
+
+        let calculatedSubtotal = 0;
+        let calculatedItemDiscount = 0;
+        let calculatedTaxSum = 0;
+
+        const billItems = items.map(item => {
+            const qty = parseFloat(item.quantity) || 0;
+            const rate = parseFloat(item.rate) || 0;
+            const discount = parseFloat(item.discount || 0);
+            const taxRate = parseFloat(item.taxRate || 0);
+
+            const lineGross = qty * rate;
+            const lineTaxable = lineGross - discount;
+            const lineTax = (lineTaxable * taxRate) / 100;
+            const lineTotal = lineTaxable + lineTax;
+
+            let cgstRate = 0, sgstRate = 0, igstRate = 0;
+            let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
+            if (taxRate > 0) {
+                if (isInterState) {
+                    igstRate = taxRate;
+                    igstAmount = lineTax;
+                } else {
+                    cgstRate = taxRate / 2;
+                    sgstRate = taxRate / 2;
+                    cgstAmount = lineTax / 2;
+                    sgstAmount = lineTax / 2;
+                }
+            }
+
+            calculatedSubtotal += lineGross;
+            calculatedItemDiscount += discount;
+            calculatedTaxSum += lineTax;
+
+            return {
+                productId: item.productId ? parseInt(item.productId) : null,
+                warehouseId: item.warehouseId ? parseInt(item.warehouseId) : defaultWhId,
+                uomId: item.uomId ? parseInt(item.uomId) : null,
+                description: item.description,
+                quantity: qty,
+                rate: rate,
+                discount: discount,
+                taxRate: taxRate,
+                cgstRate,
+                sgstRate,
+                igstRate,
+                cgstAmount,
+                sgstAmount,
+                igstAmount,
+                amount: lineTotal
+            };
+        });
+
+        const finalTax = parseFloat(taxAmount) || calculatedTaxSum;
+        const baseTotal = (calculatedSubtotal - calculatedItemDiscount) + finalTax;
+        let totalAmountValue = baseTotal;
+        const ovVal = parseFloat(overallDiscount) || 0;
+        let overallDiscountAmt = 0;
+        if (overallDiscount && overallDiscountType === 'percentage') {
+            overallDiscountAmt = baseTotal * ovVal / 100;
+            totalAmountValue = baseTotal - overallDiscountAmt;
+        } else if (overallDiscount) {
+            overallDiscountAmt = ovVal;
+            totalAmountValue = baseTotal - overallDiscountAmt;
+        }
+
+        const totalDiscount = calculatedItemDiscount + overallDiscountAmt;
+
+        const otherChargesArr = Array.isArray(req.body.otherCharges) ? req.body.otherCharges : [];
+        const otherChargesTotal = otherChargesArr.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+        const roundOffVal = parseFloat(req.body.roundOffAmount || req.body.roundOff || 0);
+        totalAmountValue = totalAmountValue + otherChargesTotal + roundOffVal;
+
+        const result = await prisma.$transaction(async (tx) => {
+            // 1. Create Purchase Bill
+            const bill = await tx.purchasebill.create({
+                data: {
+                    customFields: customFields ? (typeof customFields === 'string' ? customFields : JSON.stringify(customFields)) : null,
+                    salespersonId: req.body.salespersonId ? parseInt(req.body.salespersonId) : null,
+                    carNumber: req.body.carNumber || null,
+                    billNumber,
+                    manualReference,
+                    date: new Date(date),
+                    dueDate: dueDate ? new Date(dueDate) : null,
+                    vendorId: parseInt(vendorId),
+                    purchaseOrderId: purchaseOrderId ? parseInt(purchaseOrderId) : null,
+                    grnId: grnId ? parseInt(grnId) : null,
+                    companyId: parseInt(companyId),
+                    subtotal: calculatedSubtotal,
+                    discountAmount: totalDiscount,
+                    taxAmount: finalTax,
+                    roundOffAmount: roundOffVal,
+                    totalAmount: totalAmountValue,
+                    balanceAmount: totalAmountValue,
+                    currency: docCurrency,
+                    exchangeRate: docExchangeRate,
+                    manualStatus: manualStatus === true || manualStatus === 'true',
+                    status: (manualStatus === true || manualStatus === 'true') && status ? status : 'UNPAID',
+                    notes,
+                    billingName,
+                    billingAddress,
+                    billingCity,
+                    billingState,
+                    billingZipCode,
+                    billingCountry,
+                    shippingName,
+                    shippingAddress,
+                    shippingCity,
+                    shippingState,
+                    shippingZipCode,
+                    shippingCountry,
+                    overallDiscount: overallDiscount ? parseFloat(overallDiscount) : 0,
+                    overallDiscountType: overallDiscountType || 'percentage',
+                    purchasebillitem: {
+                        create: billItems.map(i => ({
+                            productId: i.productId,
+                            warehouseId: i.warehouseId,
+                            uomId: i.uomId,
+                            description: i.description,
+                            quantity: i.quantity,
+                            rate: i.rate,
+                            discount: i.discount,
+                            taxRate: i.taxRate,
+                            cgstRate: i.cgstRate,
+                            sgstRate: i.sgstRate,
+                            igstRate: i.igstRate,
+                            cgstAmount: i.cgstAmount,
+                            sgstAmount: i.sgstAmount,
+                            igstAmount: i.igstAmount,
+                            amount: i.amount
+                        }))
+                    }
+                },
+                include: {
+                    purchasebillitem: {
+                        include: {
+                            product: true,
+                            warehouse: true,
+                            uom: true
+                        }
+                    }
+                }
+            });
+
+            // Process Advance Adjustments if provided
+            let totalAdjustedAmount = 0;
+            let totalAdvanceApplied = 0;
+
+            let advancePaymentsToProcess = [];
+            if (req.body.adjustments && req.body.adjustments.length > 0) {
+                advancePaymentsToProcess = req.body.adjustments;
+            } else if (req.body.applyAdvance === true || parseFloat(req.body.appliedAdvanceAmount) > 0) {
+                const openPayments = await tx.payment.findMany({
+                    where: {
+                        vendorId: parseInt(vendorId),
+                        companyId: parseInt(companyId),
+                        advanceUnallocated: { gt: 0 }
+                    },
+                    orderBy: { date: 'asc' }
+                });
+                let reqAmt = parseFloat(req.body.appliedAdvanceAmount) || totalAmountValue;
+                for (const p of openPayments) {
+                    if (reqAmt <= 0) break;
+                    const alloc = Math.min(p.advanceUnallocated, reqAmt);
+                    advancePaymentsToProcess.push({ paymentId: p.id, amount: alloc });
+                    reqAmt -= alloc;
+                }
+            }
+
+            for (const adj of advancePaymentsToProcess) {
+                const payment = await tx.payment.findUnique({
+                    where: { id: parseInt(adj.paymentId) }
+                });
+                if (payment) {
+                    const availableUnallocated = payment.advanceUnallocated > 0
+                        ? payment.advanceUnallocated
+                        : Math.max(0, payment.amount - (await tx.paymentbillallocation.aggregate({ _sum: { amount: true }, where: { paymentId: payment.id } }))._sum.amount || 0);
+
+                    const adjustAmt = Math.min(parseFloat(adj.amount), availableUnallocated, Math.max(0, totalAmountValue - totalAdjustedAmount));
+
+                    if (adjustAmt > 0) {
+                        // Create allocation record
+                        await tx.paymentbillallocation.create({
+                            data: {
+                                paymentId: payment.id,
+                                purchaseBillId: bill.id,
+                                amount: adjustAmt,
+                                companyId: parseInt(companyId)
+                            }
+                        });
+                        // Create advanceadjustment model record
+                        await tx.advanceadjustment.create({
+                            data: {
+                                companyId: parseInt(companyId),
+                                partyType: 'VENDOR',
+                                partyId: parseInt(vendorId),
+                                paymentId: payment.id,
+                                purchaseBillId: bill.id,
+                                amount: adjustAmt
+                            }
+                        });
+                        // Update payment unallocated balance
+                        await tx.payment.update({
+                            where: { id: payment.id },
+                            data: {
+                                advanceUnallocated: Math.max(0, (payment.advanceUnallocated || availableUnallocated) - adjustAmt)
+                            }
+                        });
+                        totalAdjustedAmount += adjustAmt;
+                        totalAdvanceApplied += adjustAmt;
+                    }
+                }
+            }
+
+            if (totalAdjustedAmount > 0) {
+                const finalPaid = totalAdjustedAmount;
+                const finalBalance = Math.max(0, totalAmountValue - finalPaid);
+                await tx.purchasebill.update({
+                    where: { id: bill.id },
+                    data: {
+                        paidAmount: finalPaid,
+                        appliedAdvanceAmount: totalAdvanceApplied,
+                        balanceAmount: finalBalance,
+                        status: (manualStatus === true || manualStatus === 'true') && status ? status : (finalBalance <= 0.01 ? 'PAID' : 'PARTIAL')
+                    }
+                });
+                bill.paidAmount = finalPaid;
+                bill.appliedAdvanceAmount = totalAdvanceApplied;
+                bill.balanceAmount = finalBalance;
+                bill.status = (manualStatus === true || manualStatus === 'true') && status ? status : (finalBalance <= 0.01 ? 'PAID' : 'PARTIAL');
+            }
+
+            // Update linked PO status if exists
+            if (purchaseOrderId) {
+                await tx.purchaseorder.update({
+                    where: { id: parseInt(purchaseOrderId) },
+                    data: { status: 'COMPLETED' }
+                });
+            }
+
+            // Update linked GRN status if exists
+            if (grnId) {
+                await tx.goodsreceiptnote.update({
+                    where: { id: parseInt(grnId) },
+                    data: { status: 'Invoiced' }
+                });
+            }
+
+            // 2. Ledger Posting (Dr Inventory/Purchase, Cr Vendor)
+            const vendor = await tx.vendor.findUnique({ where: { id: parseInt(vendorId) }, include: { ledger: true } });
+            if (!vendor || !vendor.ledger) throw new Error('Vendor ledger not found. Please link a ledger to this vendor first.');
+
+            // Helper to resolve ledgers (Auto-create if missing)
+            const resolveLedger = async (namePattern, type) => {
+                let ledger = await tx.ledger.findFirst({
+                    where: { companyId: parseInt(companyId), name: { contains: namePattern } }
+                });
+                if (!ledger) {
+                    const group = await tx.accountgroup.findFirst({ where: { companyId: parseInt(companyId), type: type } });
+                    if (group) {
+                        ledger = await tx.ledger.create({
+                            data: {
+                                name: namePattern,
+                                groupId: group.id,
+                                companyId: parseInt(companyId),
+                                isControlAccount: true
+                            }
+                        });
+                    }
+                }
+                return ledger;
+            };
+
+
+            const inventoryLedger = await resolveLedger('Inventory Asset', 'ASSETS') || await resolveLedger('Inventory', 'ASSETS');
+            const purchaseLedger = await resolveLedger('Purchases', 'EXPENSES') || await resolveLedger('Purchase', 'EXPENSES');
+            const discountReceivedLedger = await resolveLedger('Discount Received on Purchase', 'INCOME') || await resolveLedger('Discount Received', 'INCOME');
+
+            // 3. Create Journal Entry
+            const journalEntry = await tx.journalentry.create({
+                data: {
+                    date: new Date(date),
+                    voucherNumber: billNumber,
+                    narration: `Purchase Bill #${billNumber}`,
+                    companyId: parseInt(companyId),
+                }
+            });
+
+            // 4. Process Items for Accounting and Price Updates
+            let totalProductGross = 0;
+            let totalServiceGross = 0;
+
+            for (const item of billItems) {
+                const lineGross = item.quantity * item.rate;
+                if (item.productId) {
+                    totalProductGross += lineGross;
+                    // Update Product Purchase Price
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { purchasePrice: item.rate * docExchangeRate }
+                    });
+                } else {
+                    totalServiceGross += lineGross;
+                }
+            }
+
+            // 5. DR Inventory / Purchases, CR Vendor
+            const creditLedgerId = vendor.ledger.id;
+
+            const ledgerProductAmount = totalProductGross * docExchangeRate;
+            const ledgerServiceAmount = totalServiceGross * docExchangeRate;
+            const ledgerTaxAmount = finalTax * docExchangeRate;
+            const ledgerDiscountAmount = totalDiscount * docExchangeRate;
+            const ledgerTotalAmount = totalAmountValue * docExchangeRate;
+
+            // Entry for Products (Debit Purchases)
+            const finalProductLedger = inventoryLedger || purchaseLedger;
+            if (totalProductGross > 0 && finalProductLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: new Date(date),
+                        amount: ledgerProductAmount,
+                        debitLedgerId: finalProductLedger.id,
+                        creditLedgerId: creditLedgerId,
+                        voucherType: 'PURCHASE',
+                        voucherNumber: billNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: bill.id,
+                        narration: 'Product Purchases'
+                    }
+                });
+                await tx.ledger.update({ where: { id: finalProductLedger.id }, data: { currentBalance: { increment: ledgerProductAmount } } });
+                await tx.ledger.update({ where: { id: creditLedgerId }, data: { currentBalance: { increment: ledgerProductAmount } } });
+
+                // Update Physical Stock AND Inventory Valuation Layers
+                if (!grnId) {
+                    // Get inventory valuation method
+                    const invConfig = await getInventoryConfig(companyId);
+                    const valuationMethod = invConfig.valuationMethod || 'WAC';
+
+                    for (const item of billItems) {
+                        const targetWh = item.warehouseId || defaultWhId;
+                        if (item.productId && targetWh) {
+                            // Fetch Product with Base UoM
+                            const prod = await tx.product.findUnique({
+                                where: { id: item.productId },
+                                include: { uom: true }
+                            });
+
+                            // Fetch Selected Transaction UoM
+                            let transUom = null;
+                            if (item.uomId) {
+                                transUom = await tx.uom.findUnique({
+                                    where: { id: item.uomId }
+                                });
+                            }
+                            const baseUom = prod?.uom;
+
+                            // Convert quantity and rate to base UoM
+                            const { convertToBaseQuantity, convertTransRateToBaseRate } = require('../services/uomConversionService');
+                            const baseQty = convertToBaseQuantity(item.quantity, transUom, baseUom);
+                            const netRate = calculateNetRate(item.rate, item.quantity, item.discount);
+                            const baseNetRate = convertTransRateToBaseRate(netRate, transUom, baseUom);
+
+                            await tx.stock.upsert({
+                                where: { warehouseId_productId: { warehouseId: targetWh, productId: item.productId } },
+                                update: { quantity: { increment: baseQty } },
+                                create: { warehouseId: targetWh, productId: item.productId, quantity: baseQty }
+                            });
+
+                            await tx.inventorytransaction.create({
+                                data: {
+                                    date: new Date(date),
+                                    type: 'PURCHASE',
+                                    productId: item.productId,
+                                    toWarehouseId: targetWh,
+                                    quantity: baseQty,
+                                    reason: `Direct Purchase Bill: ${billNumber}`,
+                                    companyId: parseInt(companyId),
+                                    userId: req.user?.userId || null
+                                }
+                            });
+
+                            // Record inventory valuation layer (FIFO or WAC)
+                            await recordStockIn(tx, {
+                                companyId,
+                                productId: item.productId,
+                                warehouseId: item.warehouseId,
+                                quantity: baseQty,
+                                rate: baseNetRate * docExchangeRate,
+                                purchaseBillId: bill.id,
+                                method: valuationMethod
+                            });
+                        }
+                    }
+                }
+            }
+
+
+            // Entry for Services/Others (Debit Purchases Expense)
+            const finalPurchaseLedger = purchaseLedger || inventoryLedger; // Fallback
+            if (totalServiceGross > 0 && finalPurchaseLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: new Date(date),
+                        amount: ledgerServiceAmount,
+                        debitLedgerId: finalPurchaseLedger.id,
+                        creditLedgerId: creditLedgerId,
+                        voucherType: 'PURCHASE',
+                        voucherNumber: billNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: bill.id,
+                        narration: 'Service/General Purchase'
+                    }
+                });
+                await tx.ledger.update({ where: { id: finalPurchaseLedger.id }, data: { currentBalance: { increment: ledgerServiceAmount } } });
+                await tx.ledger.update({ where: { id: creditLedgerId }, data: { currentBalance: { increment: ledgerServiceAmount } } });
+            }
+
+            // Handle Tax if applicable (Debit CGST/SGST/IGST Input or Tax, Credit Vendor)
+            if (parseFloat(finalTax) > 0) {
+                const totalCGST = billItems.reduce((s, i) => s + (i.cgstAmount || 0), 0);
+                const totalSGST = billItems.reduce((s, i) => s + (i.sgstAmount || 0), 0);
+                const totalIGST = billItems.reduce((s, i) => s + (i.igstAmount || 0), 0);
+
+                const fallbackTaxLedger = await resolveLedger('Tax', 'ASSETS') || await resolveLedger('Tax', 'LIABILITIES');
+                const cgstInputLedger = (totalCGST > 0) ? (await resolveLedger('CGST Input', 'ASSETS') || await resolveLedger('CGST Output', 'ASSETS') || fallbackTaxLedger) : null;
+                const sgstInputLedger = (totalSGST > 0) ? (await resolveLedger('SGST Input', 'ASSETS') || await resolveLedger('SGST Output', 'ASSETS') || fallbackTaxLedger) : null;
+                const igstInputLedger = (totalIGST > 0) ? (await resolveLedger('IGST Input', 'ASSETS') || await resolveLedger('IGST Output', 'ASSETS') || fallbackTaxLedger) : null;
+
+                const postPurchaseTaxEntry = async (targetLedger, taxAmt, taxName) => {
+                    const convertedTaxAmt = taxAmt * docExchangeRate;
+                    if (convertedTaxAmt <= 0 || !targetLedger) return;
+                    await tx.transaction.create({
+                        data: {
+                            date: new Date(date),
+                            amount: convertedTaxAmt,
+                            debitLedgerId: targetLedger.id,
+                            creditLedgerId: creditLedgerId,
+                            voucherType: 'PURCHASE',
+                            voucherNumber: billNumber,
+                            companyId: parseInt(companyId),
+                            journalEntryId: journalEntry.id,
+                            purchaseBillId: bill.id,
+                            narration: `${taxName} on Purchase`
+                        }
+                    });
+                    await tx.ledger.update({ where: { id: targetLedger.id }, data: { currentBalance: { increment: convertedTaxAmt } } });
+                    await tx.ledger.update({ where: { id: creditLedgerId }, data: { currentBalance: { increment: convertedTaxAmt } } });
+                };
+
+                if (totalCGST > 0 || totalSGST > 0 || totalIGST > 0) {
+                    if (totalCGST > 0) await postPurchaseTaxEntry(cgstInputLedger, totalCGST, 'CGST Input');
+                    if (totalSGST > 0) await postPurchaseTaxEntry(sgstInputLedger, totalSGST, 'SGST Input');
+                    if (totalIGST > 0) await postPurchaseTaxEntry(igstInputLedger, totalIGST, 'IGST Input');
+                } else if (fallbackTaxLedger) {
+                    await postPurchaseTaxEntry(fallbackTaxLedger, finalTax, 'Tax');
+                }
+            }
+
+            // Handle Discount Received if applicable (Debit Vendor, Credit Discount Received)
+            if (ledgerDiscountAmount > 0 && discountReceivedLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: new Date(date),
+                        amount: ledgerDiscountAmount,
+                        debitLedgerId: creditLedgerId, // Vendor (reduces liability with debit)
+                        creditLedgerId: discountReceivedLedger.id, // Discount Received (increases income with credit)
+                        voucherType: 'PURCHASE',
+                        voucherNumber: billNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: bill.id,
+                        narration: 'Discount Received on Purchase'
+                    }
+                });
+                await tx.ledger.update({ where: { id: discountReceivedLedger.id }, data: { currentBalance: { increment: ledgerDiscountAmount } } });
+                await tx.ledger.update({ where: { id: creditLedgerId }, data: { currentBalance: { decrement: ledgerDiscountAmount } } });
+            }
+
+            // Handle Round Off Accounting Entry for Purchase Bill
+            if (Math.abs(roundOffVal) > 0.001) {
+                const roundOffLedger = await resolveLedger('Round Off', 'EXPENSES') || await resolveLedger('Round-off', 'EXPENSES') || await resolveLedger('Round Off', 'INCOME');
+                if (roundOffLedger) {
+                    const convertedRoundOff = Math.abs(roundOffVal) * docExchangeRate;
+                    if (roundOffVal > 0) {
+                        // Rounding Up (+): Vendor Payable increases (CR Vendor), Round-off Expense increases (DR Round Off)
+                        await tx.transaction.create({
+                            data: {
+                                date: new Date(date),
+                                voucherType: 'PURCHASE',
+                                voucherNumber: billNumber,
+                                debitLedgerId: roundOffLedger.id,
+                                creditLedgerId: creditLedgerId,
+                                amount: convertedRoundOff,
+                                narration: `Round-off on Purchase: ${billNumber}`,
+                                companyId: parseInt(companyId),
+                                journalEntryId: journalEntry.id,
+                                purchaseBillId: bill.id
+                            }
+                        });
+                        await tx.ledger.update({
+                            where: { id: roundOffLedger.id },
+                            data: { currentBalance: { increment: convertedRoundOff } }
+                        });
+                        await tx.ledger.update({
+                            where: { id: creditLedgerId },
+                            data: { currentBalance: { increment: convertedRoundOff } }
+                        });
+                    } else {
+                        // Rounding Down (-): Vendor Payable decreases (DR Vendor), Round-off Income increases (CR Round Off)
+                        await tx.transaction.create({
+                            data: {
+                                date: new Date(date),
+                                voucherType: 'PURCHASE',
+                                voucherNumber: billNumber,
+                                debitLedgerId: creditLedgerId,
+                                creditLedgerId: roundOffLedger.id,
+                                amount: convertedRoundOff,
+                                narration: `Round-off on Purchase: ${billNumber}`,
+                                companyId: parseInt(companyId),
+                                journalEntryId: journalEntry.id,
+                                purchaseBillId: bill.id
+                            }
+                        });
+                        await tx.ledger.update({
+                            where: { id: creditLedgerId },
+                            data: { currentBalance: { decrement: convertedRoundOff } }
+                        });
+                        await tx.ledger.update({
+                            where: { id: roundOffLedger.id },
+                            data: { currentBalance: { increment: convertedRoundOff } }
+                        });
+                    }
+                }
+            }
+
+            // Other Charges — double-entry per charge (DR selected ledger / CR Vendor)
+            if (otherChargesArr.length > 0) {
+                for (const charge of otherChargesArr) {
+                    const chargeAmount = parseFloat(charge.amount) || 0;
+                    if (!charge.accountId || chargeAmount <= 0) continue;
+
+                    const chargeLedger = await tx.ledger.findUnique({
+                        where: { id: parseInt(charge.accountId) }
+                    });
+
+                    if (!chargeLedger) continue;
+
+                    const chargeAmtConverted = chargeAmount * docExchangeRate;
+
+                    await tx.transaction.create({
+                        data: {
+                            date: new Date(date),
+                            voucherType: 'PURCHASE',
+                            voucherNumber: billNumber,
+                            debitLedgerId: chargeLedger.id, // Selected charge ledger (Dr Expense/Asset)
+                            creditLedgerId: creditLedgerId, // Vendor ledger (Cr Liability)
+                            amount: chargeAmtConverted,
+                            narration: `Other Charges (${chargeLedger.name}) on Purchase Bill: ${billNumber}`,
+                            companyId: parseInt(companyId),
+                            journalEntryId: journalEntry.id,
+                            purchaseBillId: bill.id
+                        }
+                    });
+
+                    // Selected charge ledger increases (DR)
+                    await tx.ledger.update({
+                        where: { id: chargeLedger.id },
+                        data: { currentBalance: { increment: chargeAmtConverted } }
+                    });
+                    // Vendor ledger increases (CR)
+                    await tx.ledger.update({
+                        where: { id: creditLedgerId },
+                        data: { currentBalance: { increment: chargeAmtConverted } }
+                    });
+                }
+            }
+
+            // Update Vendor Balance (Credit increases Liability)
+            await tx.vendor.update({
+                where: { id: parseInt(vendorId) },
+                data: { accountBalance: { increment: ledgerTotalAmount } }
+            });
+
+            return bill;
+        }, {
+            timeout: 120000
+        });
+
+        await numberingService.incrementNumber(companyId, 'purchasebill', billNumber);
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'CREATE', 'PurchaseBill', result.id, `Purchase Bill #${result.billNumber} created for Vendor ID ${result.vendorId} with amount ${result.totalAmount}`);
+        res.status(201).json({ success: true, data: result });
+    } catch (error) {
+        console.error('Create Purchase Bill Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getBills = async (req, res) => {
+    try {
+        const companyId = req.user?.companyId || req.query.companyId;
+        const bills = await prisma.purchasebill.findMany({
+            where: { companyId: parseInt(companyId) },
+            include: {
+                vendor: true,
+                salesperson: true,
+                purchasebillitem: {
+                    include: {
+                        product: true,
+                        warehouse: true,
+                        uom: true
+                    }
+                },
+                purchaseorder: true,
+                goodsreceiptnote: true,
+                purchasereturn: {
+                    include: {
+                        purchasereturnitem: true
+                    }
+                },
+                payment: {
+                    include: {
+                        bankLedger: { select: { id: true, name: true } },
+                        transaction: true
+                    }
+                },
+                allocations: {
+                    include: {
+                        payment: {
+                            include: {
+                                bankLedger: { select: { id: true, name: true } },
+                                transaction: true
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        // Map allocations to payment list to maintain compatibility and show correct allocated amount
+        const mappedBills = bills.map(bill => {
+            const mappedPayments = [
+                ...bill.payment.map(p => {
+                    const baseAmount = p.transaction?.filter(t => t.creditLedgerId === p.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || p.amount;
+                    return {
+                        ...p,
+                        baseAmount
+                    };
+                }),
+                ...bill.allocations.map(alloc => {
+                    const p = alloc.payment;
+                    const baseAmount = p.transaction?.filter(t => t.creditLedgerId === p.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || p.amount;
+                    const baseAllocAmount = p.amount > 0 ? alloc.amount * (baseAmount / p.amount) : alloc.amount;
+                    return {
+                        id: p.id,
+                        paymentNumber: p.paymentNumber,
+                        date: p.date,
+                        amount: alloc.amount, // Only the allocated amount
+                        baseAmount: baseAllocAmount,
+                        paymentMode: p.paymentMode,
+                        referenceNumber: p.referenceNumber,
+                        bankLedger: p.bankLedger,
+                        notes: p.notes
+                    };
+                })
+            ];
+
+            const seenIds = new Set();
+            const deduplicatedPayments = [];
+            for (const p of mappedPayments) {
+                if (!seenIds.has(p.id)) {
+                    seenIds.add(p.id);
+                    deduplicatedPayments.push(p);
+                }
+            }
+
+            return adjustBillWithReturns({
+                ...bill,
+                payment: deduplicatedPayments
+            });
+        });
+
+        res.status(200).json({ success: true, data: mappedBills });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getBillById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.user?.companyId || req.query.companyId;
+        const bill = await prisma.purchasebill.findFirst({
+            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            include: {
+                vendor: true,
+                salesperson: true,
+                purchasebillitem: {
+                    include: {
+                        product: true,
+                        warehouse: true,
+                        uom: true
+                    }
+                },
+                purchaseorder: true,
+                goodsreceiptnote: true,
+                purchasereturn: {
+                    include: {
+                        purchasereturnitem: true
+                    }
+                },
+                payment: {
+                    include: {
+                        bankLedger: true,
+                        transaction: true
+                    }
+                },
+                allocations: {
+                    include: {
+                        payment: {
+                            include: {
+                                bankLedger: true,
+                                transaction: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        if (!bill) return res.status(404).json({ success: false, message: 'Bill not found' });
+
+        // Map allocations to payment list to maintain compatibility and show correct allocated amount
+        const mappedPayments = [
+            ...bill.payment.map(p => {
+                const baseAmount = p.transaction?.filter(t => t.creditLedgerId === p.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || p.amount;
+                return {
+                    ...p,
+                    baseAmount
+                };
+            }),
+            ...bill.allocations.map(alloc => {
+                const p = alloc.payment;
+                const baseAmount = p.transaction?.filter(t => t.creditLedgerId === p.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || p.amount;
+                const baseAllocAmount = p.amount > 0 ? alloc.amount * (baseAmount / p.amount) : alloc.amount;
+                return {
+                    id: p.id,
+                    paymentNumber: p.paymentNumber,
+                    date: p.date,
+                    amount: alloc.amount, // Only the allocated amount
+                    baseAmount: baseAllocAmount,
+                    paymentMode: p.paymentMode,
+                    referenceNumber: p.referenceNumber,
+                    bankLedger: p.bankLedger,
+                    notes: p.notes
+                };
+            })
+        ];
+
+        const seenIds = new Set();
+        const deduplicatedPayments = [];
+        for (const p of mappedPayments) {
+            if (!seenIds.has(p.id)) {
+                seenIds.add(p.id);
+                deduplicatedPayments.push(p);
+            }
+        }
+
+        const mappedBill = adjustBillWithReturns({
+            ...bill,
+            payment: deduplicatedPayments
+        });
+
+        res.status(200).json({ success: true, data: mappedBill });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const deleteBill = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.user?.companyId || req.query.companyId;
+
+        const bill = await prisma.purchasebill.findFirst({
+            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            include: {
+                transaction: true,
+                vendor: { include: { ledger: true } }
+            }
+        });
+
+        if (!bill) return res.status(404).json({ success: false, message: 'Bill not found' });
+
+        await prisma.$transaction(async (tx) => {
+            const { deletePurchaseReturnHelper } = require('./purchaseReturnController');
+            const { deletePaymentHelper } = require('./paymentController');
+
+            // Find and delete linked purchase returns
+            const linkedReturns = await tx.purchasereturn.findMany({
+                where: { purchaseBillId: bill.id },
+                include: { purchasereturnitem: true }
+            });
+            for (const ret of linkedReturns) {
+                await deletePurchaseReturnHelper(tx, ret, companyId);
+            }
+
+            // Find and delete linked payments
+            const linkedPayments = await tx.payment.findMany({
+                where: { purchaseBillId: bill.id }
+            });
+            for (const pay of linkedPayments) {
+                await deletePaymentHelper(tx, pay, companyId);
+            }
+
+            // Unlink any remaining payments pointing to this purchase bill to prevent FK Restrict errors
+            await tx.payment.updateMany({
+                where: { purchaseBillId: bill.id },
+                data: { purchaseBillId: null }
+            });
+
+            // 1. Revert Ledger Balances using transactions
+            const vendorLedgerId = bill.vendor?.ledger?.id;
+            for (const trans of bill.transaction) {
+                if (vendorLedgerId && trans.debitLedgerId === vendorLedgerId) {
+                    // Discount received transaction: Dr Vendor (decreased Vendor liability), Cr Discount (increased Discount income)
+                    // Reversion: Cr Vendor (increment Vendor ledger), Dr Discount (decrement Discount ledger)
+                    await tx.ledger.update({
+                        where: { id: trans.debitLedgerId },
+                        data: { currentBalance: { increment: trans.amount } }
+                    });
+                    await tx.ledger.update({
+                        where: { id: trans.creditLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                } else {
+                    // Standard debit trans (Dr Inventory/Expense/Tax, Cr Vendor)
+                    // Reversion: decrement both
+                    await tx.ledger.update({
+                        where: { id: trans.debitLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                    await tx.ledger.update({
+                        where: { id: trans.creditLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                }
+            }
+
+            // Retroactive tax balance decrement for older bills
+            const hasTaxTrans = bill.transaction.some(t => t.narration === 'Tax on Purchase');
+            if (!hasTaxTrans && parseFloat(bill.taxAmount) > 0) {
+                const taxInputLedger = await tx.ledger.findFirst({
+                    where: { companyId: parseInt(companyId), name: { contains: 'Tax' } }
+                });
+                if (taxInputLedger) {
+                    await tx.ledger.update({
+                        where: { id: taxInputLedger.id },
+                        data: { currentBalance: { decrement: parseFloat(bill.taxAmount) } }
+                    });
+                }
+            }
+
+            // 2. Revert Vendor Balance
+            await tx.vendor.update({
+                where: { id: bill.vendorId },
+                data: { accountBalance: { decrement: bill.totalAmount * (bill.exchangeRate || 1.0) } }
+            });
+
+            // 3. Delete payment allocations FIRST to avoid FK constraint error on purchasebill delete
+            await tx.paymentbillallocation.deleteMany({ where: { purchaseBillId: bill.id } });
+
+            // 4. Delete related transactions and journal entries
+            const journalEntryIds = [...new Set(bill.transaction.map(t => t.journalEntryId).filter(Boolean))];
+
+            await tx.transaction.deleteMany({ where: { purchaseBillId: bill.id } });
+            await tx.journalentry.deleteMany({ where: { id: { in: journalEntryIds } } });
+
+            // Also delete any orphaned journal entries with same voucherNumber (permanent delete guarantee)
+            await tx.journalentry.deleteMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    voucherNumber: bill.billNumber,
+                    transaction: { none: {} } // only truly orphaned entries (no transactions left)
+                }
+            });
+
+            // 5. Reverse Physical Stock & Valuation Layers
+            //    Only reverse stock if the bill was NOT created from a GRN.
+            //    If a GRN was linked, the stock was added by the GRN flow — do NOT double-reverse it here.
+            if (!bill.grnId) {
+                const invConfig = await getInventoryConfig(companyId);
+                const valuationMethod = invConfig.valuationMethod || 'WAC';
+
+                const billItemsForReversal = await tx.purchasebillitem.findMany({
+                    where: { purchaseBillId: bill.id },
+                    include: { product: { include: { uom: true } }, uom: true }
+                });
+
+                const { convertToBaseQuantity, convertTransRateToBaseRate } = require('../services/uomConversionService');
+
+                for (const item of billItemsForReversal) {
+                    if (item.productId && item.warehouseId) {
+                        const baseQty = convertToBaseQuantity(item.quantity, item.uom, item.product?.uom);
+
+                        // Revert physical stock
+                        await tx.stock.upsert({
+                            where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
+                            create: {
+                                warehouseId: item.warehouseId,
+                                productId: item.productId,
+                                quantity: -baseQty,
+                                initialQty: 0,
+                                minOrderQty: 0
+                            },
+                            update: {
+                                quantity: { decrement: baseQty }
+                            }
+                        });
+                    }
+                }
+
+                await reverseStockIn(tx, {
+                    purchaseBillId: bill.id,
+                    billItems: billItemsForReversal.map(i => {
+                        const baseQty = convertToBaseQuantity(i.quantity, i.uom, i.product?.uom);
+                        const baseRate = convertTransRateToBaseRate(i.rate, i.uom, i.product?.uom);
+                        return {
+                            productId: i.productId,
+                            warehouseId: i.warehouseId,
+                            quantity: baseQty,
+                            rate: baseRate * (bill.exchangeRate || 1.0)
+                        };
+                    }),
+                    method: valuationMethod
+                });
+
+                // Delete original inventory transactions matching this bill
+                await tx.inventorytransaction.deleteMany({
+                    where: {
+                        companyId: parseInt(companyId),
+                        reason: { contains: bill.billNumber }
+                    }
+                });
+            }
+
+            // 6. Delete Bill Items and Bill
+            await tx.purchasebillitem.deleteMany({ where: { purchaseBillId: bill.id } });
+
+            // Rollback status of linked Goods Received Note (GRN) and Purchase Order
+            const linkedGrnId = bill.grnId || bill.goodsReceiptNoteId;
+            if (linkedGrnId) {
+                const otherBills = await tx.purchasebill.findMany({
+                    where: {
+                        OR: [
+                            { grnId: linkedGrnId },
+                            { goodsReceiptNoteId: linkedGrnId }
+                        ],
+                        id: { not: bill.id }
+                    }
+                });
+                if (otherBills.length === 0) {
+                    try {
+                        await tx.goodsreceiptnote.update({
+                            where: { id: linkedGrnId },
+                            data: { status: 'RECEIVED' }
+                        });
+                    } catch (e) {
+                        console.warn('Could not update goodsreceiptnote status:', e.message);
+                    }
+                }
+            }
+
+            if (bill.purchaseOrderId) {
+                const otherBills = await tx.purchasebill.findMany({
+                    where: { purchaseOrderId: bill.purchaseOrderId, id: { not: bill.id } }
+                });
+                let remainingGRNs = [];
+                try {
+                    remainingGRNs = await tx.goodsreceiptnote.findMany({
+                        where: { purchaseOrderId: bill.purchaseOrderId, status: { notIn: ['CANCELLED', 'DRAFT'] } }
+                    });
+                } catch (e) {}
+
+                if (otherBills.length === 0 && remainingGRNs.length === 0) {
+                    try {
+                        await tx.purchaseorder.update({
+                            where: { id: bill.purchaseOrderId },
+                            data: { status: 'APPROVED' }
+                        });
+                    } catch (e) {
+                        console.warn('Could not update purchaseorder status:', e.message);
+                    }
+                }
+            }
+
+            await tx.purchasebill.delete({ where: { id: bill.id } });
+        }, {
+            timeout: 90000
+        });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'DELETE', 'PurchaseBill', bill.id, `Purchase Bill #${bill.billNumber} deleted for Vendor ID ${bill.vendorId} with amount ${bill.totalAmount}`);
+        res.status(200).json({ success: true, message: 'Bill deleted successfully' });
+    } catch (error) {
+        console.error('Delete Bill Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const updateBill = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const {
+            vendorId,
+            date,
+            billNumber,
+            notes,
+            dueDate,
+            items,
+            totalAmount,
+            taxAmount,
+            discountAmount,
+            billingName,
+            billingAddress,
+            billingCity,
+            billingState,
+            billingZipCode,
+            billingCountry,
+            shippingName,
+            shippingAddress,
+            shippingCity,
+            shippingState,
+            shippingZipCode,
+            shippingCountry,
+            overallDiscount,
+            overallDiscountType,
+            currency,
+            exchangeRate,
+            customFields,
+            manualStatus,
+            status,
+            onlyUpdateStatus
+        } = req.body;
+        const companyId = req.user?.companyId || req.query.companyId || req.body.companyId;
+
+        if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
+            const updatedBill = await prisma.purchasebill.update({
+                where: { id: parseInt(id) },
+                data: {
+                    manualStatus: manualStatus === true || manualStatus === 'true',
+                    status: status
+                }
+            });
+            return res.status(200).json({ success: true, data: updatedBill });
+        }
+
+        const checkBill = await prisma.purchasebill.findFirst({
+            where: { id: parseInt(id), companyId: parseInt(companyId) }
+        });
+        if (!checkBill) {
+            return res.status(404).json({ success: false, message: 'Bill not found' });
+        }
+        if (checkBill.paidAmount > 0 || checkBill.status === 'PAID' || checkBill.status === 'PARTIAL') {
+            return res.status(400).json({
+                success: false,
+                message: 'A paid or partially paid bill cannot be edited. Please mark it as unpaid first.'
+            });
+        }
+
+        const updated = await prisma.$transaction(async (tx) => {
+            const oldBill = await tx.purchasebill.findFirst({
+                where: { id: parseInt(id), companyId: parseInt(companyId) },
+                include: {
+                    transaction: true,
+                    vendor: { include: { ledger: true } },
+                    purchasebillitem: {
+                        include: {
+                            product: { include: { uom: true } },
+                            uom: true
+                        }
+                    }
+                }
+            });
+            if (!oldBill) throw new Error('Bill not found');
+
+            const docExchangeRate = exchangeRate !== undefined ? parseFloat(exchangeRate) : (oldBill.exchangeRate || 1.0);
+            const docCurrency = currency !== undefined ? currency : oldBill.currency;
+
+            // 1. Revert Old Vendor Balance
+            await tx.vendor.update({
+                where: { id: oldBill.vendorId },
+                data: { accountBalance: { decrement: oldBill.totalAmount * (oldBill.exchangeRate || 1.0) } }
+            });
+
+            // 2. Revert Old Ledger Balances using old transactions
+            const oldVendorLedgerId = oldBill.vendor?.ledger?.id;
+            for (const trans of oldBill.transaction) {
+                if (oldVendorLedgerId && trans.debitLedgerId === oldVendorLedgerId) {
+                    await tx.ledger.update({
+                        where: { id: trans.debitLedgerId },
+                        data: { currentBalance: { increment: trans.amount } }
+                    });
+                    await tx.ledger.update({
+                        where: { id: trans.creditLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                } else {
+                    await tx.ledger.update({
+                        where: { id: trans.debitLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                    await tx.ledger.update({
+                        where: { id: trans.creditLedgerId },
+                        data: { currentBalance: { decrement: trans.amount } }
+                    });
+                }
+            }
+
+            // Retroactive tax balance decrement for older bills
+            const oldHasTaxTrans = oldBill.transaction.some(t => t.narration === 'Tax on Purchase');
+            if (!oldHasTaxTrans && parseFloat(oldBill.taxAmount) > 0) {
+                const taxInputLedger = await tx.ledger.findFirst({
+                    where: { companyId: parseInt(companyId), name: { contains: 'Tax' } }
+                });
+                if (taxInputLedger) {
+                    await tx.ledger.update({
+                        where: { id: taxInputLedger.id },
+                        data: { currentBalance: { decrement: parseFloat(oldBill.taxAmount) } }
+                    });
+                }
+            }
+
+            // Revert direct Vendor ledger balance for legacy bills that did not have correct transaction tracking
+            const oldHasDiscountTrans = oldBill.transaction.some(t => t.narration === 'Discount Received on Purchase');
+            if (!oldHasDiscountTrans || !oldHasTaxTrans) {
+                const diff = parseFloat(oldBill.totalAmount) - (oldBill.transaction.reduce((sum, t) => sum + (t.creditLedgerId === oldVendorLedgerId ? t.amount : 0), 0) - oldBill.transaction.reduce((sum, t) => sum + (t.debitLedgerId === oldVendorLedgerId ? t.amount : 0), 0));
+                if (oldVendorLedgerId && Math.abs(diff) > 0.01) {
+                    await tx.ledger.update({
+                        where: { id: oldVendorLedgerId },
+                        data: { currentBalance: { decrement: diff } }
+                    });
+                }
+            }
+
+            // 3. Revert Physical Stock & Valuation Layers of old items (only if direct purchase, not GRN)
+            if (!oldBill.grnId) {
+                const invConfig = await getInventoryConfig(companyId);
+                const valuationMethod = invConfig.valuationMethod || 'WAC';
+                const { convertToBaseQuantity, convertTransRateToBaseRate } = require('../services/uomConversionService');
+
+                for (const item of oldBill.purchasebillitem) {
+                    if (item.productId && item.warehouseId) {
+                        const baseQty = convertToBaseQuantity(item.quantity, item.uom, item.product?.uom);
+
+                        // Revert physical stock
+                        await tx.stock.upsert({
+                            where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
+                            create: {
+                                warehouseId: item.warehouseId,
+                                productId: item.productId,
+                                quantity: -baseQty,
+                                initialQty: 0,
+                                minOrderQty: 0
+                            },
+                            update: {
+                                quantity: { decrement: baseQty }
+                            }
+                        });
+
+                // Clean up old inventory transactions for this edited purchase bill
+                await tx.inventorytransaction.deleteMany({
+                    where: {
+                        companyId: parseInt(companyId),
+                        reason: { contains: oldBill.billNumber }
+                    }
+                });
+                    }
+                }
+
+                await reverseStockIn(tx, {
+                    purchaseBillId: oldBill.id,
+                    billItems: oldBill.purchasebillitem.map(i => {
+                        const baseQty = convertToBaseQuantity(i.quantity, i.uom, i.product?.uom);
+                        const baseRate = convertTransRateToBaseRate(i.rate, i.uom, i.product?.uom);
+                        return {
+                            productId: i.productId,
+                            warehouseId: i.warehouseId,
+                            quantity: baseQty,
+                            rate: baseRate * (oldBill.exchangeRate || 1.0)
+                        };
+                    }),
+                    method: valuationMethod
+                });
+            }
+
+            // 4. Delete old transactions associated with the bill, and their journal entries
+            await tx.transaction.deleteMany({ where: { purchaseBillId: oldBill.id } });
+
+            const oldJournalIds = [...new Set(oldBill.transaction.map(t => t.journalEntryId).filter(Boolean))];
+            if (oldJournalIds.length > 0) {
+                await tx.journalentry.deleteMany({ where: { id: { in: oldJournalIds } } });
+            }
+
+            // Clean up orphaned journal entries with same old voucher number
+            await tx.journalentry.deleteMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    voucherNumber: oldBill.billNumber,
+                    transaction: { none: {} }
+                }
+            });
+
+            // 5. Clear old allocations for this bill
+            await tx.paymentbillallocation.deleteMany({
+                where: { purchaseBillId: parseInt(id) }
+            });
+
+            // Process new adjustments
+            let totalAdjustedAmount = 0;
+            if (req.body.adjustments && req.body.adjustments.length > 0) {
+                for (const adj of req.body.adjustments) {
+                    const payment = await tx.payment.findUnique({
+                        where: { id: parseInt(adj.paymentId) },
+                        include: { allocations: true }
+                    });
+                    if (payment) {
+                        const allocatedSum = payment.allocations.reduce((sum, a) => sum + a.amount, 0);
+                        const availableUnallocated = payment.amount - allocatedSum;
+                        const adjustAmt = Math.min(parseFloat(adj.amount), availableUnallocated);
+
+                        if (adjustAmt > 0) {
+                            await tx.paymentbillallocation.create({
+                                data: {
+                                    paymentId: payment.id,
+                                    purchaseBillId: parseInt(id),
+                                    amount: adjustAmt,
+                                    companyId: parseInt(companyId)
+                                }
+                            });
+                            totalAdjustedAmount += adjustAmt;
+                        }
+                    }
+                }
+            }
+
+            // 6. Delete old items and write new ones
+            let calculatedSubtotal = 0;
+            let calculatedItemDiscount = 0;
+            let calculatedTaxSum = 0;
+
+            const finalBillItems = [];
+            if (items && items.length > 0) {
+                await tx.purchasebillitem.deleteMany({
+                    where: { purchaseBillId: parseInt(id) }
+                });
+
+                for (const item of items) {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const rate = parseFloat(item.rate) || 0;
+                    const discount = parseFloat(item.discount || 0);
+                    const taxRate = parseFloat(item.taxRate || 0);
+
+                    const lineGross = qty * rate;
+                    const lineTaxable = lineGross - discount;
+                    const lineTax = (lineTaxable * taxRate) / 100;
+                    const lineTotal = lineTaxable + lineTax;
+
+                    calculatedSubtotal += lineGross;
+                    calculatedItemDiscount += discount;
+                    calculatedTaxSum += lineTax;
+
+                    const newItem = {
+                        productId: item.productId ? parseInt(item.productId) : null,
+                        warehouseId: item.warehouseId ? parseInt(item.warehouseId) : null,
+                        uomId: item.uomId ? parseInt(item.uomId) : null,
+                        description: item.description,
+                        quantity: qty,
+                        rate: rate,
+                        discount: discount,
+                        taxRate: taxRate,
+                        amount: lineTotal,
+                        purchaseBillId: parseInt(id)
+                    };
+                    finalBillItems.push(newItem);
+                }
+
+                await tx.purchasebillitem.createMany({
+                    data: finalBillItems.map(i => ({
+                        productId: i.productId,
+                        warehouseId: i.warehouseId,
+                        uomId: i.uomId,
+                        description: i.description,
+                        quantity: i.quantity,
+                        rate: i.rate,
+                        discount: i.discount,
+                        taxRate: i.taxRate,
+                        amount: i.amount,
+                        purchaseBillId: i.purchaseBillId
+                    }))
+                });
+            } else {
+                // If items are not updated, pull from DB and recalculate
+                const existingItems = await tx.purchasebillitem.findMany({ where: { purchaseBillId: parseInt(id) } });
+                for (const item of existingItems) {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const rate = parseFloat(item.rate) || 0;
+                    const discount = parseFloat(item.discount || 0);
+                    const taxRate = parseFloat(item.taxRate || 0);
+
+                    const lineGross = qty * rate;
+                    calculatedSubtotal += lineGross;
+                    calculatedItemDiscount += discount;
+                    calculatedTaxSum += (lineGross - discount) * taxRate / 100;
+
+                    finalBillItems.push(item);
+                }
+            }
+
+            // 7. Resolve Updated Base Fields
+            const targetVendorId = vendorId ? parseInt(vendorId) : oldBill.vendorId;
+            const targetDate = date ? new Date(date) : new Date(oldBill.date);
+            const targetBillNumber = billNumber || oldBill.billNumber;
+
+            const newVendor = await tx.vendor.findUnique({
+                where: { id: targetVendorId },
+                include: { ledger: true }
+            });
+            if (!newVendor || !newVendor.ledger) throw new Error('Vendor ledger not found. Please link a ledger to the selected vendor first.');
+            const newVendorLedgerId = newVendor.ledger.id;
+
+            const currentOverallDiscount = overallDiscount !== undefined ? overallDiscount : oldBill.overallDiscount;
+            const currentOverallDiscountType = overallDiscountType !== undefined ? overallDiscountType : oldBill.overallDiscountType;
+
+            const finalTax = taxAmount !== undefined ? parseFloat(taxAmount) : calculatedTaxSum;
+            const baseTotal = (calculatedSubtotal - calculatedItemDiscount) + finalTax;
+            let totalAmountValue = baseTotal;
+            const ovVal = parseFloat(currentOverallDiscount) || 0;
+            let overallDiscountAmt = 0;
+            if (currentOverallDiscount && currentOverallDiscountType === 'percentage') {
+                overallDiscountAmt = baseTotal * ovVal / 100;
+                totalAmountValue = baseTotal - overallDiscountAmt;
+            } else if (currentOverallDiscount) {
+                overallDiscountAmt = ovVal;
+                totalAmountValue = baseTotal - overallDiscountAmt;
+            }
+
+            const totalDiscount = calculatedItemDiscount + overallDiscountAmt;
+
+            const otherChargesArrUpdate = Array.isArray(req.body.otherCharges) ? req.body.otherCharges : [];
+            const otherChargesTotalUpdate = otherChargesArrUpdate.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+            totalAmountValue = totalAmountValue + otherChargesTotalUpdate;
+
+            // Resolve standard accounts
+            const resolveLedger = async (namePattern, type) => {
+                let ledger = await tx.ledger.findFirst({
+                    where: { companyId: parseInt(companyId), name: { contains: namePattern } }
+                });
+                if (!ledger) {
+                    const group = await tx.accountgroup.findFirst({ where: { companyId: parseInt(companyId), type: type } });
+                    if (group) {
+                        ledger = await tx.ledger.create({
+                            data: {
+                                name: namePattern,
+                                groupId: group.id,
+                                companyId: parseInt(companyId),
+                                isControlAccount: true
+                            }
+                        });
+                    }
+                }
+                return ledger;
+            };
+
+            const inventoryLedger = await resolveLedger('Inventory Asset', 'ASSETS') || await resolveLedger('Inventory', 'ASSETS');
+            const purchaseLedger = await resolveLedger('Purchases', 'EXPENSES') || await resolveLedger('Purchase', 'EXPENSES');
+            const discountReceivedLedger = await resolveLedger('Discount Received on Purchase', 'INCOME') || await resolveLedger('Discount Received', 'INCOME');
+
+            // 8. Create new Journal Entry
+            const journalEntry = await tx.journalentry.create({
+                data: {
+                    date: targetDate,
+                    voucherNumber: targetBillNumber,
+                    narration: `Purchase Bill #${targetBillNumber}`,
+                    companyId: parseInt(companyId),
+                }
+            });
+
+            // 9. Update Prices and Physical Stock/Valuation Layers of new items (only if direct purchase, not GRN)
+            let totalProductGross = 0;
+            let totalServiceGross = 0;
+
+            for (const item of finalBillItems) {
+                const lineGross = item.quantity * item.rate;
+                if (item.productId) {
+                    totalProductGross += lineGross;
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: { purchasePrice: item.rate * docExchangeRate }
+                    });
+                } else {
+                    totalServiceGross += lineGross;
+                }
+            }
+
+            if (!oldBill.grnId) {
+                const invConfig = await getInventoryConfig(companyId);
+                const valuationMethod = invConfig.valuationMethod || 'WAC';
+                const { convertToBaseQuantity, convertTransRateToBaseRate } = require('../services/uomConversionService');
+
+                for (const item of finalBillItems) {
+                    if (item.productId && item.warehouseId) {
+                        // Fetch Product with Base UoM
+                        const prod = await tx.product.findUnique({
+                            where: { id: item.productId },
+                            include: { uom: true }
+                        });
+
+                        // Fetch Selected Transaction UoM
+                        let transUom = null;
+                        if (item.uomId) {
+                            transUom = await tx.uom.findUnique({
+                                where: { id: item.uomId }
+                            });
+                        }
+                        const baseUom = prod?.uom;
+
+                        // Convert quantity and rate to base UoM
+                        const baseQty = convertToBaseQuantity(item.quantity, transUom, baseUom);
+                        const netRate = calculateNetRate(item.rate, item.quantity, item.discount);
+                        const baseNetRate = convertTransRateToBaseRate(netRate, transUom, baseUom);
+
+                        await tx.stock.upsert({
+                            where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
+                            update: { quantity: { increment: baseQty } },
+                            create: { warehouseId: item.warehouseId, productId: item.productId, quantity: baseQty }
+                        });
+
+                        await tx.inventorytransaction.create({
+                            data: {
+                                date: targetDate,
+                                type: 'PURCHASE',
+                                productId: item.productId,
+                                toWarehouseId: item.warehouseId,
+                                quantity: baseQty,
+                                reason: `Direct Purchase Bill (Edited): ${targetBillNumber}`,
+                                companyId: parseInt(companyId),
+                                userId: req.user?.userId || null
+                            }
+                        });
+
+                        // Record inventory valuation layer (FIFO or WAC)
+                        await recordStockIn(tx, {
+                            companyId,
+                            productId: item.productId,
+                            warehouseId: item.warehouseId,
+                            quantity: baseQty,
+                            rate: baseNetRate * docExchangeRate,
+                            purchaseBillId: oldBill.id,
+                            method: valuationMethod
+                        });
+                    }
+                }
+            }
+
+            // 10. Post Transactions and Update Ledgers
+
+            const ledgerProductAmount = totalProductGross * docExchangeRate;
+            const ledgerServiceAmount = totalServiceGross * docExchangeRate;
+            const ledgerTaxAmount = finalTax * docExchangeRate;
+            const ledgerDiscountAmount = totalDiscount * docExchangeRate;
+            const ledgerTotalAmount = totalAmountValue * docExchangeRate;
+
+            const finalProductLedger = inventoryLedger || purchaseLedger;
+            if (totalProductGross > 0 && finalProductLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: targetDate,
+                        amount: ledgerProductAmount,
+                        debitLedgerId: finalProductLedger.id,
+                        creditLedgerId: newVendorLedgerId,
+                        voucherType: 'PURCHASE',
+                        voucherNumber: targetBillNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: oldBill.id,
+                        narration: 'Product Purchases'
+                    }
+                });
+                await tx.ledger.update({ where: { id: finalProductLedger.id }, data: { currentBalance: { increment: ledgerProductAmount } } });
+                await tx.ledger.update({ where: { id: newVendorLedgerId }, data: { currentBalance: { increment: ledgerProductAmount } } });
+            }
+
+            const finalPurchaseLedger = purchaseLedger || inventoryLedger;
+            if (totalServiceGross > 0 && finalPurchaseLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: targetDate,
+                        amount: ledgerServiceAmount,
+                        debitLedgerId: finalPurchaseLedger.id,
+                        creditLedgerId: newVendorLedgerId,
+                        voucherType: 'PURCHASE',
+                        voucherNumber: targetBillNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: oldBill.id,
+                        narration: 'Service/General Purchase'
+                    }
+                });
+                await tx.ledger.update({ where: { id: finalPurchaseLedger.id }, data: { currentBalance: { increment: ledgerServiceAmount } } });
+                await tx.ledger.update({ where: { id: newVendorLedgerId }, data: { currentBalance: { increment: ledgerServiceAmount } } });
+            }
+
+            if (parseFloat(finalTax) > 0) {
+                const taxInputLedger = await resolveLedger('Tax', 'ASSETS') || await resolveLedger('Tax', 'LIABILITIES');
+                if (taxInputLedger) {
+                    await tx.transaction.create({
+                        data: {
+                            date: targetDate,
+                            amount: ledgerTaxAmount,
+                            debitLedgerId: taxInputLedger.id,
+                            creditLedgerId: newVendorLedgerId,
+                            voucherType: 'PURCHASE',
+                            voucherNumber: targetBillNumber,
+                            companyId: parseInt(companyId),
+                            journalEntryId: journalEntry.id,
+                            purchaseBillId: oldBill.id,
+                            narration: 'Tax on Purchase'
+                        }
+                    });
+                    await tx.ledger.update({ where: { id: taxInputLedger.id }, data: { currentBalance: { increment: ledgerTaxAmount } } });
+                    await tx.ledger.update({ where: { id: newVendorLedgerId }, data: { currentBalance: { increment: ledgerTaxAmount } } });
+                }
+            }
+
+            if (ledgerDiscountAmount > 0 && discountReceivedLedger) {
+                await tx.transaction.create({
+                    data: {
+                        date: targetDate,
+                        amount: ledgerDiscountAmount,
+                        debitLedgerId: newVendorLedgerId,
+                        creditLedgerId: discountReceivedLedger.id,
+                        voucherType: 'PURCHASE',
+                        voucherNumber: targetBillNumber,
+                        companyId: parseInt(companyId),
+                        journalEntryId: journalEntry.id,
+                        purchaseBillId: oldBill.id,
+                        narration: 'Discount Received on Purchase'
+                    }
+                });
+                await tx.ledger.update({ where: { id: discountReceivedLedger.id }, data: { currentBalance: { increment: ledgerDiscountAmount } } });
+                await tx.ledger.update({ where: { id: newVendorLedgerId }, data: { currentBalance: { decrement: ledgerDiscountAmount } } });
+            }
+
+            // Other Charges — double-entry per charge on update (DR selected ledger / CR Vendor)
+            if (otherChargesArrUpdate.length > 0) {
+                for (const charge of otherChargesArrUpdate) {
+                    const chargeAmount = parseFloat(charge.amount) || 0;
+                    if (!charge.accountId || chargeAmount <= 0) continue;
+
+                    const chargeLedger = await tx.ledger.findUnique({
+                        where: { id: parseInt(charge.accountId) }
+                    });
+
+                    if (!chargeLedger) continue;
+
+                    const chargeAmtConverted = chargeAmount * docExchangeRate;
+
+                    await tx.transaction.create({
+                        data: {
+                            date: targetDate,
+                            voucherType: 'PURCHASE',
+                            voucherNumber: targetBillNumber,
+                            debitLedgerId: chargeLedger.id, // Selected charge ledger (Dr Expense/Asset)
+                            creditLedgerId: newVendorLedgerId, // Vendor ledger (Cr Liability)
+                            amount: chargeAmtConverted,
+                            narration: `Other Charges (${chargeLedger.name}) on Purchase Bill: ${targetBillNumber}`,
+                            companyId: parseInt(companyId),
+                            journalEntryId: journalEntry.id,
+                            purchaseBillId: oldBill.id
+                        }
+                    });
+
+                    // Selected charge ledger increases (DR)
+                    await tx.ledger.update({
+                        where: { id: chargeLedger.id },
+                        data: { currentBalance: { increment: chargeAmtConverted } }
+                    });
+                    // Vendor ledger increases (CR)
+                    await tx.ledger.update({
+                        where: { id: newVendorLedgerId },
+                        data: { currentBalance: { increment: chargeAmtConverted } }
+                    });
+                }
+            }
+
+            // 11. Update Vendor Balance (Credit increases Liability)
+            await tx.vendor.update({
+                where: { id: targetVendorId },
+                data: { accountBalance: { increment: ledgerTotalAmount } }
+            });
+
+            // 12. Finally update the purchasebill itself
+            return await tx.purchasebill.update({
+                where: { id: parseInt(id), companyId: parseInt(companyId) },
+                data: {
+                    customFields: customFields !== undefined ? (typeof customFields === 'string' ? customFields : JSON.stringify(customFields)) : undefined,
+                    salespersonId: req.body.salespersonId !== undefined ? (req.body.salespersonId ? parseInt(req.body.salespersonId) : null) : undefined,
+                    carNumber: req.body.carNumber !== undefined ? req.body.carNumber : undefined,
+                    notes,
+                    date: targetDate,
+                    billNumber: targetBillNumber,
+                    manualReference: req.body.manualReference !== undefined ? req.body.manualReference : undefined,
+                    vendorId: targetVendorId,
+                    dueDate: dueDate ? new Date(dueDate) : undefined,
+                    subtotal: calculatedSubtotal,
+                    totalAmount: totalAmountValue,
+                    taxAmount: finalTax,
+                    discountAmount: totalDiscount,
+                    paidAmount: totalAdjustedAmount,
+                    balanceAmount: totalAmountValue - totalAdjustedAmount,
+                    manualStatus: manualStatus === true || manualStatus === 'true',
+                    status: (manualStatus === true || manualStatus === 'true') && status ? status : ((totalAmountValue - totalAdjustedAmount) <= 0 ? 'PAID' : (totalAdjustedAmount > 0 ? 'PARTIAL' : 'UNPAID')),
+                    currency: currency !== undefined ? currency : undefined,
+                    exchangeRate: exchangeRate !== undefined ? parseFloat(exchangeRate) : undefined,
+                    billingName,
+                    billingAddress,
+                    billingCity,
+                    billingState,
+                    billingZipCode,
+                    billingCountry,
+                    shippingName,
+                    shippingAddress,
+                    shippingCity,
+                    shippingState,
+                    shippingZipCode,
+                    shippingCountry,
+                    overallDiscount: overallDiscount ? parseFloat(overallDiscount) : undefined,
+                    overallDiscountType: overallDiscountType || undefined
+                },
+                include: {
+                    purchasebillitem: {
+                        include: {
+                            product: true,
+                            warehouse: true,
+                            uom: true
+                        }
+                    },
+                    purchasereturn: {
+                        include: {
+                            purchasereturnitem: true
+                        }
+                    }
+                }
+            });
+        }, {
+            timeout: 120000
+        });
+
+        const adjustedUpdated = adjustBillWithReturns(updated);
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'UPDATE', 'PurchaseBill', updated.id, `Purchase Bill #${updated.billNumber} updated for Vendor ID ${updated.vendorId} with amount ${updated.totalAmount}`);
+        res.status(200).json({ success: true, data: adjustedUpdated });
+    } catch (error) {
+        console.error('Update Purchase Bill Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const getNextNumber = async (req, res) => {
+    try {
+        const companyId = req.user?.companyId || req.query.companyId;
+        if (!companyId) return res.status(400).json({ success: false, message: 'Company ID Missing' });
+
+        const result = await numberingService.getNextNumber(companyId, 'purchasebill');
+        res.status(200).json({
+            success: true,
+            nextNumber: result.formattedNumber,
+            nextManualReference: result.nextManualReference || ''
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// One-time cleanup: remove orphaned journal entries (no linked transactions)
+// These are left behind from bills that were deleted before the fix was applied
+const cleanupOrphanedJournals = async (req, res) => {
+    try {
+        const companyId = req.user?.companyId || req.query.companyId;
+        const whereClause = {
+            transaction: { none: {} }
+        };
+        if (companyId) {
+            whereClause.companyId = parseInt(companyId);
+        }
+
+        // Find orphaned journal entries first (for reporting)
+        const orphaned = await prisma.journalentry.findMany({
+            where: whereClause,
+            select: { id: true, voucherNumber: true, narration: true }
+        });
+
+        if (orphaned.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: 'No orphaned journal entries found. Database is already clean!',
+                deletedCount: 0
+            });
+        }
+
+        // Delete them all
+        const result = await prisma.journalentry.deleteMany({ where: whereClause });
+
+        return res.status(200).json({
+            success: true,
+            message: `Cleaned up ${result.count} orphaned journal entries. You can now create bills without voucher number conflicts.`,
+            deletedCount: result.count,
+            deleted: orphaned.map(j => ({ id: j.id, voucherNumber: j.voucherNumber }))
+        });
+    } catch (error) {
+        console.error('Cleanup Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const unpayBill = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.user?.companyId || req.body.companyId;
+
+        const billId = parseInt(id);
+        const bill = await prisma.purchasebill.findUnique({
+            where: { id: billId },
+            include: { vendor: true }
+        });
+
+        if (!bill || bill.companyId !== companyId) {
+            return res.status(404).json({ success: false, message: 'Purchase bill not found' });
+        }
+
+        // Find all payment allocations for this purchase bill
+        const allocations = await prisma.paymentbillallocation.findMany({
+            where: { purchaseBillId: bill.id }
+        });
+
+        // Run in a transaction
+        await prisma.$transaction(async (tx) => {
+            // For each allocation, load the parent payment and delete/revert it
+            for (const alloc of allocations) {
+                const payment = await tx.payment.findUnique({
+                    where: { id: alloc.paymentId }
+                });
+
+                if (payment) {
+                    const fullPayment = await tx.payment.findUnique({
+                        where: { id: payment.id },
+                        include: {
+                            allocations: { include: { purchasebill: true } }
+                        }
+                    });
+
+                    if (fullPayment) {
+                        // Reverse Bills paid amounts based on allocations
+                        const oldDiscount = fullPayment.discountAmount || 0;
+                        for (let i = 0; i < fullPayment.allocations.length; i++) {
+                            const oldAlloc = fullPayment.allocations[i];
+                            const currentBill = await tx.purchasebill.findUnique({ where: { id: oldAlloc.purchaseBillId } });
+                            if (currentBill) {
+                                const oldAllocDiscount = (i === 0) ? oldDiscount : 0;
+                                const revPaid = Math.max(0, (currentBill.paidAmount || 0) - oldAlloc.amount - oldAllocDiscount);
+                                const revBalance = currentBill.totalAmount - revPaid;
+                                await tx.purchasebill.update({
+                                    where: { id: oldAlloc.purchaseBillId },
+                                    data: {
+                                        paidAmount: revPaid,
+                                        balanceAmount: revBalance,
+                                        status: revBalance <= 0.01 ? 'PAID' : (revPaid > 0 ? 'PARTIAL' : 'UNPAID')
+                                    }
+                                });
+                            }
+                        }
+
+                        // Calculate old ledger amounts to revert
+                        let oldLedgerAmount = 0;
+                        let oldLedgerDiscount = 0;
+                        const oldAllocatedSum = fullPayment.allocations.reduce((sum, a) => sum + a.amount, 0);
+                        const oldUnallocatedAmount = fullPayment.amount - oldAllocatedSum;
+
+                        for (let i = 0; i < fullPayment.allocations.length; i++) {
+                            const oldAlloc = fullPayment.allocations[i];
+                            const rate = oldAlloc.purchasebill?.exchangeRate || 1.0;
+                            oldLedgerAmount += oldAlloc.amount * rate;
+                            if (i === 0) {
+                                oldLedgerDiscount += oldDiscount * rate;
+                            }
+                        }
+                        oldLedgerAmount += oldUnallocatedAmount;
+
+                        // Reverse Vendor ledger balance
+                        const vendor = await tx.vendor.findUnique({ where: { id: fullPayment.vendorId } });
+                        if (vendor && vendor.ledgerId) {
+                            await tx.ledger.update({
+                                where: { id: vendor.ledgerId },
+                                data: { currentBalance: { increment: oldLedgerAmount + oldLedgerDiscount } }
+                            });
+                            await tx.vendor.update({
+                                where: { id: fullPayment.vendorId },
+                                data: { accountBalance: { increment: oldLedgerAmount + oldLedgerDiscount } }
+                            });
+                        }
+
+                        if (fullPayment.cashBankAccountId) {
+                            await tx.ledger.update({
+                                where: { id: fullPayment.cashBankAccountId },
+                                data: { currentBalance: { increment: oldLedgerAmount } }
+                            });
+                        }
+
+                        if (fullPayment.discountLedgerId && oldLedgerDiscount > 0) {
+                            await tx.ledger.update({
+                                where: { id: fullPayment.discountLedgerId },
+                                data: { currentBalance: { decrement: oldLedgerDiscount } }
+                            });
+                        }
+
+                        // Delete transactions, allocations and payment
+                        await tx.transaction.deleteMany({ where: { paymentId: fullPayment.id } });
+                        await tx.paymentbillallocation.deleteMany({ where: { paymentId: fullPayment.id } });
+                        await tx.payment.delete({ where: { id: fullPayment.id } });
+                    }
+                }
+            }
+
+            // Finally, make sure this specific bill is fully UNPAID
+            await tx.purchasebill.update({
+                where: { id: bill.id },
+                data: {
+                    paidAmount: 0,
+                    balanceAmount: bill.totalAmount,
+                    status: 'UNPAID'
+                }
+            });
+        });
+
+        // Audit Logging
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'UNPAY', 'PurchaseBill', bill.id, `Purchase Bill #${bill.billNumber} marked as UNPAID, reverted payments.`);
+
+        res.status(200).json({ success: true, message: 'Purchase bill marked as unpaid and all payments reverted successfully' });
+    } catch (error) {
+        console.error('Error marking purchase bill as unpaid:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+module.exports = {
+    createBill,
+    getBills,
+    getBillById,
+    updateBill,
+    deleteBill,
+    getNextNumber,
+    cleanupOrphanedJournals,
+    unpayBill
+};
