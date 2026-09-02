@@ -121,7 +121,8 @@ app.use(cors({
         'http://localhost:5173',
         'https://localhost:5173',
         'https://new-accounting.netlify.app',
-        'http://new-accounting.netlify.app'
+        'http://new-accounting.netlify.app',
+        'https://tab-accounting.netlify.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
