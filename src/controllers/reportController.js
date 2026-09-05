@@ -2217,6 +2217,8 @@ const getVatReport = async (req, res) => {
 
                     outputVatTransactions.push({
                         id: `REC-${rec.id}`,
+                        invoiceId: inv.id,
+                        isPos: false,
                         type: 'Sales Receipt',
                         docNumber: rec.receiptNumber,
                         refNumber: inv.invoiceNumber,
@@ -2268,6 +2270,8 @@ const getVatReport = async (req, res) => {
 
                 outputVatTransactions.push({
                     id: `POS-${pos.id}`,
+                    invoiceId: pos.id,
+                    isPos: true,
                     type: 'POS Cash Sale',
                     docNumber: pos.invoiceNumber,
                     refNumber: '-',
@@ -2478,6 +2482,8 @@ const getVatReport = async (req, res) => {
 
                 outputVatTransactions.push({
                     id: `INV-${inv.id}`,
+                    invoiceId: inv.id,
+                    isPos: false,
                     type: 'Sales Invoice',
                     docNumber: inv.invoiceNumber,
                     refNumber: '-',
@@ -2509,6 +2515,8 @@ const getVatReport = async (req, res) => {
 
                 outputVatTransactions.push({
                     id: `POS-${pos.id}`,
+                    invoiceId: pos.id,
+                    isPos: true,
                     type: 'POS Invoice',
                     docNumber: pos.invoiceNumber,
                     refNumber: '-',

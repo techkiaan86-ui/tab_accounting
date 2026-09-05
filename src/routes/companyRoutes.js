@@ -13,6 +13,12 @@ const {
     getPeriodLockSettings,
     updatePeriodLockSettings
 } = require('../controllers/companyController');
+const {
+    getSmtpSettings,
+    updateSmtpSettings,
+    testSmtpConnection,
+    sendSmtpTestEmail
+} = require('../controllers/smtpController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/authMiddleware');
 const { upload } = require('../utils/cloudinaryConfig');
 
@@ -64,6 +70,12 @@ router.delete('/:id', authenticateToken, authorizeRoles('SUPERADMIN'), deleteCom
 router.get('/period-lock', authenticateToken, getPeriodLockSettings);
 router.put('/period-lock', authenticateToken, updatePeriodLockSettings);
 
+// Direct SMTP Settings endpoints (using active companyId from token)
+router.get('/smtp-settings', authenticateToken, getSmtpSettings);
+router.put('/smtp-settings', authenticateToken, updateSmtpSettings);
+router.post('/smtp-test-connection', authenticateToken, testSmtpConnection);
+router.post('/smtp-send-test-email', authenticateToken, sendSmtpTestEmail);
+
 router.get('/:id', authenticateToken, checkCompanyAccess, getCompanyById);
 router.put('/:id', authenticateToken, checkCompanyAccess, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'invoiceLogo', maxCount: 1 }]), updateCompany);
 
@@ -75,5 +87,11 @@ router.get('/:id/next-number', authenticateToken, checkCompanyAccess, getNextNum
 // Period Lock endpoints
 router.get('/:id/period-lock', authenticateToken, checkCompanyAccess, getPeriodLockSettings);
 router.put('/:id/period-lock', authenticateToken, checkCompanyAccess, updatePeriodLockSettings);
+
+// SMTP Settings endpoints
+router.get('/:id/smtp-settings', authenticateToken, checkCompanyAccess, getSmtpSettings);
+router.put('/:id/smtp-settings', authenticateToken, checkCompanyAccess, updateSmtpSettings);
+router.post('/:id/smtp-test-connection', authenticateToken, checkCompanyAccess, testSmtpConnection);
+router.post('/:id/smtp-send-test-email', authenticateToken, checkCompanyAccess, sendSmtpTestEmail);
 
 module.exports = router;

@@ -107,22 +107,47 @@ const adjustInvoiceWithReturns = (invoice) => {
 
     if (hasItems) {
         adjustedSubtotal = newSubtotal;
-        adjustedTaxAmount = newTaxAmount;
 
         // Apply overall discounts if standard invoice, or model-level POS discount
         if (isPos) {
             const posDiscount = parseFloat(invoice.discountAmount) || 0;
-            adjustedTotal = Math.max(0, newTotalAmount - posDiscount);
+            const discountedTaxable = Math.max(0, newSubtotal - posDiscount);
+            // Recompute tax on discounted taxable
+            const discRatio = newSubtotal > 0 ? (posDiscount / newSubtotal) : 0;
+            adjustedTaxAmount = items.reduce((sum, item) => {
+                const itemRate = parseFloat(item.rate) || 0;
+                const adjustedQty = item.quantity || 0;
+                const lineGross = adjustedQty * itemRate;
+                const lineDiscountedTaxable = lineGross * (1 - discRatio);
+                return sum + ((lineDiscountedTaxable * (parseFloat(item.taxRate) || 0)) / 100);
+            }, 0);
+            adjustedTotal = Math.max(0, discountedTaxable + adjustedTaxAmount);
         } else {
             const overallDiscount = parseFloat(invoice.overallDiscount) || 0;
             const overallDiscountType = invoice.overallDiscountType || 'percentage';
+            const netBeforeOverall = Math.max(0, newSubtotal - totalDiscount);
+            let ovDiscountAmt = 0;
             if (overallDiscount && overallDiscountType === 'percentage') {
-                adjustedTotal = Math.max(0, newTotalAmount - (newTotalAmount * overallDiscount / 100));
+                ovDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, overallDiscount))) / 100;
             } else if (overallDiscount) {
-                adjustedTotal = Math.max(0, newTotalAmount - overallDiscount);
-            } else {
-                adjustedTotal = newTotalAmount;
+                ovDiscountAmt = Math.min(netBeforeOverall, Math.max(0, overallDiscount));
             }
+
+            const totalDisc = totalDiscount + ovDiscountAmt;
+            const discountedTaxable = Math.max(0, newSubtotal - totalDisc);
+            const overallDiscountRatio = netBeforeOverall > 0 ? (ovDiscountAmt / netBeforeOverall) : 0;
+
+            adjustedTaxAmount = items.reduce((sum, item) => {
+                const itemRate = parseFloat(item.rate) || 0;
+                const adjustedQty = item.quantity || 0;
+                const itemDisc = parseFloat(item.discount || 0) || 0;
+                const lineGross = adjustedQty * itemRate;
+                const lineAfterItemDisc = Math.max(0, lineGross - itemDisc);
+                const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
+                return sum + ((lineDiscountedTaxable * (parseFloat(item.taxRate) || 0)) / 100);
+            }, 0);
+
+            adjustedTotal = Math.max(0, discountedTaxable + adjustedTaxAmount);
         }
         // Add other charges back to adjustedTotal
         adjustedTotal = adjustedTotal + otherChargesTotal;
@@ -268,7 +293,35 @@ const createInvoice = async (req, res) => {
         }
 
         let subtotal = 0;
-        let totalDiscount = 0;
+        let lineDiscountSum = 0;
+
+        // 1. Calculate line gross and line-level discounts
+        items.forEach(item => {
+            const itemQty = parseFloat(item.quantity) || 0;
+            const itemRate = parseFloat(item.rate) || 0;
+            const itemDiscount = parseFloat(item.discount) || 0;
+            const lineGross = itemQty * itemRate;
+
+            subtotal += lineGross;
+            lineDiscountSum += Math.min(lineGross, itemDiscount);
+        });
+
+        const netBeforeOverall = Math.max(0, subtotal - lineDiscountSum);
+
+        // 2. Compute overall discount on pre-tax net taxable amount
+        let overallDiscountAmt = 0;
+        const ovVal = parseFloat(overallDiscount) || 0;
+        if (overallDiscount && overallDiscountType === 'percentage') {
+            overallDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, ovVal))) / 100;
+        } else if (overallDiscount) {
+            overallDiscountAmt = Math.min(netBeforeOverall, Math.max(0, ovVal));
+        }
+
+        const totalDiscount = lineDiscountSum + overallDiscountAmt;
+        const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
+
+        // 3. Proportionately calculate tax on discounted taxable amount per line
+        const overallDiscountRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
         let lineTaxSum = 0;
 
         const invoiceItems = items.map(item => {
@@ -278,9 +331,10 @@ const createInvoice = async (req, res) => {
             const itemTaxRate = parseFloat(item.taxRate) || 0;
 
             const lineGross = itemQty * itemRate;
-            const lineTaxable = lineGross - itemDiscount;
-            const lineTax = (lineTaxable * itemTaxRate) / 100;
-            const lineTotal = lineTaxable + lineTax;
+            const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
+            const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
+            const lineTax = (lineDiscountedTaxable * itemTaxRate) / 100;
+            const lineTotal = lineDiscountedTaxable + lineTax;
 
             let cgstRate = 0, sgstRate = 0, igstRate = 0;
             let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
@@ -296,8 +350,6 @@ const createInvoice = async (req, res) => {
                 }
             }
 
-            subtotal += lineGross;
-            totalDiscount += itemDiscount;
             lineTaxSum += lineTax;
 
             return {
@@ -320,14 +372,8 @@ const createInvoice = async (req, res) => {
             };
         });
 
-        const finalTax = parseFloat(taxAmount) || lineTaxSum;
-        const baseTotal = (subtotal - totalDiscount) + finalTax;
-        let totalAmount = baseTotal;
-        if (overallDiscount && overallDiscountType === 'percentage') {
-            totalAmount = baseTotal - (baseTotal * overallDiscount / 100);
-        } else if (overallDiscount) {
-            totalAmount = baseTotal - overallDiscount;
-        }
+        const finalTax = lineTaxSum;
+        let totalAmount = discountedTaxableAmount + finalTax;
 
         // Calculate Other Charges and Round Off
         const otherChargesArr = Array.isArray(req.body.otherCharges) ? req.body.otherCharges : [];
@@ -1542,8 +1588,48 @@ const updateInvoice = async (req, res) => {
                 const lineTax = (lineTaxable * itemTaxRate) / 100;
                 const lineTotal = lineTaxable + lineTax;
 
+            let lineDiscountSum = 0;
+            subtotal = 0;
+
+            // 1. Line gross & line discounts
+            items.forEach(item => {
+                const itemQty = parseFloat(item.quantity) || 0;
+                const itemRate = parseFloat(item.rate) || 0;
+                const itemDiscount = parseFloat(item.discount) || 0;
+                const lineGross = itemQty * itemRate;
+
                 subtotal += lineGross;
-                totalDiscount += itemDiscount;
+                lineDiscountSum += Math.min(lineGross, itemDiscount);
+            });
+
+            const netBeforeOverall = Math.max(0, subtotal - lineDiscountSum);
+
+            // 2. Overall discount
+            let overallDiscountAmt = 0;
+            const ovVal = parseFloat(overallDiscount) || 0;
+            if (overallDiscount && overallDiscountType === 'percentage') {
+                overallDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, ovVal))) / 100;
+            } else if (overallDiscount) {
+                overallDiscountAmt = Math.min(netBeforeOverall, Math.max(0, ovVal));
+            }
+
+            totalDiscount = lineDiscountSum + overallDiscountAmt;
+            const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
+            const overallDiscountRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
+            let lineTaxSum = 0;
+
+            invoiceItems = items.map(item => {
+                const itemQty = parseFloat(item.quantity) || 0;
+                const itemRate = parseFloat(item.rate) || 0;
+                const itemDiscount = parseFloat(item.discount) || 0;
+                const itemTaxRate = parseFloat(item.taxRate) || 0;
+
+                const lineGross = itemQty * itemRate;
+                const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
+                const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
+                const lineTax = (lineDiscountedTaxable * itemTaxRate) / 100;
+                const lineTotal = lineDiscountedTaxable + lineTax;
+
                 lineTaxSum += lineTax;
 
                 return {
@@ -1559,25 +1645,26 @@ const updateInvoice = async (req, res) => {
                 };
             });
 
-            taxAmount = parseFloat(req.body.taxAmount) || lineTaxSum;
-            const baseTotal = (subtotal - totalDiscount) + taxAmount;
-            totalAmount = baseTotal;
-            if (overallDiscount && overallDiscountType === 'percentage') {
-                totalAmount = baseTotal - (baseTotal * overallDiscount / 100);
-            } else if (overallDiscount) {
-                totalAmount = baseTotal - overallDiscount;
-            }
+            taxAmount = lineTaxSum;
+            totalAmount = discountedTaxableAmount + taxAmount;
         } else {
             // Recalculate with overall discount if items didn't change but discount did
-            const baseTotal = (existingInvoice.subtotal - existingInvoice.discountAmount) + existingInvoice.taxAmount;
-            totalAmount = baseTotal;
             const ovDiscount = overallDiscount !== undefined ? overallDiscount : existingInvoice.overallDiscount;
             const ovType = overallDiscountType !== undefined ? overallDiscountType : existingInvoice.overallDiscountType;
+            const netBeforeOverall = Math.max(0, existingInvoice.subtotal - existingInvoice.discountAmount);
+            let overallDiscountAmt = 0;
+            const ovVal = parseFloat(ovDiscount) || 0;
             if (ovDiscount && ovType === 'percentage') {
-                totalAmount = baseTotal - (baseTotal * ovDiscount / 100);
+                overallDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, ovVal))) / 100;
             } else if (ovDiscount) {
-                totalAmount = baseTotal - ovDiscount;
+                overallDiscountAmt = Math.min(netBeforeOverall, Math.max(0, ovVal));
             }
+
+            const totalDisc = (existingInvoice.discountAmount || 0) + overallDiscountAmt;
+            const discountedTaxable = Math.max(0, existingInvoice.subtotal - totalDisc);
+            const discRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
+            taxAmount = (existingInvoice.taxAmount || 0) * (1 - discRatio);
+            totalAmount = discountedTaxable + taxAmount;
         }
 
         // Calculate Other Charges total and add to totalAmount
@@ -2606,7 +2693,8 @@ const sendInvoiceEmail = async (req, res) => {
             attachPdf = true,
             sendBcc = false,
             customerId: bodyCustomerId,
-            invoiceNumber: bodyInvoiceNumber
+            invoiceNumber: bodyInvoiceNumber,
+            pdfBase64
         } = req.body;
 
         let invoice = null;
@@ -2705,6 +2793,7 @@ const sendInvoiceEmail = async (req, res) => {
             customMessage: message,
             publicUrl,
             attachPdf,
+            pdfBase64,
             bccEmail: sendBcc ? (company?.email || req.user?.email) : null
         });
 
@@ -2716,7 +2805,13 @@ const sendInvoiceEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending invoice email:', error);
-        res.status(500).json({ success: false, message: error.message || 'Failed to send invoice email' });
+        const isSmtpConfigError = error.message && (
+            error.message.includes('SMTP not configured') ||
+            error.message.includes('Incomplete SMTP') ||
+            error.message.includes('Invalid SMTP')
+        );
+        const statusCode = isSmtpConfigError ? 400 : 500;
+        res.status(statusCode).json({ success: false, message: error.message || 'Failed to send invoice email' });
     }
 };
 

@@ -193,6 +193,7 @@ model company {
   deliveryperson        deliveryperson[]
   advanceadjustment     advanceadjustment[]
   company_user          company_user[]
+  company_smtp_settings company_smtp_settings?
 
   @@index([planId], map: "Company_planId_fkey")
   @@index([email], map: "Company_email_idx")
@@ -1499,6 +1500,27 @@ model company_user {
   @@unique([userId, companyId], map: "company_user_userId_companyId_key")
   @@index([companyId], map: "company_user_companyId_fkey")
   @@index([userId], map: "company_user_userId_fkey")
+}
+
+model company_smtp_settings {
+  id             Int       @id @default(autoincrement())
+  companyId      Int       @unique(map: "company_smtp_settings_companyId_key")
+  host           String?   @db.VarChar(255)
+  ip             String?   @db.VarChar(255)
+  port           Int?      @default(587)
+  security       String?   @default("TLS") @db.VarChar(50)
+  username       String?   @db.VarChar(255)
+  password       String?   @db.Text
+  fromEmail      String?   @db.VarChar(255)
+  fromName       String?   @db.VarChar(255)
+  isConfigured   Boolean   @default(false)
+  lastTestedAt   DateTime?
+  lastTestStatus String?   @db.VarChar(50)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+  company        company   @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "company_smtp_settings_companyId_fkey")
+
+  @@index([companyId], map: "company_smtp_settings_companyId_idx")
 }
 
 model vendor {

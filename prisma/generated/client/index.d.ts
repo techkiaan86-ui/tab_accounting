@@ -274,6 +274,11 @@ export type user = $Result.DefaultSelection<Prisma.$userPayload>
  */
 export type company_user = $Result.DefaultSelection<Prisma.$company_userPayload>
 /**
+ * Model company_smtp_settings
+ * 
+ */
+export type company_smtp_settings = $Result.DefaultSelection<Prisma.$company_smtp_settingsPayload>
+/**
  * Model vendor
  * 
  */
@@ -1334,6 +1339,16 @@ export class PrismaClient<
   get company_user(): Prisma.company_userDelegate<ExtArgs>;
 
   /**
+   * `prisma.company_smtp_settings`: Exposes CRUD operations for the **company_smtp_settings** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Company_smtp_settings
+    * const company_smtp_settings = await prisma.company_smtp_settings.findMany()
+    * ```
+    */
+  get company_smtp_settings(): Prisma.company_smtp_settingsDelegate<ExtArgs>;
+
+  /**
    * `prisma.vendor`: Exposes CRUD operations for the **vendor** model.
     * Example usage:
     * ```ts
@@ -1975,6 +1990,7 @@ export namespace Prisma {
     uom: 'uom',
     user: 'user',
     company_user: 'company_user',
+    company_smtp_settings: 'company_smtp_settings',
     vendor: 'vendor',
     warehouse: 'warehouse',
     voucher: 'voucher',
@@ -2005,7 +2021,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "accountgroup" | "accountsubgroup" | "bankaccount" | "banktransaction" | "category" | "company" | "customer" | "dashboardannouncement" | "deliverychallan" | "deliverychallanitem" | "expenseentry" | "goodsreceiptnote" | "goodsreceiptnoteitem" | "incomeentry" | "inventoryadjustment" | "inventoryadjustmentitem" | "inventorytransaction" | "invoice" | "invoiceitem" | "journalentry" | "ledger" | "passwordrequest" | "payment" | "paymentrecord" | "plan" | "planrequest" | "posinvoice" | "posinvoiceitem" | "product" | "purchasebill" | "purchasebillitem" | "purchaseorder" | "purchaseorderitem" | "purchasequotation" | "purchasequotationitem" | "purchasereturn" | "purchasereturnitem" | "receipt" | "salesorder" | "salesorderitem" | "salesquotation" | "salesquotationitem" | "salesreturn" | "salesreturnitem" | "service" | "stock" | "stocktransfer" | "stocktransferitem" | "transaction" | "uom" | "user" | "company_user" | "vendor" | "warehouse" | "voucher" | "voucheritem" | "role" | "shippingaddress" | "inventory_batch" | "inventory_consumption" | "receiptinvoiceallocation" | "paymentbillallocation" | "transaction_numbering" | "auditlog" | "salesperson" | "deliveryperson" | "advanceadjustment"
+      modelProps: "accountgroup" | "accountsubgroup" | "bankaccount" | "banktransaction" | "category" | "company" | "customer" | "dashboardannouncement" | "deliverychallan" | "deliverychallanitem" | "expenseentry" | "goodsreceiptnote" | "goodsreceiptnoteitem" | "incomeentry" | "inventoryadjustment" | "inventoryadjustmentitem" | "inventorytransaction" | "invoice" | "invoiceitem" | "journalentry" | "ledger" | "passwordrequest" | "payment" | "paymentrecord" | "plan" | "planrequest" | "posinvoice" | "posinvoiceitem" | "product" | "purchasebill" | "purchasebillitem" | "purchaseorder" | "purchaseorderitem" | "purchasequotation" | "purchasequotationitem" | "purchasereturn" | "purchasereturnitem" | "receipt" | "salesorder" | "salesorderitem" | "salesquotation" | "salesquotationitem" | "salesreturn" | "salesreturnitem" | "service" | "stock" | "stocktransfer" | "stocktransferitem" | "transaction" | "uom" | "user" | "company_user" | "company_smtp_settings" | "vendor" | "warehouse" | "voucher" | "voucheritem" | "role" | "shippingaddress" | "inventory_batch" | "inventory_consumption" | "receiptinvoiceallocation" | "paymentbillallocation" | "transaction_numbering" | "auditlog" | "salesperson" | "deliveryperson" | "advanceadjustment"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5438,6 +5454,72 @@ export namespace Prisma {
           count: {
             args: Prisma.company_userCountArgs<ExtArgs>
             result: $Utils.Optional<Company_userCountAggregateOutputType> | number
+          }
+        }
+      }
+      company_smtp_settings: {
+        payload: Prisma.$company_smtp_settingsPayload<ExtArgs>
+        fields: Prisma.company_smtp_settingsFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.company_smtp_settingsFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.company_smtp_settingsFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          findFirst: {
+            args: Prisma.company_smtp_settingsFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.company_smtp_settingsFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          findMany: {
+            args: Prisma.company_smtp_settingsFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>[]
+          }
+          create: {
+            args: Prisma.company_smtp_settingsCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          createMany: {
+            args: Prisma.company_smtp_settingsCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          delete: {
+            args: Prisma.company_smtp_settingsDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          update: {
+            args: Prisma.company_smtp_settingsUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          deleteMany: {
+            args: Prisma.company_smtp_settingsDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.company_smtp_settingsUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.company_smtp_settingsUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$company_smtp_settingsPayload>
+          }
+          aggregate: {
+            args: Prisma.Company_smtp_settingsAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCompany_smtp_settings>
+          }
+          groupBy: {
+            args: Prisma.company_smtp_settingsGroupByArgs<ExtArgs>
+            result: $Utils.Optional<Company_smtp_settingsGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.company_smtp_settingsCountArgs<ExtArgs>
+            result: $Utils.Optional<Company_smtp_settingsCountAggregateOutputType> | number
           }
         }
       }
@@ -14458,6 +14540,7 @@ export namespace Prisma {
     deliveryperson?: boolean | company$deliverypersonArgs<ExtArgs>
     advanceadjustment?: boolean | company$advanceadjustmentArgs<ExtArgs>
     company_user?: boolean | company$company_userArgs<ExtArgs>
+    company_smtp_settings?: boolean | company$company_smtp_settingsArgs<ExtArgs>
     _count?: boolean | CompanyCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["company"]>
 
@@ -14567,6 +14650,7 @@ export namespace Prisma {
     deliveryperson?: boolean | company$deliverypersonArgs<ExtArgs>
     advanceadjustment?: boolean | company$advanceadjustmentArgs<ExtArgs>
     company_user?: boolean | company$company_userArgs<ExtArgs>
+    company_smtp_settings?: boolean | company$company_smtp_settingsArgs<ExtArgs>
     _count?: boolean | CompanyCountOutputTypeDefaultArgs<ExtArgs>
   }
 
@@ -14616,6 +14700,7 @@ export namespace Prisma {
       deliveryperson: Prisma.$deliverypersonPayload<ExtArgs>[]
       advanceadjustment: Prisma.$advanceadjustmentPayload<ExtArgs>[]
       company_user: Prisma.$company_userPayload<ExtArgs>[]
+      company_smtp_settings: Prisma.$company_smtp_settingsPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
@@ -15059,6 +15144,7 @@ export namespace Prisma {
     deliveryperson<T extends company$deliverypersonArgs<ExtArgs> = {}>(args?: Subset<T, company$deliverypersonArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$deliverypersonPayload<ExtArgs>, T, "findMany"> | Null>
     advanceadjustment<T extends company$advanceadjustmentArgs<ExtArgs> = {}>(args?: Subset<T, company$advanceadjustmentArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$advanceadjustmentPayload<ExtArgs>, T, "findMany"> | Null>
     company_user<T extends company$company_userArgs<ExtArgs> = {}>(args?: Subset<T, company$company_userArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$company_userPayload<ExtArgs>, T, "findMany"> | Null>
+    company_smtp_settings<T extends company$company_smtp_settingsArgs<ExtArgs> = {}>(args?: Subset<T, company$company_smtp_settingsArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -16297,6 +16383,21 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: Company_userScalarFieldEnum | Company_userScalarFieldEnum[]
+  }
+
+  /**
+   * company.company_smtp_settings
+   */
+  export type company$company_smtp_settingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    where?: company_smtp_settingsWhereInput
   }
 
   /**
@@ -68809,6 +68910,1037 @@ export namespace Prisma {
 
 
   /**
+   * Model company_smtp_settings
+   */
+
+  export type AggregateCompany_smtp_settings = {
+    _count: Company_smtp_settingsCountAggregateOutputType | null
+    _avg: Company_smtp_settingsAvgAggregateOutputType | null
+    _sum: Company_smtp_settingsSumAggregateOutputType | null
+    _min: Company_smtp_settingsMinAggregateOutputType | null
+    _max: Company_smtp_settingsMaxAggregateOutputType | null
+  }
+
+  export type Company_smtp_settingsAvgAggregateOutputType = {
+    id: number | null
+    companyId: number | null
+    port: number | null
+  }
+
+  export type Company_smtp_settingsSumAggregateOutputType = {
+    id: number | null
+    companyId: number | null
+    port: number | null
+  }
+
+  export type Company_smtp_settingsMinAggregateOutputType = {
+    id: number | null
+    companyId: number | null
+    host: string | null
+    ip: string | null
+    port: number | null
+    security: string | null
+    username: string | null
+    password: string | null
+    fromEmail: string | null
+    fromName: string | null
+    isConfigured: boolean | null
+    lastTestedAt: Date | null
+    lastTestStatus: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type Company_smtp_settingsMaxAggregateOutputType = {
+    id: number | null
+    companyId: number | null
+    host: string | null
+    ip: string | null
+    port: number | null
+    security: string | null
+    username: string | null
+    password: string | null
+    fromEmail: string | null
+    fromName: string | null
+    isConfigured: boolean | null
+    lastTestedAt: Date | null
+    lastTestStatus: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type Company_smtp_settingsCountAggregateOutputType = {
+    id: number
+    companyId: number
+    host: number
+    ip: number
+    port: number
+    security: number
+    username: number
+    password: number
+    fromEmail: number
+    fromName: number
+    isConfigured: number
+    lastTestedAt: number
+    lastTestStatus: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type Company_smtp_settingsAvgAggregateInputType = {
+    id?: true
+    companyId?: true
+    port?: true
+  }
+
+  export type Company_smtp_settingsSumAggregateInputType = {
+    id?: true
+    companyId?: true
+    port?: true
+  }
+
+  export type Company_smtp_settingsMinAggregateInputType = {
+    id?: true
+    companyId?: true
+    host?: true
+    ip?: true
+    port?: true
+    security?: true
+    username?: true
+    password?: true
+    fromEmail?: true
+    fromName?: true
+    isConfigured?: true
+    lastTestedAt?: true
+    lastTestStatus?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type Company_smtp_settingsMaxAggregateInputType = {
+    id?: true
+    companyId?: true
+    host?: true
+    ip?: true
+    port?: true
+    security?: true
+    username?: true
+    password?: true
+    fromEmail?: true
+    fromName?: true
+    isConfigured?: true
+    lastTestedAt?: true
+    lastTestStatus?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type Company_smtp_settingsCountAggregateInputType = {
+    id?: true
+    companyId?: true
+    host?: true
+    ip?: true
+    port?: true
+    security?: true
+    username?: true
+    password?: true
+    fromEmail?: true
+    fromName?: true
+    isConfigured?: true
+    lastTestedAt?: true
+    lastTestStatus?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type Company_smtp_settingsAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which company_smtp_settings to aggregate.
+     */
+    where?: company_smtp_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_smtp_settings to fetch.
+     */
+    orderBy?: company_smtp_settingsOrderByWithRelationInput | company_smtp_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: company_smtp_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_smtp_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_smtp_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned company_smtp_settings
+    **/
+    _count?: true | Company_smtp_settingsCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: Company_smtp_settingsAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: Company_smtp_settingsSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: Company_smtp_settingsMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: Company_smtp_settingsMaxAggregateInputType
+  }
+
+  export type GetCompany_smtp_settingsAggregateType<T extends Company_smtp_settingsAggregateArgs> = {
+        [P in keyof T & keyof AggregateCompany_smtp_settings]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCompany_smtp_settings[P]>
+      : GetScalarType<T[P], AggregateCompany_smtp_settings[P]>
+  }
+
+
+
+
+  export type company_smtp_settingsGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: company_smtp_settingsWhereInput
+    orderBy?: company_smtp_settingsOrderByWithAggregationInput | company_smtp_settingsOrderByWithAggregationInput[]
+    by: Company_smtp_settingsScalarFieldEnum[] | Company_smtp_settingsScalarFieldEnum
+    having?: company_smtp_settingsScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: Company_smtp_settingsCountAggregateInputType | true
+    _avg?: Company_smtp_settingsAvgAggregateInputType
+    _sum?: Company_smtp_settingsSumAggregateInputType
+    _min?: Company_smtp_settingsMinAggregateInputType
+    _max?: Company_smtp_settingsMaxAggregateInputType
+  }
+
+  export type Company_smtp_settingsGroupByOutputType = {
+    id: number
+    companyId: number
+    host: string | null
+    ip: string | null
+    port: number | null
+    security: string | null
+    username: string | null
+    password: string | null
+    fromEmail: string | null
+    fromName: string | null
+    isConfigured: boolean
+    lastTestedAt: Date | null
+    lastTestStatus: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: Company_smtp_settingsCountAggregateOutputType | null
+    _avg: Company_smtp_settingsAvgAggregateOutputType | null
+    _sum: Company_smtp_settingsSumAggregateOutputType | null
+    _min: Company_smtp_settingsMinAggregateOutputType | null
+    _max: Company_smtp_settingsMaxAggregateOutputType | null
+  }
+
+  type GetCompany_smtp_settingsGroupByPayload<T extends company_smtp_settingsGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<Company_smtp_settingsGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof Company_smtp_settingsGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], Company_smtp_settingsGroupByOutputType[P]>
+            : GetScalarType<T[P], Company_smtp_settingsGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type company_smtp_settingsSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    companyId?: boolean
+    host?: boolean
+    ip?: boolean
+    port?: boolean
+    security?: boolean
+    username?: boolean
+    password?: boolean
+    fromEmail?: boolean
+    fromName?: boolean
+    isConfigured?: boolean
+    lastTestedAt?: boolean
+    lastTestStatus?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    company?: boolean | companyDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["company_smtp_settings"]>
+
+
+  export type company_smtp_settingsSelectScalar = {
+    id?: boolean
+    companyId?: boolean
+    host?: boolean
+    ip?: boolean
+    port?: boolean
+    security?: boolean
+    username?: boolean
+    password?: boolean
+    fromEmail?: boolean
+    fromName?: boolean
+    isConfigured?: boolean
+    lastTestedAt?: boolean
+    lastTestStatus?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type company_smtp_settingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    company?: boolean | companyDefaultArgs<ExtArgs>
+  }
+
+  export type $company_smtp_settingsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "company_smtp_settings"
+    objects: {
+      company: Prisma.$companyPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: number
+      companyId: number
+      host: string | null
+      ip: string | null
+      port: number | null
+      security: string | null
+      username: string | null
+      password: string | null
+      fromEmail: string | null
+      fromName: string | null
+      isConfigured: boolean
+      lastTestedAt: Date | null
+      lastTestStatus: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["company_smtp_settings"]>
+    composites: {}
+  }
+
+  type company_smtp_settingsGetPayload<S extends boolean | null | undefined | company_smtp_settingsDefaultArgs> = $Result.GetResult<Prisma.$company_smtp_settingsPayload, S>
+
+  type company_smtp_settingsCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<company_smtp_settingsFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: Company_smtp_settingsCountAggregateInputType | true
+    }
+
+  export interface company_smtp_settingsDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['company_smtp_settings'], meta: { name: 'company_smtp_settings' } }
+    /**
+     * Find zero or one Company_smtp_settings that matches the filter.
+     * @param {company_smtp_settingsFindUniqueArgs} args - Arguments to find a Company_smtp_settings
+     * @example
+     * // Get one Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends company_smtp_settingsFindUniqueArgs>(args: SelectSubset<T, company_smtp_settingsFindUniqueArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one Company_smtp_settings that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {company_smtp_settingsFindUniqueOrThrowArgs} args - Arguments to find a Company_smtp_settings
+     * @example
+     * // Get one Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends company_smtp_settingsFindUniqueOrThrowArgs>(args: SelectSubset<T, company_smtp_settingsFindUniqueOrThrowArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first Company_smtp_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsFindFirstArgs} args - Arguments to find a Company_smtp_settings
+     * @example
+     * // Get one Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends company_smtp_settingsFindFirstArgs>(args?: SelectSubset<T, company_smtp_settingsFindFirstArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first Company_smtp_settings that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsFindFirstOrThrowArgs} args - Arguments to find a Company_smtp_settings
+     * @example
+     * // Get one Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends company_smtp_settingsFindFirstOrThrowArgs>(args?: SelectSubset<T, company_smtp_settingsFindFirstOrThrowArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more Company_smtp_settings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findMany()
+     * 
+     * // Get first 10 Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const company_smtp_settingsWithIdOnly = await prisma.company_smtp_settings.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends company_smtp_settingsFindManyArgs>(args?: SelectSubset<T, company_smtp_settingsFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a Company_smtp_settings.
+     * @param {company_smtp_settingsCreateArgs} args - Arguments to create a Company_smtp_settings.
+     * @example
+     * // Create one Company_smtp_settings
+     * const Company_smtp_settings = await prisma.company_smtp_settings.create({
+     *   data: {
+     *     // ... data to create a Company_smtp_settings
+     *   }
+     * })
+     * 
+     */
+    create<T extends company_smtp_settingsCreateArgs>(args: SelectSubset<T, company_smtp_settingsCreateArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many Company_smtp_settings.
+     * @param {company_smtp_settingsCreateManyArgs} args - Arguments to create many Company_smtp_settings.
+     * @example
+     * // Create many Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends company_smtp_settingsCreateManyArgs>(args?: SelectSubset<T, company_smtp_settingsCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Delete a Company_smtp_settings.
+     * @param {company_smtp_settingsDeleteArgs} args - Arguments to delete one Company_smtp_settings.
+     * @example
+     * // Delete one Company_smtp_settings
+     * const Company_smtp_settings = await prisma.company_smtp_settings.delete({
+     *   where: {
+     *     // ... filter to delete one Company_smtp_settings
+     *   }
+     * })
+     * 
+     */
+    delete<T extends company_smtp_settingsDeleteArgs>(args: SelectSubset<T, company_smtp_settingsDeleteArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one Company_smtp_settings.
+     * @param {company_smtp_settingsUpdateArgs} args - Arguments to update one Company_smtp_settings.
+     * @example
+     * // Update one Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends company_smtp_settingsUpdateArgs>(args: SelectSubset<T, company_smtp_settingsUpdateArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more Company_smtp_settings.
+     * @param {company_smtp_settingsDeleteManyArgs} args - Arguments to filter Company_smtp_settings to delete.
+     * @example
+     * // Delete a few Company_smtp_settings
+     * const { count } = await prisma.company_smtp_settings.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends company_smtp_settingsDeleteManyArgs>(args?: SelectSubset<T, company_smtp_settingsDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Company_smtp_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends company_smtp_settingsUpdateManyArgs>(args: SelectSubset<T, company_smtp_settingsUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one Company_smtp_settings.
+     * @param {company_smtp_settingsUpsertArgs} args - Arguments to update or create a Company_smtp_settings.
+     * @example
+     * // Update or create a Company_smtp_settings
+     * const company_smtp_settings = await prisma.company_smtp_settings.upsert({
+     *   create: {
+     *     // ... data to create a Company_smtp_settings
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Company_smtp_settings we want to update
+     *   }
+     * })
+     */
+    upsert<T extends company_smtp_settingsUpsertArgs>(args: SelectSubset<T, company_smtp_settingsUpsertArgs<ExtArgs>>): Prisma__company_smtp_settingsClient<$Result.GetResult<Prisma.$company_smtp_settingsPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of Company_smtp_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsCountArgs} args - Arguments to filter Company_smtp_settings to count.
+     * @example
+     * // Count the number of Company_smtp_settings
+     * const count = await prisma.company_smtp_settings.count({
+     *   where: {
+     *     // ... the filter for the Company_smtp_settings we want to count
+     *   }
+     * })
+    **/
+    count<T extends company_smtp_settingsCountArgs>(
+      args?: Subset<T, company_smtp_settingsCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], Company_smtp_settingsCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Company_smtp_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {Company_smtp_settingsAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends Company_smtp_settingsAggregateArgs>(args: Subset<T, Company_smtp_settingsAggregateArgs>): Prisma.PrismaPromise<GetCompany_smtp_settingsAggregateType<T>>
+
+    /**
+     * Group by Company_smtp_settings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {company_smtp_settingsGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends company_smtp_settingsGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: company_smtp_settingsGroupByArgs['orderBy'] }
+        : { orderBy?: company_smtp_settingsGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, company_smtp_settingsGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCompany_smtp_settingsGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the company_smtp_settings model
+   */
+  readonly fields: company_smtp_settingsFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for company_smtp_settings.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__company_smtp_settingsClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    company<T extends companyDefaultArgs<ExtArgs> = {}>(args?: Subset<T, companyDefaultArgs<ExtArgs>>): Prisma__companyClient<$Result.GetResult<Prisma.$companyPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the company_smtp_settings model
+   */ 
+  interface company_smtp_settingsFieldRefs {
+    readonly id: FieldRef<"company_smtp_settings", 'Int'>
+    readonly companyId: FieldRef<"company_smtp_settings", 'Int'>
+    readonly host: FieldRef<"company_smtp_settings", 'String'>
+    readonly ip: FieldRef<"company_smtp_settings", 'String'>
+    readonly port: FieldRef<"company_smtp_settings", 'Int'>
+    readonly security: FieldRef<"company_smtp_settings", 'String'>
+    readonly username: FieldRef<"company_smtp_settings", 'String'>
+    readonly password: FieldRef<"company_smtp_settings", 'String'>
+    readonly fromEmail: FieldRef<"company_smtp_settings", 'String'>
+    readonly fromName: FieldRef<"company_smtp_settings", 'String'>
+    readonly isConfigured: FieldRef<"company_smtp_settings", 'Boolean'>
+    readonly lastTestedAt: FieldRef<"company_smtp_settings", 'DateTime'>
+    readonly lastTestStatus: FieldRef<"company_smtp_settings", 'String'>
+    readonly createdAt: FieldRef<"company_smtp_settings", 'DateTime'>
+    readonly updatedAt: FieldRef<"company_smtp_settings", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * company_smtp_settings findUnique
+   */
+  export type company_smtp_settingsFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter, which company_smtp_settings to fetch.
+     */
+    where: company_smtp_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_smtp_settings findUniqueOrThrow
+   */
+  export type company_smtp_settingsFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter, which company_smtp_settings to fetch.
+     */
+    where: company_smtp_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_smtp_settings findFirst
+   */
+  export type company_smtp_settingsFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter, which company_smtp_settings to fetch.
+     */
+    where?: company_smtp_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_smtp_settings to fetch.
+     */
+    orderBy?: company_smtp_settingsOrderByWithRelationInput | company_smtp_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for company_smtp_settings.
+     */
+    cursor?: company_smtp_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_smtp_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_smtp_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of company_smtp_settings.
+     */
+    distinct?: Company_smtp_settingsScalarFieldEnum | Company_smtp_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_smtp_settings findFirstOrThrow
+   */
+  export type company_smtp_settingsFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter, which company_smtp_settings to fetch.
+     */
+    where?: company_smtp_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_smtp_settings to fetch.
+     */
+    orderBy?: company_smtp_settingsOrderByWithRelationInput | company_smtp_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for company_smtp_settings.
+     */
+    cursor?: company_smtp_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_smtp_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_smtp_settings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of company_smtp_settings.
+     */
+    distinct?: Company_smtp_settingsScalarFieldEnum | Company_smtp_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_smtp_settings findMany
+   */
+  export type company_smtp_settingsFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter, which company_smtp_settings to fetch.
+     */
+    where?: company_smtp_settingsWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of company_smtp_settings to fetch.
+     */
+    orderBy?: company_smtp_settingsOrderByWithRelationInput | company_smtp_settingsOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing company_smtp_settings.
+     */
+    cursor?: company_smtp_settingsWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` company_smtp_settings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` company_smtp_settings.
+     */
+    skip?: number
+    distinct?: Company_smtp_settingsScalarFieldEnum | Company_smtp_settingsScalarFieldEnum[]
+  }
+
+  /**
+   * company_smtp_settings create
+   */
+  export type company_smtp_settingsCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * The data needed to create a company_smtp_settings.
+     */
+    data: XOR<company_smtp_settingsCreateInput, company_smtp_settingsUncheckedCreateInput>
+  }
+
+  /**
+   * company_smtp_settings createMany
+   */
+  export type company_smtp_settingsCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many company_smtp_settings.
+     */
+    data: company_smtp_settingsCreateManyInput | company_smtp_settingsCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * company_smtp_settings update
+   */
+  export type company_smtp_settingsUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * The data needed to update a company_smtp_settings.
+     */
+    data: XOR<company_smtp_settingsUpdateInput, company_smtp_settingsUncheckedUpdateInput>
+    /**
+     * Choose, which company_smtp_settings to update.
+     */
+    where: company_smtp_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_smtp_settings updateMany
+   */
+  export type company_smtp_settingsUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update company_smtp_settings.
+     */
+    data: XOR<company_smtp_settingsUpdateManyMutationInput, company_smtp_settingsUncheckedUpdateManyInput>
+    /**
+     * Filter which company_smtp_settings to update
+     */
+    where?: company_smtp_settingsWhereInput
+  }
+
+  /**
+   * company_smtp_settings upsert
+   */
+  export type company_smtp_settingsUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * The filter to search for the company_smtp_settings to update in case it exists.
+     */
+    where: company_smtp_settingsWhereUniqueInput
+    /**
+     * In case the company_smtp_settings found by the `where` argument doesn't exist, create a new company_smtp_settings with this data.
+     */
+    create: XOR<company_smtp_settingsCreateInput, company_smtp_settingsUncheckedCreateInput>
+    /**
+     * In case the company_smtp_settings was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<company_smtp_settingsUpdateInput, company_smtp_settingsUncheckedUpdateInput>
+  }
+
+  /**
+   * company_smtp_settings delete
+   */
+  export type company_smtp_settingsDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+    /**
+     * Filter which company_smtp_settings to delete.
+     */
+    where: company_smtp_settingsWhereUniqueInput
+  }
+
+  /**
+   * company_smtp_settings deleteMany
+   */
+  export type company_smtp_settingsDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which company_smtp_settings to delete
+     */
+    where?: company_smtp_settingsWhereInput
+  }
+
+  /**
+   * company_smtp_settings without action
+   */
+  export type company_smtp_settingsDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the company_smtp_settings
+     */
+    select?: company_smtp_settingsSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: company_smtp_settingsInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model vendor
    */
 
@@ -86088,6 +87220,27 @@ export namespace Prisma {
   export type Company_userScalarFieldEnum = (typeof Company_userScalarFieldEnum)[keyof typeof Company_userScalarFieldEnum]
 
 
+  export const Company_smtp_settingsScalarFieldEnum: {
+    id: 'id',
+    companyId: 'companyId',
+    host: 'host',
+    ip: 'ip',
+    port: 'port',
+    security: 'security',
+    username: 'username',
+    password: 'password',
+    fromEmail: 'fromEmail',
+    fromName: 'fromName',
+    isConfigured: 'isConfigured',
+    lastTestedAt: 'lastTestedAt',
+    lastTestStatus: 'lastTestStatus',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type Company_smtp_settingsScalarFieldEnum = (typeof Company_smtp_settingsScalarFieldEnum)[keyof typeof Company_smtp_settingsScalarFieldEnum]
+
+
   export const VendorScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -87049,6 +88202,7 @@ export namespace Prisma {
     deliveryperson?: DeliverypersonListRelationFilter
     advanceadjustment?: AdvanceadjustmentListRelationFilter
     company_user?: Company_userListRelationFilter
+    company_smtp_settings?: XOR<Company_smtp_settingsNullableRelationFilter, company_smtp_settingsWhereInput> | null
   }
 
   export type companyOrderByWithRelationInput = {
@@ -87153,6 +88307,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonOrderByRelationAggregateInput
     advanceadjustment?: advanceadjustmentOrderByRelationAggregateInput
     company_user?: company_userOrderByRelationAggregateInput
+    company_smtp_settings?: company_smtp_settingsOrderByWithRelationInput
   }
 
   export type companyWhereUniqueInput = Prisma.AtLeast<{
@@ -87260,6 +88415,7 @@ export namespace Prisma {
     deliveryperson?: DeliverypersonListRelationFilter
     advanceadjustment?: AdvanceadjustmentListRelationFilter
     company_user?: Company_userListRelationFilter
+    company_smtp_settings?: XOR<Company_smtp_settingsNullableRelationFilter, company_smtp_settingsWhereInput> | null
   }, "id">
 
   export type companyOrderByWithAggregationInput = {
@@ -93182,6 +94338,113 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"company_user"> | Date | string
   }
 
+  export type company_smtp_settingsWhereInput = {
+    AND?: company_smtp_settingsWhereInput | company_smtp_settingsWhereInput[]
+    OR?: company_smtp_settingsWhereInput[]
+    NOT?: company_smtp_settingsWhereInput | company_smtp_settingsWhereInput[]
+    id?: IntFilter<"company_smtp_settings"> | number
+    companyId?: IntFilter<"company_smtp_settings"> | number
+    host?: StringNullableFilter<"company_smtp_settings"> | string | null
+    ip?: StringNullableFilter<"company_smtp_settings"> | string | null
+    port?: IntNullableFilter<"company_smtp_settings"> | number | null
+    security?: StringNullableFilter<"company_smtp_settings"> | string | null
+    username?: StringNullableFilter<"company_smtp_settings"> | string | null
+    password?: StringNullableFilter<"company_smtp_settings"> | string | null
+    fromEmail?: StringNullableFilter<"company_smtp_settings"> | string | null
+    fromName?: StringNullableFilter<"company_smtp_settings"> | string | null
+    isConfigured?: BoolFilter<"company_smtp_settings"> | boolean
+    lastTestedAt?: DateTimeNullableFilter<"company_smtp_settings"> | Date | string | null
+    lastTestStatus?: StringNullableFilter<"company_smtp_settings"> | string | null
+    createdAt?: DateTimeFilter<"company_smtp_settings"> | Date | string
+    updatedAt?: DateTimeFilter<"company_smtp_settings"> | Date | string
+    company?: XOR<CompanyRelationFilter, companyWhereInput>
+  }
+
+  export type company_smtp_settingsOrderByWithRelationInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    host?: SortOrderInput | SortOrder
+    ip?: SortOrderInput | SortOrder
+    port?: SortOrderInput | SortOrder
+    security?: SortOrderInput | SortOrder
+    username?: SortOrderInput | SortOrder
+    password?: SortOrderInput | SortOrder
+    fromEmail?: SortOrderInput | SortOrder
+    fromName?: SortOrderInput | SortOrder
+    isConfigured?: SortOrder
+    lastTestedAt?: SortOrderInput | SortOrder
+    lastTestStatus?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    company?: companyOrderByWithRelationInput
+  }
+
+  export type company_smtp_settingsWhereUniqueInput = Prisma.AtLeast<{
+    id?: number
+    companyId?: number
+    AND?: company_smtp_settingsWhereInput | company_smtp_settingsWhereInput[]
+    OR?: company_smtp_settingsWhereInput[]
+    NOT?: company_smtp_settingsWhereInput | company_smtp_settingsWhereInput[]
+    host?: StringNullableFilter<"company_smtp_settings"> | string | null
+    ip?: StringNullableFilter<"company_smtp_settings"> | string | null
+    port?: IntNullableFilter<"company_smtp_settings"> | number | null
+    security?: StringNullableFilter<"company_smtp_settings"> | string | null
+    username?: StringNullableFilter<"company_smtp_settings"> | string | null
+    password?: StringNullableFilter<"company_smtp_settings"> | string | null
+    fromEmail?: StringNullableFilter<"company_smtp_settings"> | string | null
+    fromName?: StringNullableFilter<"company_smtp_settings"> | string | null
+    isConfigured?: BoolFilter<"company_smtp_settings"> | boolean
+    lastTestedAt?: DateTimeNullableFilter<"company_smtp_settings"> | Date | string | null
+    lastTestStatus?: StringNullableFilter<"company_smtp_settings"> | string | null
+    createdAt?: DateTimeFilter<"company_smtp_settings"> | Date | string
+    updatedAt?: DateTimeFilter<"company_smtp_settings"> | Date | string
+    company?: XOR<CompanyRelationFilter, companyWhereInput>
+  }, "id" | "companyId">
+
+  export type company_smtp_settingsOrderByWithAggregationInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    host?: SortOrderInput | SortOrder
+    ip?: SortOrderInput | SortOrder
+    port?: SortOrderInput | SortOrder
+    security?: SortOrderInput | SortOrder
+    username?: SortOrderInput | SortOrder
+    password?: SortOrderInput | SortOrder
+    fromEmail?: SortOrderInput | SortOrder
+    fromName?: SortOrderInput | SortOrder
+    isConfigured?: SortOrder
+    lastTestedAt?: SortOrderInput | SortOrder
+    lastTestStatus?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: company_smtp_settingsCountOrderByAggregateInput
+    _avg?: company_smtp_settingsAvgOrderByAggregateInput
+    _max?: company_smtp_settingsMaxOrderByAggregateInput
+    _min?: company_smtp_settingsMinOrderByAggregateInput
+    _sum?: company_smtp_settingsSumOrderByAggregateInput
+  }
+
+  export type company_smtp_settingsScalarWhereWithAggregatesInput = {
+    AND?: company_smtp_settingsScalarWhereWithAggregatesInput | company_smtp_settingsScalarWhereWithAggregatesInput[]
+    OR?: company_smtp_settingsScalarWhereWithAggregatesInput[]
+    NOT?: company_smtp_settingsScalarWhereWithAggregatesInput | company_smtp_settingsScalarWhereWithAggregatesInput[]
+    id?: IntWithAggregatesFilter<"company_smtp_settings"> | number
+    companyId?: IntWithAggregatesFilter<"company_smtp_settings"> | number
+    host?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    ip?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    port?: IntNullableWithAggregatesFilter<"company_smtp_settings"> | number | null
+    security?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    username?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    password?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    fromEmail?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    fromName?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    isConfigured?: BoolWithAggregatesFilter<"company_smtp_settings"> | boolean
+    lastTestedAt?: DateTimeNullableWithAggregatesFilter<"company_smtp_settings"> | Date | string | null
+    lastTestStatus?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"company_smtp_settings"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"company_smtp_settings"> | Date | string
+  }
+
   export type vendorWhereInput = {
     AND?: vendorWhereInput | vendorWhereInput[]
     OR?: vendorWhereInput[]
@@ -95176,6 +96439,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateInput = {
@@ -95279,6 +96543,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUpdateInput = {
@@ -95381,6 +96646,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateInput = {
@@ -95484,6 +96750,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateManyInput = {
@@ -101961,6 +103228,128 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type company_smtp_settingsCreateInput = {
+    host?: string | null
+    ip?: string | null
+    port?: number | null
+    security?: string | null
+    username?: string | null
+    password?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+    isConfigured?: boolean
+    lastTestedAt?: Date | string | null
+    lastTestStatus?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    company: companyCreateNestedOneWithoutCompany_smtp_settingsInput
+  }
+
+  export type company_smtp_settingsUncheckedCreateInput = {
+    id?: number
+    companyId: number
+    host?: string | null
+    ip?: string | null
+    port?: number | null
+    security?: string | null
+    username?: string | null
+    password?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+    isConfigured?: boolean
+    lastTestedAt?: Date | string | null
+    lastTestStatus?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type company_smtp_settingsUpdateInput = {
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    company?: companyUpdateOneRequiredWithoutCompany_smtp_settingsNestedInput
+  }
+
+  export type company_smtp_settingsUncheckedUpdateInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    companyId?: IntFieldUpdateOperationsInput | number
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type company_smtp_settingsCreateManyInput = {
+    id?: number
+    companyId: number
+    host?: string | null
+    ip?: string | null
+    port?: number | null
+    security?: string | null
+    username?: string | null
+    password?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+    isConfigured?: boolean
+    lastTestedAt?: Date | string | null
+    lastTestStatus?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type company_smtp_settingsUpdateManyMutationInput = {
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type company_smtp_settingsUncheckedUpdateManyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    companyId?: IntFieldUpdateOperationsInput | number
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type vendorCreateInput = {
     name: string
     nameArabic?: string | null
@@ -104305,6 +105694,11 @@ export namespace Prisma {
     every?: company_userWhereInput
     some?: company_userWhereInput
     none?: company_userWhereInput
+  }
+
+  export type Company_smtp_settingsNullableRelationFilter = {
+    is?: company_smtp_settingsWhereInput | null
+    isNot?: company_smtp_settingsWhereInput | null
   }
 
   export type accountgroupOrderByRelationAggregateInput = {
@@ -109158,6 +110552,72 @@ export namespace Prisma {
     roleId?: SortOrder
   }
 
+  export type company_smtp_settingsCountOrderByAggregateInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    host?: SortOrder
+    ip?: SortOrder
+    port?: SortOrder
+    security?: SortOrder
+    username?: SortOrder
+    password?: SortOrder
+    fromEmail?: SortOrder
+    fromName?: SortOrder
+    isConfigured?: SortOrder
+    lastTestedAt?: SortOrder
+    lastTestStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type company_smtp_settingsAvgOrderByAggregateInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    port?: SortOrder
+  }
+
+  export type company_smtp_settingsMaxOrderByAggregateInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    host?: SortOrder
+    ip?: SortOrder
+    port?: SortOrder
+    security?: SortOrder
+    username?: SortOrder
+    password?: SortOrder
+    fromEmail?: SortOrder
+    fromName?: SortOrder
+    isConfigured?: SortOrder
+    lastTestedAt?: SortOrder
+    lastTestStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type company_smtp_settingsMinOrderByAggregateInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    host?: SortOrder
+    ip?: SortOrder
+    port?: SortOrder
+    security?: SortOrder
+    username?: SortOrder
+    password?: SortOrder
+    fromEmail?: SortOrder
+    fromName?: SortOrder
+    isConfigured?: SortOrder
+    lastTestedAt?: SortOrder
+    lastTestStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type company_smtp_settingsSumOrderByAggregateInput = {
+    id?: SortOrder
+    companyId?: SortOrder
+    port?: SortOrder
+  }
+
   export type vendorCompanyIdEmailCompoundUniqueInput = {
     companyId: number
     email: string
@@ -110786,6 +112246,12 @@ export namespace Prisma {
     connect?: company_userWhereUniqueInput | company_userWhereUniqueInput[]
   }
 
+  export type company_smtp_settingsCreateNestedOneWithoutCompanyInput = {
+    create?: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+    connectOrCreate?: company_smtp_settingsCreateOrConnectWithoutCompanyInput
+    connect?: company_smtp_settingsWhereUniqueInput
+  }
+
   export type accountgroupUncheckedCreateNestedManyWithoutCompanyInput = {
     create?: XOR<accountgroupCreateWithoutCompanyInput, accountgroupUncheckedCreateWithoutCompanyInput> | accountgroupCreateWithoutCompanyInput[] | accountgroupUncheckedCreateWithoutCompanyInput[]
     connectOrCreate?: accountgroupCreateOrConnectWithoutCompanyInput | accountgroupCreateOrConnectWithoutCompanyInput[]
@@ -111078,6 +112544,12 @@ export namespace Prisma {
     connectOrCreate?: company_userCreateOrConnectWithoutCompanyInput | company_userCreateOrConnectWithoutCompanyInput[]
     createMany?: company_userCreateManyCompanyInputEnvelope
     connect?: company_userWhereUniqueInput | company_userWhereUniqueInput[]
+  }
+
+  export type company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput = {
+    create?: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+    connectOrCreate?: company_smtp_settingsCreateOrConnectWithoutCompanyInput
+    connect?: company_smtp_settingsWhereUniqueInput
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -111694,6 +113166,16 @@ export namespace Prisma {
     deleteMany?: company_userScalarWhereInput | company_userScalarWhereInput[]
   }
 
+  export type company_smtp_settingsUpdateOneWithoutCompanyNestedInput = {
+    create?: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+    connectOrCreate?: company_smtp_settingsCreateOrConnectWithoutCompanyInput
+    upsert?: company_smtp_settingsUpsertWithoutCompanyInput
+    disconnect?: company_smtp_settingsWhereInput | boolean
+    delete?: company_smtp_settingsWhereInput | boolean
+    connect?: company_smtp_settingsWhereUniqueInput
+    update?: XOR<XOR<company_smtp_settingsUpdateToOneWithWhereWithoutCompanyInput, company_smtp_settingsUpdateWithoutCompanyInput>, company_smtp_settingsUncheckedUpdateWithoutCompanyInput>
+  }
+
   export type accountgroupUncheckedUpdateManyWithoutCompanyNestedInput = {
     create?: XOR<accountgroupCreateWithoutCompanyInput, accountgroupUncheckedCreateWithoutCompanyInput> | accountgroupCreateWithoutCompanyInput[] | accountgroupUncheckedCreateWithoutCompanyInput[]
     connectOrCreate?: accountgroupCreateOrConnectWithoutCompanyInput | accountgroupCreateOrConnectWithoutCompanyInput[]
@@ -112280,6 +113762,16 @@ export namespace Prisma {
     update?: company_userUpdateWithWhereUniqueWithoutCompanyInput | company_userUpdateWithWhereUniqueWithoutCompanyInput[]
     updateMany?: company_userUpdateManyWithWhereWithoutCompanyInput | company_userUpdateManyWithWhereWithoutCompanyInput[]
     deleteMany?: company_userScalarWhereInput | company_userScalarWhereInput[]
+  }
+
+  export type company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput = {
+    create?: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+    connectOrCreate?: company_smtp_settingsCreateOrConnectWithoutCompanyInput
+    upsert?: company_smtp_settingsUpsertWithoutCompanyInput
+    disconnect?: company_smtp_settingsWhereInput | boolean
+    delete?: company_smtp_settingsWhereInput | boolean
+    connect?: company_smtp_settingsWhereUniqueInput
+    update?: XOR<XOR<company_smtp_settingsUpdateToOneWithWhereWithoutCompanyInput, company_smtp_settingsUpdateWithoutCompanyInput>, company_smtp_settingsUncheckedUpdateWithoutCompanyInput>
   }
 
   export type companyCreateNestedOneWithoutCustomerInput = {
@@ -118648,6 +120140,20 @@ export namespace Prisma {
     update?: XOR<XOR<companyUpdateToOneWithWhereWithoutCompany_userInput, companyUpdateWithoutCompany_userInput>, companyUncheckedUpdateWithoutCompany_userInput>
   }
 
+  export type companyCreateNestedOneWithoutCompany_smtp_settingsInput = {
+    create?: XOR<companyCreateWithoutCompany_smtp_settingsInput, companyUncheckedCreateWithoutCompany_smtp_settingsInput>
+    connectOrCreate?: companyCreateOrConnectWithoutCompany_smtp_settingsInput
+    connect?: companyWhereUniqueInput
+  }
+
+  export type companyUpdateOneRequiredWithoutCompany_smtp_settingsNestedInput = {
+    create?: XOR<companyCreateWithoutCompany_smtp_settingsInput, companyUncheckedCreateWithoutCompany_smtp_settingsInput>
+    connectOrCreate?: companyCreateOrConnectWithoutCompany_smtp_settingsInput
+    upsert?: companyUpsertWithoutCompany_smtp_settingsInput
+    connect?: companyWhereUniqueInput
+    update?: XOR<XOR<companyUpdateToOneWithWhereWithoutCompany_smtp_settingsInput, companyUpdateWithoutCompany_smtp_settingsInput>, companyUncheckedUpdateWithoutCompany_smtp_settingsInput>
+  }
+
   export type goodsreceiptnoteCreateNestedManyWithoutVendorInput = {
     create?: XOR<goodsreceiptnoteCreateWithoutVendorInput, goodsreceiptnoteUncheckedCreateWithoutVendorInput> | goodsreceiptnoteCreateWithoutVendorInput[] | goodsreceiptnoteUncheckedCreateWithoutVendorInput[]
     connectOrCreate?: goodsreceiptnoteCreateOrConnectWithoutVendorInput | goodsreceiptnoteCreateOrConnectWithoutVendorInput[]
@@ -121186,6 +122692,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutAccountgroupInput = {
@@ -121288,6 +122795,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutAccountgroupInput = {
@@ -121497,6 +123005,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutAccountgroupInput = {
@@ -121599,6 +123108,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type accountsubgroupUpsertWithWhereUniqueWithoutAccountgroupInput = {
@@ -121766,6 +123276,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutAccountsubgroupInput = {
@@ -121868,6 +123379,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutAccountsubgroupInput = {
@@ -122074,6 +123586,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutAccountsubgroupInput = {
@@ -122176,6 +123689,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type accountgroupUpsertWithoutAccountsubgroupInput = {
@@ -122323,6 +123837,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutBankaccountInput = {
@@ -122425,6 +123940,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutBankaccountInput = {
@@ -122575,6 +124091,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutBankaccountInput = {
@@ -122677,6 +124194,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type banktransactionUpsertWithWhereUniqueWithoutBankaccountInput = {
@@ -122842,6 +124360,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutBanktransactionInput = {
@@ -122944,6 +124463,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutBanktransactionInput = {
@@ -123099,6 +124619,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutBanktransactionInput = {
@@ -123201,6 +124722,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateWithoutCategoryInput = {
@@ -123302,6 +124824,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutCategoryInput = {
@@ -123404,6 +124927,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutCategoryInput = {
@@ -123620,6 +125144,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutCategoryInput = {
@@ -123722,6 +125247,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type productUpsertWithWhereUniqueWithoutCategoryInput = {
@@ -125995,6 +127521,44 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type company_smtp_settingsCreateWithoutCompanyInput = {
+    host?: string | null
+    ip?: string | null
+    port?: number | null
+    security?: string | null
+    username?: string | null
+    password?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+    isConfigured?: boolean
+    lastTestedAt?: Date | string | null
+    lastTestStatus?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type company_smtp_settingsUncheckedCreateWithoutCompanyInput = {
+    id?: number
+    host?: string | null
+    ip?: string | null
+    port?: number | null
+    security?: string | null
+    username?: string | null
+    password?: string | null
+    fromEmail?: string | null
+    fromName?: string | null
+    isConfigured?: boolean
+    lastTestedAt?: Date | string | null
+    lastTestStatus?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type company_smtp_settingsCreateOrConnectWithoutCompanyInput = {
+    where: company_smtp_settingsWhereUniqueInput
+    create: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+  }
+
   export type accountgroupUpsertWithWhereUniqueWithoutCompanyInput = {
     where: accountgroupWhereUniqueInput
     update: XOR<accountgroupUpdateWithoutCompanyInput, accountgroupUncheckedUpdateWithoutCompanyInput>
@@ -127569,6 +129133,50 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"company_user"> | Date | string
   }
 
+  export type company_smtp_settingsUpsertWithoutCompanyInput = {
+    update: XOR<company_smtp_settingsUpdateWithoutCompanyInput, company_smtp_settingsUncheckedUpdateWithoutCompanyInput>
+    create: XOR<company_smtp_settingsCreateWithoutCompanyInput, company_smtp_settingsUncheckedCreateWithoutCompanyInput>
+    where?: company_smtp_settingsWhereInput
+  }
+
+  export type company_smtp_settingsUpdateToOneWithWhereWithoutCompanyInput = {
+    where?: company_smtp_settingsWhereInput
+    data: XOR<company_smtp_settingsUpdateWithoutCompanyInput, company_smtp_settingsUncheckedUpdateWithoutCompanyInput>
+  }
+
+  export type company_smtp_settingsUpdateWithoutCompanyInput = {
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type company_smtp_settingsUncheckedUpdateWithoutCompanyInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    host?: NullableStringFieldUpdateOperationsInput | string | null
+    ip?: NullableStringFieldUpdateOperationsInput | string | null
+    port?: NullableIntFieldUpdateOperationsInput | number | null
+    security?: NullableStringFieldUpdateOperationsInput | string | null
+    username?: NullableStringFieldUpdateOperationsInput | string | null
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    isConfigured?: BoolFieldUpdateOperationsInput | boolean
+    lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type companyCreateWithoutCustomerInput = {
     name: string
     email: string
@@ -127668,6 +129276,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutCustomerInput = {
@@ -127770,6 +129379,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutCustomerInput = {
@@ -128536,6 +130146,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutCustomerInput = {
@@ -128638,6 +130249,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type deliverychallanUpsertWithWhereUniqueWithoutCustomerInput = {
@@ -128968,6 +130580,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutDeliverychallanInput = {
@@ -129070,6 +130683,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutDeliverychallanInput = {
@@ -129619,6 +131233,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutDeliverychallanInput = {
@@ -129721,6 +131336,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutDeliverychallanInput = {
@@ -130644,6 +132260,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutExpenseentryInput = {
@@ -130746,6 +132363,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutExpenseentryInput = {
@@ -130863,6 +132481,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutExpenseentryInput = {
@@ -130965,6 +132584,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateWithoutGoodsreceiptnoteInput = {
@@ -131066,6 +132686,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutGoodsreceiptnoteInput = {
@@ -131168,6 +132789,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutGoodsreceiptnoteInput = {
@@ -131607,6 +133229,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutGoodsreceiptnoteInput = {
@@ -131709,6 +133332,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type purchaseorderUpsertWithoutGoodsreceiptnoteInput = {
@@ -132470,6 +134094,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutIncomeentryInput = {
@@ -132572,6 +134197,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutIncomeentryInput = {
@@ -132689,6 +134315,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutIncomeentryInput = {
@@ -132791,6 +134418,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateWithoutInventoryadjustmentInput = {
@@ -132892,6 +134520,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutInventoryadjustmentInput = {
@@ -132994,6 +134623,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutInventoryadjustmentInput = {
@@ -133214,6 +134844,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutInventoryadjustmentInput = {
@@ -133316,6 +134947,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type warehouseUpsertWithoutInventoryadjustmentInput = {
@@ -133935,6 +135567,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutInventorytransactionInput = {
@@ -134037,6 +135670,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutInventorytransactionInput = {
@@ -134426,6 +136060,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutInventorytransactionInput = {
@@ -134528,6 +136163,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type warehouseUpsertWithoutInventorytransaction_inventorytransaction_fromWarehouseIdTowarehouseInput = {
@@ -134947,6 +136583,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutInvoiceInput = {
@@ -135049,6 +136686,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutInvoiceInput = {
@@ -135802,6 +137440,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutInvoiceInput = {
@@ -135904,6 +137543,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutInvoiceInput = {
@@ -137204,6 +138844,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutJournalentryInput = {
@@ -137306,6 +138947,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutJournalentryInput = {
@@ -137476,6 +139118,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutJournalentryInput = {
@@ -137578,6 +139221,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type transactionUpsertWithWhereUniqueWithoutJournalentryInput = {
@@ -137695,6 +139339,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutLedgerInput = {
@@ -137797,6 +139442,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutLedgerInput = {
@@ -138794,6 +140440,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutLedgerInput = {
@@ -138896,6 +140543,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutLedgerInput = {
@@ -139524,6 +141172,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPasswordrequestInput = {
@@ -139626,6 +141275,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPasswordrequestInput = {
@@ -139781,6 +141431,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPasswordrequestInput = {
@@ -139883,6 +141534,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type userUpsertWithoutPasswordrequestInput = {
@@ -140028,6 +141680,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPaymentInput = {
@@ -140130,6 +141783,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPaymentInput = {
@@ -140688,6 +142342,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPaymentInput = {
@@ -140790,6 +142445,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type purchasebillUpsertWithoutPaymentInput = {
@@ -141304,6 +142960,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPlanInput = {
@@ -141406,6 +143063,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPlanInput = {
@@ -141761,6 +143419,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPosinvoiceInput = {
@@ -141863,6 +143522,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPosinvoiceInput = {
@@ -142176,6 +143836,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPosinvoiceInput = {
@@ -142278,6 +143939,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutPosinvoiceInput = {
@@ -143335,6 +144997,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutProductInput = {
@@ -143437,6 +145100,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutProductInput = {
@@ -144292,6 +145956,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutProductInput = {
@@ -144394,6 +146059,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type uomUpsertWithoutProductInput = {
@@ -145133,6 +146799,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPurchasebillInput = {
@@ -145235,6 +146902,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPurchasebillInput = {
@@ -145856,6 +147524,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPurchasebillInput = {
@@ -145958,6 +147627,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type goodsreceiptnoteUpsertWithoutPurchasebillInput = {
@@ -147211,6 +148881,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPurchaseorderInput = {
@@ -147313,6 +148984,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPurchaseorderInput = {
@@ -147659,6 +149331,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPurchaseorderInput = {
@@ -147761,6 +149434,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type purchasequotationUpsertWithoutPurchaseorderInput = {
@@ -148748,6 +150422,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPurchasequotationInput = {
@@ -148850,6 +150525,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPurchasequotationInput = {
@@ -149196,6 +150872,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPurchasequotationInput = {
@@ -149298,6 +150975,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type vendorUpsertWithoutPurchasequotationInput = {
@@ -150093,6 +151771,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutPurchasereturnInput = {
@@ -150195,6 +151874,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutPurchasereturnInput = {
@@ -150555,6 +152235,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPurchasereturnInput = {
@@ -150657,6 +152338,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type purchasebillUpsertWithoutPurchasereturnInput = {
@@ -151408,6 +153090,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutReceiptInput = {
@@ -151510,6 +153193,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutReceiptInput = {
@@ -152072,6 +153756,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutReceiptInput = {
@@ -152174,6 +153859,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutReceiptInput = {
@@ -152855,6 +154541,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutSalesorderInput = {
@@ -152957,6 +154644,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutSalesorderInput = {
@@ -153325,6 +155013,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutSalesorderInput = {
@@ -153427,6 +155116,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutSalesorderInput = {
@@ -154516,6 +156206,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutSalesquotationInput = {
@@ -154618,6 +156309,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutSalesquotationInput = {
@@ -154968,6 +156660,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutSalesquotationInput = {
@@ -155070,6 +156763,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutSalesquotationInput = {
@@ -155985,6 +157679,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutSalesreturnInput = {
@@ -156087,6 +157782,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutSalesreturnInput = {
@@ -156451,6 +158147,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutSalesreturnInput = {
@@ -156553,6 +158250,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerUpsertWithoutSalesreturnInput = {
@@ -157451,6 +159149,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutServiceInput = {
@@ -157553,6 +159252,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutServiceInput = {
@@ -157772,6 +159472,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutServiceInput = {
@@ -157874,6 +159575,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type uomUpsertWithoutServiceInput = {
@@ -158375,6 +160077,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutStocktransferInput = {
@@ -158477,6 +160180,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutStocktransferInput = {
@@ -158697,6 +160401,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutStocktransferInput = {
@@ -158799,6 +160504,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type warehouseUpsertWithoutStocktransferInput = {
@@ -159398,6 +161104,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutTransactionInput = {
@@ -159500,6 +161207,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutTransactionInput = {
@@ -160131,6 +161839,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutTransactionInput = {
@@ -160233,6 +161942,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type ledgerUpsertWithoutTransaction_transaction_creditLedgerIdToledgerInput = {
@@ -160896,6 +162606,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutUomInput = {
@@ -160998,6 +162709,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutUomInput = {
@@ -161869,6 +163581,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutUomInput = {
@@ -161971,6 +163684,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type uomUpsertWithoutChildUnitsInput = {
@@ -162349,6 +164063,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutUserInput = {
@@ -162451,6 +164166,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutUserInput = {
@@ -162681,6 +164397,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutUserInput = {
@@ -162783,6 +164500,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type auditlogUpsertWithWhereUniqueWithoutUserInput = {
@@ -162970,6 +164688,7 @@ export namespace Prisma {
     salesperson?: salespersonCreateNestedManyWithoutCompanyInput
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutCompany_userInput = {
@@ -163072,6 +164791,7 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedCreateNestedManyWithoutCompanyInput
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutCompany_userInput = {
@@ -163233,6 +164953,7 @@ export namespace Prisma {
     salesperson?: salespersonUpdateManyWithoutCompanyNestedInput
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutCompany_userInput = {
@@ -163335,6 +165056,433 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedUpdateManyWithoutCompanyNestedInput
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
+  }
+
+  export type companyCreateWithoutCompany_smtp_settingsInput = {
+    name: string
+    email: string
+    logo?: string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    invoiceTemplate?: string
+    invoiceColor?: string
+    showQrCode?: boolean
+    invoiceLogo?: string | null
+    planName?: string | null
+    planType?: string | null
+    phone?: string | null
+    website?: string | null
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    zip?: string | null
+    country?: string | null
+    currency?: string | null
+    originalCurrency?: string | null
+    bankName?: string | null
+    accountHolder?: string | null
+    accountName?: string | null
+    accountNumber?: string | null
+    iban?: string | null
+    bic?: string | null
+    sortCode?: string | null
+    ifsc?: string | null
+    vatNumber?: string | null
+    defaultVatRate?: string | null
+    gstNumber?: string | null
+    defaultVatRateId?: number | null
+    isVatRegistered?: boolean
+    terms?: string | null
+    termsInvoice?: string | null
+    termsReceipt?: string | null
+    termsPurchase?: string | null
+    termsSalesOrder?: string | null
+    termsQuotation?: string | null
+    termsCreditNote?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventoryConfig?: string | null
+    invoiceTableHeaders?: string | null
+    invoiceLabels?: string | null
+    receiptTemplate?: string | null
+    receiptColor?: string | null
+    receiptLabels?: string | null
+    receiptTableHeaders?: string | null
+    paymentTemplate?: string | null
+    paymentColor?: string | null
+    paymentLabels?: string | null
+    paymentTableHeaders?: string | null
+    customFieldsConfig?: string | null
+    documentTitles?: string | null
+    accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
+    accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
+    bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
+    banktransaction?: banktransactionCreateNestedManyWithoutCompanyInput
+    category?: categoryCreateNestedManyWithoutCompanyInput
+    plan?: planCreateNestedOneWithoutCompanyInput
+    customer?: customerCreateNestedManyWithoutCompanyInput
+    deliverychallan?: deliverychallanCreateNestedManyWithoutCompanyInput
+    expenseentry?: expenseentryCreateNestedManyWithoutCompanyInput
+    goodsreceiptnote?: goodsreceiptnoteCreateNestedManyWithoutCompanyInput
+    incomeentry?: incomeentryCreateNestedManyWithoutCompanyInput
+    inventoryadjustment?: inventoryadjustmentCreateNestedManyWithoutCompanyInput
+    inventorytransaction?: inventorytransactionCreateNestedManyWithoutCompanyInput
+    invoice?: invoiceCreateNestedManyWithoutCompanyInput
+    journalentry?: journalentryCreateNestedManyWithoutCompanyInput
+    ledger?: ledgerCreateNestedManyWithoutCompanyInput
+    passwordrequest?: passwordrequestCreateNestedManyWithoutCompanyInput
+    payment?: paymentCreateNestedManyWithoutCompanyInput
+    posinvoice?: posinvoiceCreateNestedManyWithoutCompanyInput
+    product?: productCreateNestedManyWithoutCompanyInput
+    purchasebill?: purchasebillCreateNestedManyWithoutCompanyInput
+    purchaseorder?: purchaseorderCreateNestedManyWithoutCompanyInput
+    purchasequotation?: purchasequotationCreateNestedManyWithoutCompanyInput
+    purchasereturn?: purchasereturnCreateNestedManyWithoutCompanyInput
+    receipt?: receiptCreateNestedManyWithoutCompanyInput
+    salesorder?: salesorderCreateNestedManyWithoutCompanyInput
+    salesquotation?: salesquotationCreateNestedManyWithoutCompanyInput
+    salesreturn?: salesreturnCreateNestedManyWithoutCompanyInput
+    service?: serviceCreateNestedManyWithoutCompanyInput
+    stocktransfer?: stocktransferCreateNestedManyWithoutCompanyInput
+    transaction?: transactionCreateNestedManyWithoutCompanyInput
+    uom?: uomCreateNestedManyWithoutCompanyInput
+    user?: userCreateNestedManyWithoutCompanyInput
+    vendor?: vendorCreateNestedManyWithoutCompanyInput
+    warehouse?: warehouseCreateNestedManyWithoutCompanyInput
+    voucher?: voucherCreateNestedManyWithoutCompanyInput
+    role?: roleCreateNestedManyWithoutCompanyInput
+    transaction_numbering?: transaction_numberingCreateNestedManyWithoutCompanyInput
+    auditlog?: auditlogCreateNestedManyWithoutCompanyInput
+    salesperson?: salespersonCreateNestedManyWithoutCompanyInput
+    deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
+    advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
+    company_user?: company_userCreateNestedManyWithoutCompanyInput
+  }
+
+  export type companyUncheckedCreateWithoutCompany_smtp_settingsInput = {
+    id?: number
+    name: string
+    email: string
+    logo?: string | null
+    startDate?: Date | string | null
+    endDate?: Date | string | null
+    invoiceTemplate?: string
+    invoiceColor?: string
+    showQrCode?: boolean
+    invoiceLogo?: string | null
+    planName?: string | null
+    planId?: number | null
+    planType?: string | null
+    phone?: string | null
+    website?: string | null
+    address?: string | null
+    city?: string | null
+    state?: string | null
+    zip?: string | null
+    country?: string | null
+    currency?: string | null
+    originalCurrency?: string | null
+    bankName?: string | null
+    accountHolder?: string | null
+    accountName?: string | null
+    accountNumber?: string | null
+    iban?: string | null
+    bic?: string | null
+    sortCode?: string | null
+    ifsc?: string | null
+    vatNumber?: string | null
+    defaultVatRate?: string | null
+    gstNumber?: string | null
+    defaultVatRateId?: number | null
+    isVatRegistered?: boolean
+    terms?: string | null
+    termsInvoice?: string | null
+    termsReceipt?: string | null
+    termsPurchase?: string | null
+    termsSalesOrder?: string | null
+    termsQuotation?: string | null
+    termsCreditNote?: string | null
+    notes?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventoryConfig?: string | null
+    invoiceTableHeaders?: string | null
+    invoiceLabels?: string | null
+    receiptTemplate?: string | null
+    receiptColor?: string | null
+    receiptLabels?: string | null
+    receiptTableHeaders?: string | null
+    paymentTemplate?: string | null
+    paymentColor?: string | null
+    paymentLabels?: string | null
+    paymentTableHeaders?: string | null
+    customFieldsConfig?: string | null
+    documentTitles?: string | null
+    accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
+    accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
+    bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
+    banktransaction?: banktransactionUncheckedCreateNestedManyWithoutCompanyInput
+    category?: categoryUncheckedCreateNestedManyWithoutCompanyInput
+    customer?: customerUncheckedCreateNestedManyWithoutCompanyInput
+    deliverychallan?: deliverychallanUncheckedCreateNestedManyWithoutCompanyInput
+    expenseentry?: expenseentryUncheckedCreateNestedManyWithoutCompanyInput
+    goodsreceiptnote?: goodsreceiptnoteUncheckedCreateNestedManyWithoutCompanyInput
+    incomeentry?: incomeentryUncheckedCreateNestedManyWithoutCompanyInput
+    inventoryadjustment?: inventoryadjustmentUncheckedCreateNestedManyWithoutCompanyInput
+    inventorytransaction?: inventorytransactionUncheckedCreateNestedManyWithoutCompanyInput
+    invoice?: invoiceUncheckedCreateNestedManyWithoutCompanyInput
+    journalentry?: journalentryUncheckedCreateNestedManyWithoutCompanyInput
+    ledger?: ledgerUncheckedCreateNestedManyWithoutCompanyInput
+    passwordrequest?: passwordrequestUncheckedCreateNestedManyWithoutCompanyInput
+    payment?: paymentUncheckedCreateNestedManyWithoutCompanyInput
+    posinvoice?: posinvoiceUncheckedCreateNestedManyWithoutCompanyInput
+    product?: productUncheckedCreateNestedManyWithoutCompanyInput
+    purchasebill?: purchasebillUncheckedCreateNestedManyWithoutCompanyInput
+    purchaseorder?: purchaseorderUncheckedCreateNestedManyWithoutCompanyInput
+    purchasequotation?: purchasequotationUncheckedCreateNestedManyWithoutCompanyInput
+    purchasereturn?: purchasereturnUncheckedCreateNestedManyWithoutCompanyInput
+    receipt?: receiptUncheckedCreateNestedManyWithoutCompanyInput
+    salesorder?: salesorderUncheckedCreateNestedManyWithoutCompanyInput
+    salesquotation?: salesquotationUncheckedCreateNestedManyWithoutCompanyInput
+    salesreturn?: salesreturnUncheckedCreateNestedManyWithoutCompanyInput
+    service?: serviceUncheckedCreateNestedManyWithoutCompanyInput
+    stocktransfer?: stocktransferUncheckedCreateNestedManyWithoutCompanyInput
+    transaction?: transactionUncheckedCreateNestedManyWithoutCompanyInput
+    uom?: uomUncheckedCreateNestedManyWithoutCompanyInput
+    user?: userUncheckedCreateNestedManyWithoutCompanyInput
+    vendor?: vendorUncheckedCreateNestedManyWithoutCompanyInput
+    warehouse?: warehouseUncheckedCreateNestedManyWithoutCompanyInput
+    voucher?: voucherUncheckedCreateNestedManyWithoutCompanyInput
+    role?: roleUncheckedCreateNestedManyWithoutCompanyInput
+    transaction_numbering?: transaction_numberingUncheckedCreateNestedManyWithoutCompanyInput
+    auditlog?: auditlogUncheckedCreateNestedManyWithoutCompanyInput
+    salesperson?: salespersonUncheckedCreateNestedManyWithoutCompanyInput
+    deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
+    advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
+    company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+  }
+
+  export type companyCreateOrConnectWithoutCompany_smtp_settingsInput = {
+    where: companyWhereUniqueInput
+    create: XOR<companyCreateWithoutCompany_smtp_settingsInput, companyUncheckedCreateWithoutCompany_smtp_settingsInput>
+  }
+
+  export type companyUpsertWithoutCompany_smtp_settingsInput = {
+    update: XOR<companyUpdateWithoutCompany_smtp_settingsInput, companyUncheckedUpdateWithoutCompany_smtp_settingsInput>
+    create: XOR<companyCreateWithoutCompany_smtp_settingsInput, companyUncheckedCreateWithoutCompany_smtp_settingsInput>
+    where?: companyWhereInput
+  }
+
+  export type companyUpdateToOneWithWhereWithoutCompany_smtp_settingsInput = {
+    where?: companyWhereInput
+    data: XOR<companyUpdateWithoutCompany_smtp_settingsInput, companyUncheckedUpdateWithoutCompany_smtp_settingsInput>
+  }
+
+  export type companyUpdateWithoutCompany_smtp_settingsInput = {
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    logo?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    invoiceTemplate?: StringFieldUpdateOperationsInput | string
+    invoiceColor?: StringFieldUpdateOperationsInput | string
+    showQrCode?: BoolFieldUpdateOperationsInput | boolean
+    invoiceLogo?: NullableStringFieldUpdateOperationsInput | string | null
+    planName?: NullableStringFieldUpdateOperationsInput | string | null
+    planType?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    zip?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCurrency?: NullableStringFieldUpdateOperationsInput | string | null
+    bankName?: NullableStringFieldUpdateOperationsInput | string | null
+    accountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    accountName?: NullableStringFieldUpdateOperationsInput | string | null
+    accountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    iban?: NullableStringFieldUpdateOperationsInput | string | null
+    bic?: NullableStringFieldUpdateOperationsInput | string | null
+    sortCode?: NullableStringFieldUpdateOperationsInput | string | null
+    ifsc?: NullableStringFieldUpdateOperationsInput | string | null
+    vatNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultVatRate?: NullableStringFieldUpdateOperationsInput | string | null
+    gstNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultVatRateId?: NullableIntFieldUpdateOperationsInput | number | null
+    isVatRegistered?: BoolFieldUpdateOperationsInput | boolean
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    termsInvoice?: NullableStringFieldUpdateOperationsInput | string | null
+    termsReceipt?: NullableStringFieldUpdateOperationsInput | string | null
+    termsPurchase?: NullableStringFieldUpdateOperationsInput | string | null
+    termsSalesOrder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsQuotation?: NullableStringFieldUpdateOperationsInput | string | null
+    termsCreditNote?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoryConfig?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptColor?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentColor?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
+    documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
+    accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
+    bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
+    banktransaction?: banktransactionUpdateManyWithoutCompanyNestedInput
+    category?: categoryUpdateManyWithoutCompanyNestedInput
+    plan?: planUpdateOneWithoutCompanyNestedInput
+    customer?: customerUpdateManyWithoutCompanyNestedInput
+    deliverychallan?: deliverychallanUpdateManyWithoutCompanyNestedInput
+    expenseentry?: expenseentryUpdateManyWithoutCompanyNestedInput
+    goodsreceiptnote?: goodsreceiptnoteUpdateManyWithoutCompanyNestedInput
+    incomeentry?: incomeentryUpdateManyWithoutCompanyNestedInput
+    inventoryadjustment?: inventoryadjustmentUpdateManyWithoutCompanyNestedInput
+    inventorytransaction?: inventorytransactionUpdateManyWithoutCompanyNestedInput
+    invoice?: invoiceUpdateManyWithoutCompanyNestedInput
+    journalentry?: journalentryUpdateManyWithoutCompanyNestedInput
+    ledger?: ledgerUpdateManyWithoutCompanyNestedInput
+    passwordrequest?: passwordrequestUpdateManyWithoutCompanyNestedInput
+    payment?: paymentUpdateManyWithoutCompanyNestedInput
+    posinvoice?: posinvoiceUpdateManyWithoutCompanyNestedInput
+    product?: productUpdateManyWithoutCompanyNestedInput
+    purchasebill?: purchasebillUpdateManyWithoutCompanyNestedInput
+    purchaseorder?: purchaseorderUpdateManyWithoutCompanyNestedInput
+    purchasequotation?: purchasequotationUpdateManyWithoutCompanyNestedInput
+    purchasereturn?: purchasereturnUpdateManyWithoutCompanyNestedInput
+    receipt?: receiptUpdateManyWithoutCompanyNestedInput
+    salesorder?: salesorderUpdateManyWithoutCompanyNestedInput
+    salesquotation?: salesquotationUpdateManyWithoutCompanyNestedInput
+    salesreturn?: salesreturnUpdateManyWithoutCompanyNestedInput
+    service?: serviceUpdateManyWithoutCompanyNestedInput
+    stocktransfer?: stocktransferUpdateManyWithoutCompanyNestedInput
+    transaction?: transactionUpdateManyWithoutCompanyNestedInput
+    uom?: uomUpdateManyWithoutCompanyNestedInput
+    user?: userUpdateManyWithoutCompanyNestedInput
+    vendor?: vendorUpdateManyWithoutCompanyNestedInput
+    warehouse?: warehouseUpdateManyWithoutCompanyNestedInput
+    voucher?: voucherUpdateManyWithoutCompanyNestedInput
+    role?: roleUpdateManyWithoutCompanyNestedInput
+    transaction_numbering?: transaction_numberingUpdateManyWithoutCompanyNestedInput
+    auditlog?: auditlogUpdateManyWithoutCompanyNestedInput
+    salesperson?: salespersonUpdateManyWithoutCompanyNestedInput
+    deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
+    advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
+    company_user?: company_userUpdateManyWithoutCompanyNestedInput
+  }
+
+  export type companyUncheckedUpdateWithoutCompany_smtp_settingsInput = {
+    id?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    logo?: NullableStringFieldUpdateOperationsInput | string | null
+    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    invoiceTemplate?: StringFieldUpdateOperationsInput | string
+    invoiceColor?: StringFieldUpdateOperationsInput | string
+    showQrCode?: BoolFieldUpdateOperationsInput | boolean
+    invoiceLogo?: NullableStringFieldUpdateOperationsInput | string | null
+    planName?: NullableStringFieldUpdateOperationsInput | string | null
+    planId?: NullableIntFieldUpdateOperationsInput | number | null
+    planType?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    address?: NullableStringFieldUpdateOperationsInput | string | null
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    zip?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: NullableStringFieldUpdateOperationsInput | string | null
+    originalCurrency?: NullableStringFieldUpdateOperationsInput | string | null
+    bankName?: NullableStringFieldUpdateOperationsInput | string | null
+    accountHolder?: NullableStringFieldUpdateOperationsInput | string | null
+    accountName?: NullableStringFieldUpdateOperationsInput | string | null
+    accountNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    iban?: NullableStringFieldUpdateOperationsInput | string | null
+    bic?: NullableStringFieldUpdateOperationsInput | string | null
+    sortCode?: NullableStringFieldUpdateOperationsInput | string | null
+    ifsc?: NullableStringFieldUpdateOperationsInput | string | null
+    vatNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultVatRate?: NullableStringFieldUpdateOperationsInput | string | null
+    gstNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultVatRateId?: NullableIntFieldUpdateOperationsInput | number | null
+    isVatRegistered?: BoolFieldUpdateOperationsInput | boolean
+    terms?: NullableStringFieldUpdateOperationsInput | string | null
+    termsInvoice?: NullableStringFieldUpdateOperationsInput | string | null
+    termsReceipt?: NullableStringFieldUpdateOperationsInput | string | null
+    termsPurchase?: NullableStringFieldUpdateOperationsInput | string | null
+    termsSalesOrder?: NullableStringFieldUpdateOperationsInput | string | null
+    termsQuotation?: NullableStringFieldUpdateOperationsInput | string | null
+    termsCreditNote?: NullableStringFieldUpdateOperationsInput | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoryConfig?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptColor?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentColor?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentLabels?: NullableStringFieldUpdateOperationsInput | string | null
+    paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
+    customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
+    documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
+    accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
+    bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
+    banktransaction?: banktransactionUncheckedUpdateManyWithoutCompanyNestedInput
+    category?: categoryUncheckedUpdateManyWithoutCompanyNestedInput
+    customer?: customerUncheckedUpdateManyWithoutCompanyNestedInput
+    deliverychallan?: deliverychallanUncheckedUpdateManyWithoutCompanyNestedInput
+    expenseentry?: expenseentryUncheckedUpdateManyWithoutCompanyNestedInput
+    goodsreceiptnote?: goodsreceiptnoteUncheckedUpdateManyWithoutCompanyNestedInput
+    incomeentry?: incomeentryUncheckedUpdateManyWithoutCompanyNestedInput
+    inventoryadjustment?: inventoryadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
+    inventorytransaction?: inventorytransactionUncheckedUpdateManyWithoutCompanyNestedInput
+    invoice?: invoiceUncheckedUpdateManyWithoutCompanyNestedInput
+    journalentry?: journalentryUncheckedUpdateManyWithoutCompanyNestedInput
+    ledger?: ledgerUncheckedUpdateManyWithoutCompanyNestedInput
+    passwordrequest?: passwordrequestUncheckedUpdateManyWithoutCompanyNestedInput
+    payment?: paymentUncheckedUpdateManyWithoutCompanyNestedInput
+    posinvoice?: posinvoiceUncheckedUpdateManyWithoutCompanyNestedInput
+    product?: productUncheckedUpdateManyWithoutCompanyNestedInput
+    purchasebill?: purchasebillUncheckedUpdateManyWithoutCompanyNestedInput
+    purchaseorder?: purchaseorderUncheckedUpdateManyWithoutCompanyNestedInput
+    purchasequotation?: purchasequotationUncheckedUpdateManyWithoutCompanyNestedInput
+    purchasereturn?: purchasereturnUncheckedUpdateManyWithoutCompanyNestedInput
+    receipt?: receiptUncheckedUpdateManyWithoutCompanyNestedInput
+    salesorder?: salesorderUncheckedUpdateManyWithoutCompanyNestedInput
+    salesquotation?: salesquotationUncheckedUpdateManyWithoutCompanyNestedInput
+    salesreturn?: salesreturnUncheckedUpdateManyWithoutCompanyNestedInput
+    service?: serviceUncheckedUpdateManyWithoutCompanyNestedInput
+    stocktransfer?: stocktransferUncheckedUpdateManyWithoutCompanyNestedInput
+    transaction?: transactionUncheckedUpdateManyWithoutCompanyNestedInput
+    uom?: uomUncheckedUpdateManyWithoutCompanyNestedInput
+    user?: userUncheckedUpdateManyWithoutCompanyNestedInput
+    vendor?: vendorUncheckedUpdateManyWithoutCompanyNestedInput
+    warehouse?: warehouseUncheckedUpdateManyWithoutCompanyNestedInput
+    voucher?: voucherUncheckedUpdateManyWithoutCompanyNestedInput
+    role?: roleUncheckedUpdateManyWithoutCompanyNestedInput
+    transaction_numbering?: transaction_numberingUncheckedUpdateManyWithoutCompanyNestedInput
+    auditlog?: auditlogUncheckedUpdateManyWithoutCompanyNestedInput
+    salesperson?: salespersonUncheckedUpdateManyWithoutCompanyNestedInput
+    deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
+    advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
+    company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
   }
 
   export type goodsreceiptnoteCreateWithoutVendorInput = {
@@ -163984,6 +166132,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutVendorInput = {
@@ -164086,6 +166235,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutVendorInput = {
@@ -164397,6 +166547,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutVendorInput = {
@@ -164499,6 +166650,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type deliverychallanitemCreateWithoutWarehouseInput = {
@@ -165272,6 +167424,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutWarehouseInput = {
@@ -165374,6 +167527,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutWarehouseInput = {
@@ -165816,6 +167970,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutWarehouseInput = {
@@ -165918,6 +168073,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type inventory_batchUpsertWithWhereUniqueWithoutWarehouseInput = {
@@ -166035,6 +168191,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutVoucherInput = {
@@ -166137,6 +168294,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutVoucherInput = {
@@ -166627,6 +168785,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutVoucherInput = {
@@ -166729,6 +168888,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type vendorUpsertWithoutVoucherInput = {
@@ -167630,6 +169790,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutRoleInput = {
@@ -167732,6 +169893,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutRoleInput = {
@@ -167849,6 +170011,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutRoleInput = {
@@ -167951,6 +170114,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type customerCreateWithoutShippingaddressInput = {
@@ -170225,6 +172389,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutTransaction_numberingInput = {
@@ -170327,6 +172492,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutTransaction_numberingInput = {
@@ -170444,6 +172610,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutTransaction_numberingInput = {
@@ -170546,6 +172713,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type userCreateWithoutAuditlogInput = {
@@ -170685,6 +172853,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutAuditlogInput = {
@@ -170787,6 +172956,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutAuditlogInput = {
@@ -170948,6 +173118,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutAuditlogInput = {
@@ -171050,6 +173221,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateWithoutSalespersonInput = {
@@ -171151,6 +173323,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutSalespersonInput = {
@@ -171253,6 +173426,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutSalespersonInput = {
@@ -171590,6 +173764,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutSalespersonInput = {
@@ -171692,6 +173867,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type invoiceUpsertWithWhereUniqueWithoutSalespersonInput = {
@@ -171825,6 +174001,7 @@ export namespace Prisma {
     salesperson?: salespersonCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutDeliverypersonInput = {
@@ -171927,6 +174104,7 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedCreateNestedManyWithoutCompanyInput
     advanceadjustment?: advanceadjustmentUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutDeliverypersonInput = {
@@ -172044,6 +174222,7 @@ export namespace Prisma {
     salesperson?: salespersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutDeliverypersonInput = {
@@ -172146,6 +174325,7 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyCreateWithoutAdvanceadjustmentInput = {
@@ -172247,6 +174427,7 @@ export namespace Prisma {
     salesperson?: salespersonCreateNestedManyWithoutCompanyInput
     deliveryperson?: deliverypersonCreateNestedManyWithoutCompanyInput
     company_user?: company_userCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsCreateNestedOneWithoutCompanyInput
   }
 
   export type companyUncheckedCreateWithoutAdvanceadjustmentInput = {
@@ -172349,6 +174530,7 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedCreateNestedManyWithoutCompanyInput
     deliveryperson?: deliverypersonUncheckedCreateNestedManyWithoutCompanyInput
     company_user?: company_userUncheckedCreateNestedManyWithoutCompanyInput
+    company_smtp_settings?: company_smtp_settingsUncheckedCreateNestedOneWithoutCompanyInput
   }
 
   export type companyCreateOrConnectWithoutAdvanceadjustmentInput = {
@@ -172784,6 +174966,7 @@ export namespace Prisma {
     salesperson?: salespersonUpdateManyWithoutCompanyNestedInput
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutAdvanceadjustmentInput = {
@@ -172886,6 +175069,7 @@ export namespace Prisma {
     salesperson?: salespersonUncheckedUpdateManyWithoutCompanyNestedInput
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type receiptUpsertWithoutAdvanceadjustmentsInput = {
@@ -180271,6 +182455,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateWithoutPlanInput = {
@@ -180373,6 +182558,7 @@ export namespace Prisma {
     deliveryperson?: deliverypersonUncheckedUpdateManyWithoutCompanyNestedInput
     advanceadjustment?: advanceadjustmentUncheckedUpdateManyWithoutCompanyNestedInput
     company_user?: company_userUncheckedUpdateManyWithoutCompanyNestedInput
+    company_smtp_settings?: company_smtp_settingsUncheckedUpdateOneWithoutCompanyNestedInput
   }
 
   export type companyUncheckedUpdateManyWithoutPlanInput = {
@@ -187251,6 +189437,10 @@ export namespace Prisma {
      * @deprecated Use company_userDefaultArgs instead
      */
     export type company_userArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = company_userDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use company_smtp_settingsDefaultArgs instead
+     */
+    export type company_smtp_settingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = company_smtp_settingsDefaultArgs<ExtArgs>
     /**
      * @deprecated Use vendorDefaultArgs instead
      */

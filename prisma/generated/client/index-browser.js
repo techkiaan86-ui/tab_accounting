@@ -1117,6 +1117,24 @@ exports.Prisma.Company_userScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.Company_smtp_settingsScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  host: 'host',
+  ip: 'ip',
+  port: 'port',
+  security: 'security',
+  username: 'username',
+  password: 'password',
+  fromEmail: 'fromEmail',
+  fromName: 'fromName',
+  isConfigured: 'isConfigured',
+  lastTestedAt: 'lastTestedAt',
+  lastTestStatus: 'lastTestStatus',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.VendorScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1584,6 +1602,7 @@ exports.Prisma.ModelName = {
   uom: 'uom',
   user: 'user',
   company_user: 'company_user',
+  company_smtp_settings: 'company_smtp_settings',
   vendor: 'vendor',
   warehouse: 'warehouse',
   voucher: 'voucher',

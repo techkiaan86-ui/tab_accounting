@@ -882,37 +882,68 @@ const getBudgetVarianceReport = async (req, res) => {
         const ledgers = await prisma.ledger.findMany({ where: { companyId }, include: { accountgroup: true } });
         const ledgerMap = new Map(ledgers.map(l => [l.id, l]));
 
-        // Calculate actual movements within the budget date range
+        // Calculate actual movements within the budget date range using transactions
         const ledgerIds = budgetItems.map(b => b.ledgerId);
         const periodActualMap = new Map();
 
         try {
-            const voucherItems = await prisma.voucheritem.findMany({
+            const startDate = budget.startDate ? new Date(budget.startDate) : new Date(budget.fiscalYear, 0, 1);
+            const endDate = budget.endDate ? new Date(budget.endDate) : new Date(budget.fiscalYear, 11, 31, 23, 59, 59);
+
+            // 1. Query debit transactions (expense spending)
+            const debitTx = await prisma.transaction.findMany({
                 where: {
-                    ledgerId: { in: ledgerIds },
-                    voucher: {
-                        companyId,
-                        date: {
-                            gte: new Date(budget.startDate),
-                            lte: new Date(budget.endDate)
-                        }
-                    }
+                    companyId,
+                    debitLedgerId: { in: ledgerIds },
+                    date: { gte: startDate, lte: endDate }
                 },
-                select: {
-                    ledgerId: true,
-                    debit: true,
-                    credit: true,
-                    amount: true
-                }
+                select: { debitLedgerId: true, amount: true }
             });
 
-            voucherItems.forEach(vi => {
-                const current = periodActualMap.get(vi.ledgerId) || 0;
-                const netDebit = (vi.debit !== null && vi.debit !== undefined) ? vi.debit - (vi.credit || 0) : (vi.amount || 0);
-                periodActualMap.set(vi.ledgerId, current + netDebit);
+            debitTx.forEach(t => {
+                const cur = periodActualMap.get(t.debitLedgerId) || 0;
+                periodActualMap.set(t.debitLedgerId, cur + (parseFloat(t.amount) || 0));
             });
+
+            // 2. Query credit transactions (expense refunds / reversals)
+            const creditTx = await prisma.transaction.findMany({
+                where: {
+                    companyId,
+                    creditLedgerId: { in: ledgerIds },
+                    date: { gte: startDate, lte: endDate }
+                },
+                select: { creditLedgerId: true, amount: true }
+            });
+
+            creditTx.forEach(t => {
+                const cur = periodActualMap.get(t.creditLedgerId) || 0;
+                periodActualMap.set(t.creditLedgerId, cur - (parseFloat(t.amount) || 0));
+            });
+
+            // 3. Check direct expenseentry records if any exist outside standard transactions
+            try {
+                const expenseEntries = await prisma.expenseentry.findMany({
+                    where: {
+                        companyId,
+                        ledgerId: { in: ledgerIds },
+                        date: { gte: startDate, lte: endDate }
+                    },
+                    select: { ledgerId: true, amount: true }
+                });
+
+                expenseEntries.forEach(ee => {
+                    // Only add if not already captured in debit transactions
+                    if (!periodActualMap.has(ee.ledgerId)) {
+                        const cur = periodActualMap.get(ee.ledgerId) || 0;
+                        periodActualMap.set(ee.ledgerId, cur + (parseFloat(ee.amount) || 0));
+                    }
+                });
+            } catch (eeErr) {
+                // expenseentry table optional
+            }
+
         } catch (e) {
-            console.warn('Could not query voucheritem period actuals:', e.message);
+            console.warn('Could not query transaction period actuals:', e.message);
         }
 
         const comparison = budgetItems.map(item => {
