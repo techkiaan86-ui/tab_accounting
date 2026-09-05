@@ -24,7 +24,7 @@ const fmtDate = (val) => {
 /**
  * 1. Log Invoice Created
  */
-const logInvoiceCreated = (req, invoice, items = []) => {
+const logInvoiceCreated = async (req, invoice, items = []) => {
     try {
         const summary = `Invoice #${invoice.invoiceNumber} created with total ${fmtNum(invoice.totalAmount)} (${items.length} item${items.length === 1 ? '' : 's'})`;
 
@@ -66,7 +66,7 @@ const logInvoiceCreated = (req, invoice, items = []) => {
             }
         };
 
-        logActivity(req, 'CREATE', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'CREATE', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log invoice creation:', err.message);
     }
@@ -75,7 +75,7 @@ const logInvoiceCreated = (req, invoice, items = []) => {
 /**
  * 2. Log Invoice Edited (Detailed field diff including lines, customer, discount, tax, due date)
  */
-const logInvoiceUpdated = (req, oldInvoice, newInvoice, newItems = []) => {
+const logInvoiceUpdated = async (req, oldInvoice, newInvoice, newItems = []) => {
     try {
         if (!oldInvoice || !newInvoice) return;
 
@@ -318,7 +318,7 @@ const logInvoiceUpdated = (req, oldInvoice, newInvoice, newItems = []) => {
             }
         };
 
-        logActivity(req, 'UPDATE', 'Invoice', newInvoice.id, details);
+        return await logActivity(req, 'UPDATE', 'Invoice', newInvoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log invoice update:', err.message);
     }
@@ -327,9 +327,11 @@ const logInvoiceUpdated = (req, oldInvoice, newInvoice, newItems = []) => {
 /**
  * 3. Log Invoice Deleted
  */
-const logInvoiceDeleted = (req, invoice) => {
+const logInvoiceDeleted = async (req, invoice) => {
     try {
-        const summary = `Invoice #${invoice.invoiceNumber} deleted (Customer ID: ${invoice.customerId}, Amount: ${fmtNum(invoice.totalAmount)}, Status: ${invoice.status})`;
+        if (!invoice) return;
+
+        const summary = `Invoice #${invoice.invoiceNumber} deleted for Customer ID ${invoice.customerId} with amount ${fmtNum(invoice.totalAmount)}`;
 
         const details = {
             invoiceNumber: invoice.invoiceNumber,
@@ -337,10 +339,12 @@ const logInvoiceDeleted = (req, invoice) => {
             action: 'DELETE',
             summary,
             changes: [
-                { field: 'recordState', fieldLabel: 'Invoice Record', previousValue: `Active #${invoice.invoiceNumber}`, newValue: 'DELETED' }
+                { field: 'invoiceNumber', fieldLabel: 'Invoice Number', previousValue: invoice.invoiceNumber, newValue: null },
+                { field: 'customerId', fieldLabel: 'Customer ID', previousValue: invoice.customerId, newValue: null },
+                { field: 'totalAmount', fieldLabel: 'Total Amount', previousValue: fmtNum(invoice.totalAmount), newValue: null },
+                { field: 'status', fieldLabel: 'Status', previousValue: invoice.status, newValue: null }
             ],
             previousValue: {
-                id: invoice.id,
                 invoiceNumber: invoice.invoiceNumber,
                 customerId: invoice.customerId,
                 date: fmtDate(invoice.date),
@@ -357,7 +361,7 @@ const logInvoiceDeleted = (req, invoice) => {
             newValue: null
         };
 
-        logActivity(req, 'DELETE', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'DELETE', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log invoice deletion:', err.message);
     }
@@ -366,7 +370,7 @@ const logInvoiceDeleted = (req, invoice) => {
 /**
  * 4. Log Payment Added
  */
-const logInvoicePaymentAdded = (req, invoice, paymentInfo) => {
+const logInvoicePaymentAdded = async (req, invoice, paymentInfo) => {
     try {
         const paymentAmt = parseFloat(paymentInfo.amount) || 0;
         const oldPaid = parseFloat(paymentInfo.previousPaidAmount !== undefined ? paymentInfo.previousPaidAmount : (invoice.paidAmount || 0));
@@ -406,7 +410,7 @@ const logInvoicePaymentAdded = (req, invoice, paymentInfo) => {
             }
         };
 
-        logActivity(req, 'PAYMENT_ADD', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'PAYMENT_ADD', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log payment added:', err.message);
     }
@@ -415,7 +419,7 @@ const logInvoicePaymentAdded = (req, invoice, paymentInfo) => {
 /**
  * 5. Log Payment Changed / Allocation Updated
  */
-const logInvoicePaymentUpdated = (req, invoice, oldAllocAmt, newAllocAmt, receiptInfo = {}) => {
+const logInvoicePaymentUpdated = async (req, invoice, oldAllocAmt, newAllocAmt, receiptInfo = {}) => {
     try {
         const oldAmt = parseFloat(oldAllocAmt) || 0;
         const newAmt = parseFloat(newAllocAmt) || 0;
@@ -437,7 +441,7 @@ const logInvoicePaymentUpdated = (req, invoice, oldAllocAmt, newAllocAmt, receip
             newValue: { allocatedAmount: newAmt }
         };
 
-        logActivity(req, 'PAYMENT_UPDATE', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'PAYMENT_UPDATE', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log payment updated:', err.message);
     }
@@ -446,7 +450,7 @@ const logInvoicePaymentUpdated = (req, invoice, oldAllocAmt, newAllocAmt, receip
 /**
  * 6. Log Payment Removed (Unpay or Receipt Deleted)
  */
-const logInvoicePaymentRemoved = (req, invoice, removedAmount, reason = 'Payment reverted') => {
+const logInvoicePaymentRemoved = async (req, invoice, removedAmount, reason = 'Payment reverted') => {
     try {
         const amt = parseFloat(removedAmount) || 0;
         const oldPaid = parseFloat(invoice.paidAmount) || 0;
@@ -478,7 +482,7 @@ const logInvoicePaymentRemoved = (req, invoice, removedAmount, reason = 'Payment
             }
         };
 
-        logActivity(req, 'PAYMENT_REMOVE', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'PAYMENT_REMOVE', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log payment removed:', err.message);
     }
@@ -487,7 +491,7 @@ const logInvoicePaymentRemoved = (req, invoice, removedAmount, reason = 'Payment
 /**
  * 7. Log Status Changed
  */
-const logInvoiceStatusChanged = (req, invoice, oldStatus, newStatus) => {
+const logInvoiceStatusChanged = async (req, invoice, oldStatus, newStatus) => {
     try {
         if (oldStatus === newStatus) return;
 
@@ -505,7 +509,7 @@ const logInvoiceStatusChanged = (req, invoice, oldStatus, newStatus) => {
             newValue: { status: newStatus }
         };
 
-        logActivity(req, 'STATUS_CHANGE', 'Invoice', invoice.id, details);
+        return await logActivity(req, 'STATUS_CHANGE', 'Invoice', invoice.id, details);
     } catch (err) {
         console.error('[InvoiceAudit Error] Failed to log status changed:', err.message);
     }

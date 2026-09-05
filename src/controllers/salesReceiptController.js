@@ -414,7 +414,7 @@ const createReceipt = async (req, res) => {
                 if (alloc.invoiceType === 'TAX_INVOICE' && alloc.invoiceId) {
                     const targetInv = await prisma.invoice.findUnique({ where: { id: alloc.invoiceId } });
                     if (targetInv) {
-                        logInvoicePaymentAdded(req, targetInv, {
+                        await logInvoicePaymentAdded(req, targetInv, {
                             amount: alloc.amount,
                             receiptNumber: result.receiptNumber,
                             receiptId: result.id,
@@ -800,10 +800,10 @@ const updateReceipt = async (req, res) => {
                 if (targetInv) {
                     if (oldA) {
                         if (Math.abs(oldA.amount - newA.amount) > 0.009) {
-                            logInvoicePaymentUpdated(req, targetInv, oldA.amount, newA.amount, { receiptNumber: existingReceipt.receiptNumber });
+                            await logInvoicePaymentUpdated(req, targetInv, oldA.amount, newA.amount, { receiptNumber: existingReceipt.receiptNumber });
                         }
                     } else {
-                        logInvoicePaymentAdded(req, targetInv, {
+                        await logInvoicePaymentAdded(req, targetInv, {
                             amount: newA.amount,
                             receiptNumber: existingReceipt.receiptNumber,
                             receiptId: existingReceipt.id,
@@ -817,7 +817,7 @@ const updateReceipt = async (req, res) => {
                 if (!newTaxAllocs.some(n => n.invoiceId === oldA.invoiceId)) {
                     const targetInv = await prisma.invoice.findUnique({ where: { id: oldA.invoiceId } });
                     if (targetInv) {
-                        logInvoicePaymentRemoved(req, targetInv, oldA.amount, `Payment allocation removed from Receipt #${existingReceipt.receiptNumber}`);
+                        await logInvoicePaymentRemoved(req, targetInv, oldA.amount, `Payment allocation removed from Receipt #${existingReceipt.receiptNumber}`);
                     }
                 }
             }
@@ -929,7 +929,7 @@ const deleteReceipt = async (req, res) => {
                     if (alloc.invoiceId) {
                         const targetInv = await prisma.invoice.findUnique({ where: { id: alloc.invoiceId } });
                         if (targetInv) {
-                            logInvoicePaymentRemoved(req, targetInv, alloc.amount, `Receipt #${existingReceipt.receiptNumber} deleted`);
+                            await logInvoicePaymentRemoved(req, targetInv, alloc.amount, `Receipt #${existingReceipt.receiptNumber} deleted`);
                         }
                     }
                 }

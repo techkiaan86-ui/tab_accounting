@@ -1167,7 +1167,7 @@ const createInvoice = async (req, res) => {
 
         await numberingService.incrementNumber(companyId, 'invoice', invoiceNumber);
         const { logInvoiceCreated } = require('../utils/invoiceAuditHelper');
-        logInvoiceCreated(req, result, invoiceItemsData || items);
+        await logInvoiceCreated(req, result, invoiceItems || items);
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Invoice Creation Error:', error);
@@ -1554,7 +1554,7 @@ const updateInvoice = async (req, res) => {
                 }
             });
             const { logInvoiceStatusChanged } = require('../utils/invoiceAuditHelper');
-            logInvoiceStatusChanged(req, oldInv, oldInv?.status, status);
+            await logInvoiceStatusChanged(req, oldInv, oldInv?.status, status);
             return res.status(200).json({ success: true, data: updated });
         }
 
@@ -2201,7 +2201,7 @@ const updateInvoice = async (req, res) => {
 
         const adjustedResult = adjustInvoiceWithReturns(result);
         const { logInvoiceUpdated } = require('../utils/invoiceAuditHelper');
-        logInvoiceUpdated(req, existingInvoice, result, invoiceItemsData || items);
+        await logInvoiceUpdated(req, existingInvoice, result, invoiceItemsData || items);
         res.status(200).json({ success: true, data: adjustedResult });
     } catch (error) {
         console.error('Invoice Update Error:', error);
@@ -2404,7 +2404,7 @@ const deleteInvoice = async (req, res) => {
         }
 
         const { logInvoiceDeleted } = require('../utils/invoiceAuditHelper');
-        logInvoiceDeleted(req, invoice);
+        await logInvoiceDeleted(req, invoice);
         res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
     } catch (error) {
         console.error('Invoice Delete Error:', error);
@@ -2667,7 +2667,7 @@ const unpayInvoice = async (req, res) => {
 
         // Audit Logging
         const { logInvoicePaymentRemoved } = require('../utils/invoiceAuditHelper');
-        logInvoicePaymentRemoved(req, invoice, invoice.paidAmount, 'Invoice marked as UNPAID');
+        await logInvoicePaymentRemoved(req, invoice, invoice.paidAmount, 'Invoice marked as UNPAID');
 
         res.status(200).json({ success: true, message: 'Invoice marked as unpaid and all associated payments reversed successfully' });
     } catch (error) {
