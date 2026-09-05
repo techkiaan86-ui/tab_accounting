@@ -867,7 +867,7 @@ const getTaxReport = async (req, res) => {
         const companyId = req.user?.companyId || req.query.companyId;
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID is required' });
 
-        const { startDate: qStart, endDate: qEnd, year: qYear } = req.query;
+        const { startDate: qStart, endDate: qEnd, year: qYear, basis = 'cash' } = req.query;
         let startDate, endDate, year;
 
         if (qStart && qEnd) {
@@ -887,31 +887,6 @@ const getTaxReport = async (req, res) => {
         });
         const companyState = company?.state?.toLowerCase().trim();
 
-        // --- 1. INCOME TAX (Sales + POS) ---
-        // Fetch Invoices
-        const invoices = await prisma.invoice.findMany({
-            where: {
-                companyId: parseInt(companyId),
-                date: {
-                    gte: startDate,
-                    lte: endDate
-                }
-            },
-            include: { customer: { select: { billingState: true } }, invoiceitem: true }
-        });
-
-        // Fetch POS Invoices (Assume Intra-state/CGST+SGST for simplicity unless customer is tagged)
-        const posInvoices = await prisma.posinvoice.findMany({
-            where: {
-                companyId: parseInt(companyId),
-                date: {
-                    gte: startDate,
-                    lte: endDate
-                }
-            },
-            include: { customer: { select: { billingState: true } } }
-        });
-
         const incomeStats = {
             Standard23: Array(12).fill(0),
             Reduced13_5: Array(12).fill(0),
@@ -920,6 +895,13 @@ const getTaxReport = async (req, res) => {
             CGST: Array(12).fill(0),
             SGST: Array(12).fill(0),
             IGST: Array(12).fill(0)
+        };
+
+        const expenseStats = {
+            Standard23: Array(12).fill(0),
+            Reduced13_5: Array(12).fill(0),
+            OtherVat: Array(12).fill(0),
+            TotalVat: Array(12).fill(0)
         };
 
         const companyCurrency = await getCompanyCurrency(companyId);
@@ -947,51 +929,188 @@ const getTaxReport = async (req, res) => {
             targetStats.IGST[month] += tax;
         };
 
-        for (const inv of invoices) {
-            const rate = await getConversionRate(inv.currency || 'USD', companyCurrency);
-            const month = new Date(inv.date).getMonth();
-            categorizeTax(inv.taxAmount, inv.subtotal, month, incomeStats, rate);
-        }
-
-        for (const pos of posInvoices) {
-            const rate = await getConversionRate(pos.currency || histCurr, companyCurrency);
-            const month = new Date(pos.date || pos.createdAt).getMonth();
-            categorizeTax(pos.taxAmount, pos.subtotal, month, incomeStats, rate);
-        }
-
-        // --- 2. EXPENSE TAX (Purchases) ---
-        const bills = await prisma.purchasebill.findMany({
-            where: {
-                companyId: parseInt(companyId),
-                date: {
-                    gte: startDate,
-                    lte: endDate
+        if (basis === 'cash') {
+            // === CASH BASIS: Sales VAT counts when customer payment is received ===
+            const receipts = await prisma.receipt.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                },
+                include: {
+                    invoice: true,
+                    allocations: {
+                        include: { invoice: true }
+                    }
                 }
-            },
-            include: { vendor: { select: { billingState: true } }, purchasebillitem: true }
+            });
+
+            for (const rec of receipts) {
+                const month = new Date(rec.date).getMonth();
+                if (rec.allocations && rec.allocations.length > 0) {
+                    for (const alloc of rec.allocations) {
+                        const inv = alloc.invoice;
+                        const allocAmount = parseFloat(alloc.amount) || 0;
+                        if (inv && inv.totalAmount > 0 && allocAmount > 0) {
+                            const rate = await getConversionRate(inv.currency || 'EUR', companyCurrency);
+                            const payRatio = Math.min(1.0, allocAmount / inv.totalAmount);
+                            const tax = (parseFloat(inv.taxAmount) || 0) * payRatio;
+                            const sub = (parseFloat(inv.subtotal) || 0) * payRatio;
+                            categorizeTax(tax, sub, month, incomeStats, rate);
+                        }
+                    }
+                } else if (rec.invoice && rec.invoice.totalAmount > 0) {
+                    const inv = rec.invoice;
+                    const rate = await getConversionRate(inv.currency || 'EUR', companyCurrency);
+                    const payRatio = Math.min(1.0, (parseFloat(rec.amount) || 0) / inv.totalAmount);
+                    const tax = (parseFloat(inv.taxAmount) || 0) * payRatio;
+                    const sub = (parseFloat(inv.subtotal) || 0) * payRatio;
+                    categorizeTax(tax, sub, month, incomeStats, rate);
+                }
+            }
+
+            // POS Invoices (Instant counter cash sales)
+            const posInvoices = await prisma.posinvoice.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                }
+            });
+
+            for (const pos of posInvoices) {
+                const rate = await getConversionRate(pos.currency || histCurr, companyCurrency);
+                const month = new Date(pos.date || pos.createdAt).getMonth();
+                categorizeTax(pos.taxAmount, pos.subtotal, month, incomeStats, rate);
+            }
+
+            // === CASH BASIS: Purchase VAT counts when supplier payment is made ===
+            const payments = await prisma.payment.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                },
+                include: {
+                    purchasebill: true,
+                    allocations: {
+                        include: { purchasebill: true }
+                    }
+                }
+            });
+
+            for (const p of payments) {
+                const month = new Date(p.date).getMonth();
+                if (p.allocations && p.allocations.length > 0) {
+                    for (const alloc of p.allocations) {
+                        const bill = alloc.purchasebill;
+                        const allocAmount = parseFloat(alloc.amount) || 0;
+                        if (bill && bill.totalAmount > 0 && allocAmount > 0) {
+                            const rate = await getConversionRate(bill.currency || 'EUR', companyCurrency);
+                            const payRatio = Math.min(1.0, allocAmount / bill.totalAmount);
+                            const tax = (parseFloat(bill.taxAmount) || 0) * payRatio;
+                            const sub = (parseFloat(bill.subtotal) || 0) * payRatio;
+                            categorizeTax(tax, sub, month, expenseStats, rate);
+                        }
+                    }
+                } else if (p.purchasebill && p.purchasebill.totalAmount > 0) {
+                    const bill = p.purchasebill;
+                    const rate = await getConversionRate(bill.currency || 'EUR', companyCurrency);
+                    const payRatio = Math.min(1.0, (parseFloat(p.amount) || 0) / bill.totalAmount);
+                    const tax = (parseFloat(bill.taxAmount) || 0) * payRatio;
+                    const sub = (parseFloat(bill.subtotal) || 0) * payRatio;
+                    categorizeTax(tax, sub, month, expenseStats, rate);
+                }
+            }
+
+        } else {
+            // === ACCRUAL BASIS (VAT on Invoices & Bills Issued) ===
+            const invoices = await prisma.invoice.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                },
+                include: { customer: { select: { billingState: true } }, invoiceitem: true }
+            });
+
+            const posInvoices = await prisma.posinvoice.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                },
+                include: { customer: { select: { billingState: true } } }
+            });
+
+            for (const inv of invoices) {
+                const rate = await getConversionRate(inv.currency || 'EUR', companyCurrency);
+                const month = new Date(inv.date).getMonth();
+                categorizeTax(inv.taxAmount, inv.subtotal, month, incomeStats, rate);
+            }
+
+            for (const pos of posInvoices) {
+                const rate = await getConversionRate(pos.currency || histCurr, companyCurrency);
+                const month = new Date(pos.date || pos.createdAt).getMonth();
+                categorizeTax(pos.taxAmount, pos.subtotal, month, incomeStats, rate);
+            }
+
+            const bills = await prisma.purchasebill.findMany({
+                where: {
+                    companyId: parseInt(companyId),
+                    date: { gte: startDate, lte: endDate }
+                },
+                include: { vendor: { select: { billingState: true } }, purchasebillitem: true }
+            });
+
+            for (const bill of bills) {
+                const rate = await getConversionRate(bill.currency || 'EUR', companyCurrency);
+                const month = new Date(bill.date).getMonth();
+                categorizeTax(bill.taxAmount, bill.subtotal, month, expenseStats, rate);
+            }
+        }
+
+        // --- 3. BI-MONTHLY VAT CALCULATION (Revenue VAT3: Every 2 Months - Sales vs Purchases) ---
+        const biMonthlyPeriods = [
+            { period: 'Jan - Feb', periodName: 'Period 1 (Jan - Feb)', months: [0, 1] },
+            { period: 'Mar - Apr', periodName: 'Period 2 (Mar - Apr)', months: [2, 3] },
+            { period: 'May - Jun', periodName: 'Period 3 (May - Jun)', months: [4, 5] },
+            { period: 'Jul - Aug', periodName: 'Period 4 (Jul - Aug)', months: [6, 7] },
+            { period: 'Sep - Oct', periodName: 'Period 5 (Sep - Oct)', months: [8, 9] },
+            { period: 'Nov - Dec', periodName: 'Period 6 (Nov - Dec)', months: [10, 11] }
+        ];
+
+        const biMonthly = biMonthlyPeriods.map((p, idx) => {
+            const m1 = p.months[0];
+            const m2 = p.months[1];
+
+            const salesVat = Number(((incomeStats.TotalVat[m1] || 0) + (incomeStats.TotalVat[m2] || 0)).toFixed(2));
+            const purchasesVat = Number(((expenseStats.TotalVat[m1] || 0) + (expenseStats.TotalVat[m2] || 0)).toFixed(2));
+            const netVatOwed = Number((salesVat - purchasesVat).toFixed(2));
+
+            return {
+                id: idx + 1,
+                period: p.period,
+                periodName: p.periodName,
+                salesVat,       // T1: Output VAT on Sales
+                purchasesVat,   // T2: Input VAT on Purchases
+                netVatOwed,     // T3: Net VAT Owed to Revenue (T1 - T2)
+                status: netVatOwed > 0 ? 'Payable to Revenue' : (netVatOwed < 0 ? 'Refund Due' : 'Nil Balance')
+            };
         });
 
-        const expenseStats = {
-            Standard23: Array(12).fill(0),
-            Reduced13_5: Array(12).fill(0),
-            OtherVat: Array(12).fill(0),
-            TotalVat: Array(12).fill(0),
-            CGST: Array(12).fill(0),
-            SGST: Array(12).fill(0),
-            IGST: Array(12).fill(0)
-        };
-
-        for (const bill of bills) {
-            const rate = await getConversionRate(bill.currency || 'USD', companyCurrency);
-            const month = new Date(bill.date).getMonth();
-            categorizeTax(bill.taxAmount, bill.subtotal, month, expenseStats, rate);
-        }
+        const totalSalesVat = Number(incomeStats.TotalVat.reduce((a, b) => a + b, 0).toFixed(2));
+        const totalPurchasesVat = Number(expenseStats.TotalVat.reduce((a, b) => a + b, 0).toFixed(2));
+        const totalNetVatOwed = Number((totalSalesVat - totalPurchasesVat).toFixed(2));
 
         res.status(200).json({
             success: true,
             data: {
+                basis,
                 income: incomeStats,
-                expense: expenseStats
+                expense: expenseStats,
+                biMonthly,
+                summary: {
+                    totalSalesVat,
+                    totalPurchasesVat,
+                    totalNetVatOwed,
+                    overallStatus: totalNetVatOwed > 0 ? 'Payable to Revenue' : (totalNetVatOwed < 0 ? 'Refund Due' : 'Nil Balance')
+                }
             }
         });
 
@@ -1931,7 +2050,7 @@ const getVatReport = async (req, res) => {
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID is required' });
 
         const companyIdInt = parseInt(companyId);
-        const { startDate: qStart, endDate: qEnd, year: qYear, basis = 'accrual', period = 'ALL' } = req.query;
+        const { startDate: qStart, endDate: qEnd, year: qYear, basis = 'cash', period = 'ALL' } = req.query;
         const currentYear = new Date().getFullYear();
         const year = parseInt(qYear) || currentYear;
 
@@ -1983,7 +2102,7 @@ const getVatReport = async (req, res) => {
         if (basis === 'cash') {
             // === CASH BASIS (VAT on Payments Received / Made) ===
 
-            // 1. Sales Receipts (Payments Received on Invoices)
+            // 1. Sales Receipts (Payments Received from Customers - Cash Basis)
             const receipts = await prisma.receipt.findMany({
                 where: {
                     companyId: companyIdInt,
@@ -1993,20 +2112,108 @@ const getVatReport = async (req, res) => {
                     customer: { select: { name: true } },
                     invoice: {
                         include: { invoiceitem: true }
+                    },
+                    allocations: {
+                        include: {
+                            invoice: {
+                                include: { invoiceitem: true }
+                            }
+                        }
                     }
                 }
             });
 
             for (const rec of receipts) {
-                const inv = rec.invoice;
                 const custName = rec.customer?.name || 'Customer';
-                if (inv && inv.totalAmount > 0) {
-                    const exRate = await getConversionRate(inv.currency || 'USD', companyCurrency);
-                    const payRatio = Math.min(1.0, rec.amount / inv.totalAmount);
+                const hasAllocations = rec.allocations && rec.allocations.length > 0;
+
+                if (hasAllocations) {
+                    let totalAllocated = 0;
+                    for (const alloc of rec.allocations) {
+                        const inv = alloc.invoice;
+                        const allocAmount = parseFloat(alloc.amount) || 0;
+                        totalAllocated += allocAmount;
+
+                        if (inv && inv.totalAmount > 0 && allocAmount > 0) {
+                            const exRate = await getConversionRate(inv.currency || companyCurrency, companyCurrency);
+                            const payRatio = Math.min(1.0, allocAmount / inv.totalAmount);
+                            const taxable = (parseFloat(inv.subtotal) || 0) * payRatio * exRate;
+                            const tax = (parseFloat(inv.taxAmount) || 0) * payRatio * exRate;
+                            const gross = allocAmount * exRate;
+                            const rate = taxable > 0 ? Number(((tax / taxable) * 100).toFixed(1)) : 0;
+
+                            const itemsBreakdown = [];
+                            if (inv.invoiceitem && inv.invoiceitem.length > 0) {
+                                const rMap = {};
+                                for (const it of inv.invoiceitem) {
+                                    const r = it.taxRate !== undefined && it.taxRate !== null ? parseFloat(it.taxRate) : 0;
+                                    const itTaxable = (parseFloat(it.amount) || (parseFloat(it.quantity) * parseFloat(it.rate) * (1 - (parseFloat(it.discount) || 0) / 100))) * payRatio * exRate;
+                                    const itTax = (parseFloat(it.taxAmount) || (itTaxable * (r / 100))) * payRatio * exRate;
+                                    if (!rMap[r]) rMap[r] = { rate: r, taxable: 0, tax: 0 };
+                                    rMap[r].taxable += itTaxable;
+                                    rMap[r].tax += itTax;
+                                }
+                                for (const k in rMap) itemsBreakdown.push(rMap[k]);
+                            }
+
+                            outputVatTransactions.push({
+                                id: `REC-${rec.id}-ALLOC-${alloc.id}`,
+                                type: 'Sales Receipt (Allocated)',
+                                docNumber: rec.receiptNumber,
+                                refNumber: inv.invoiceNumber,
+                                partyName: custName,
+                                date: rec.date,
+                                taxableAmount: taxable,
+                                vatRate: rate,
+                                vatAmount: tax,
+                                grossAmount: gross,
+                                status: 'Received',
+                                paymentMode: rec.paymentMode,
+                                itemsBreakdown: itemsBreakdown.length > 0 ? itemsBreakdown : undefined
+                            });
+                        }
+                    }
+
+                    const unallocated = (parseFloat(rec.amount) || 0) - totalAllocated;
+                    if (unallocated > 0.01) {
+                        const exRate = await getConversionRate(companyCurrency, companyCurrency);
+                        outputVatTransactions.push({
+                            id: `REC-${rec.id}-ADV`,
+                            type: 'Sales Advance',
+                            docNumber: rec.receiptNumber,
+                            refNumber: 'Unallocated Deposit',
+                            partyName: custName,
+                            date: rec.date,
+                            taxableAmount: unallocated * exRate,
+                            vatRate: 0,
+                            vatAmount: 0,
+                            grossAmount: unallocated * exRate,
+                            status: 'Received',
+                            paymentMode: rec.paymentMode
+                        });
+                    }
+                } else if (rec.invoice && rec.invoice.totalAmount > 0) {
+                    const inv = rec.invoice;
+                    const exRate = await getConversionRate(inv.currency || companyCurrency, companyCurrency);
+                    const payRatio = Math.min(1.0, (parseFloat(rec.amount) || 0) / inv.totalAmount);
                     const taxable = (parseFloat(inv.subtotal) || 0) * payRatio * exRate;
                     const tax = (parseFloat(inv.taxAmount) || 0) * payRatio * exRate;
-                    const gross = rec.amount * exRate;
+                    const gross = (parseFloat(rec.amount) || 0) * exRate;
                     const rate = taxable > 0 ? Number(((tax / taxable) * 100).toFixed(1)) : 0;
+
+                    const itemsBreakdown = [];
+                    if (inv.invoiceitem && inv.invoiceitem.length > 0) {
+                        const rMap = {};
+                        for (const it of inv.invoiceitem) {
+                            const r = it.taxRate !== undefined && it.taxRate !== null ? parseFloat(it.taxRate) : 0;
+                            const itTaxable = (parseFloat(it.amount) || (parseFloat(it.quantity) * parseFloat(it.rate) * (1 - (parseFloat(it.discount) || 0) / 100))) * payRatio * exRate;
+                            const itTax = (parseFloat(it.taxAmount) || (itTaxable * (r / 100))) * payRatio * exRate;
+                            if (!rMap[r]) rMap[r] = { rate: r, taxable: 0, tax: 0 };
+                            rMap[r].taxable += itTaxable;
+                            rMap[r].tax += itTax;
+                        }
+                        for (const k in rMap) itemsBreakdown.push(rMap[k]);
+                    }
 
                     outputVatTransactions.push({
                         id: `REC-${rec.id}`,
@@ -2020,10 +2227,12 @@ const getVatReport = async (req, res) => {
                         vatAmount: tax,
                         grossAmount: gross,
                         status: 'Received',
-                        paymentMode: rec.paymentMode
+                        paymentMode: rec.paymentMode,
+                        itemsBreakdown: itemsBreakdown.length > 0 ? itemsBreakdown : undefined
                     });
                 } else {
-                    const exRate = await getConversionRate('USD', companyCurrency);
+                    const exRate = await getConversionRate(companyCurrency, companyCurrency);
+                    const gross = (parseFloat(rec.amount) || 0) * exRate;
                     outputVatTransactions.push({
                         id: `REC-${rec.id}`,
                         type: 'Sales Advance',
@@ -2031,17 +2240,17 @@ const getVatReport = async (req, res) => {
                         refNumber: '-',
                         partyName: custName,
                         date: rec.date,
-                        taxableAmount: rec.amount * exRate,
+                        taxableAmount: gross,
                         vatRate: 0,
                         vatAmount: 0,
-                        grossAmount: rec.amount * exRate,
+                        grossAmount: gross,
                         status: 'Received',
                         paymentMode: rec.paymentMode
                     });
                 }
             }
 
-            // 2. POS Invoices (POS sales are instant cash)
+            // 2. POS Invoices (POS sales are instant counter cash)
             const posInvoices = await prisma.posinvoice.findMany({
                 where: {
                     companyId: companyIdInt,
@@ -2073,7 +2282,7 @@ const getVatReport = async (req, res) => {
                 });
             }
 
-            // 3. Purchase Payments (Payments made on Purchase Bills)
+            // 3. Purchase Payments (Payments made on Purchase Bills - Cash Basis)
             const payments = await prisma.payment.findMany({
                 where: {
                     companyId: companyIdInt,
@@ -2083,20 +2292,108 @@ const getVatReport = async (req, res) => {
                     vendor: { select: { name: true } },
                     purchasebill: {
                         include: { purchasebillitem: true }
+                    },
+                    allocations: {
+                        include: {
+                            purchasebill: {
+                                include: { purchasebillitem: true }
+                            }
+                        }
                     }
                 }
             });
 
             for (const p of payments) {
-                const bill = p.purchasebill;
                 const vendorName = p.vendor?.name || 'Vendor';
-                if (bill && bill.totalAmount > 0) {
-                    const exRate = await getConversionRate(bill.currency || 'USD', companyCurrency);
-                    const payRatio = Math.min(1.0, p.amount / bill.totalAmount);
+                const hasAllocations = p.allocations && p.allocations.length > 0;
+
+                if (hasAllocations) {
+                    let totalAllocated = 0;
+                    for (const alloc of p.allocations) {
+                        const bill = alloc.purchasebill;
+                        const allocAmount = parseFloat(alloc.amount) || 0;
+                        totalAllocated += allocAmount;
+
+                        if (bill && bill.totalAmount > 0 && allocAmount > 0) {
+                            const exRate = await getConversionRate(bill.currency || companyCurrency, companyCurrency);
+                            const payRatio = Math.min(1.0, allocAmount / bill.totalAmount);
+                            const taxable = (parseFloat(bill.subtotal) || 0) * payRatio * exRate;
+                            const tax = (parseFloat(bill.taxAmount) || 0) * payRatio * exRate;
+                            const gross = allocAmount * exRate;
+                            const rate = taxable > 0 ? Number(((tax / taxable) * 100).toFixed(1)) : 0;
+
+                            const itemsBreakdown = [];
+                            if (bill.purchasebillitem && bill.purchasebillitem.length > 0) {
+                                const rMap = {};
+                                for (const it of bill.purchasebillitem) {
+                                    const r = it.taxRate !== undefined && it.taxRate !== null ? parseFloat(it.taxRate) : 0;
+                                    const itTaxable = (parseFloat(it.amount) || (parseFloat(it.quantity) * parseFloat(it.rate) * (1 - (parseFloat(it.discount) || 0) / 100))) * payRatio * exRate;
+                                    const itTax = (parseFloat(it.taxAmount) || (itTaxable * (r / 100))) * payRatio * exRate;
+                                    if (!rMap[r]) rMap[r] = { rate: r, taxable: 0, tax: 0 };
+                                    rMap[r].taxable += itTaxable;
+                                    rMap[r].tax += itTax;
+                                }
+                                for (const k in rMap) itemsBreakdown.push(rMap[k]);
+                            }
+
+                            inputVatTransactions.push({
+                                id: `PAY-${p.id}-ALLOC-${alloc.id}`,
+                                type: 'Purchase Payment (Allocated)',
+                                docNumber: p.paymentNumber || `PAY-${p.id}`,
+                                refNumber: bill.billNumber,
+                                partyName: vendorName,
+                                date: p.date,
+                                taxableAmount: taxable,
+                                vatRate: rate,
+                                vatAmount: tax,
+                                grossAmount: gross,
+                                status: 'Paid',
+                                paymentMode: p.paymentMode,
+                                itemsBreakdown: itemsBreakdown.length > 0 ? itemsBreakdown : undefined
+                            });
+                        }
+                    }
+
+                    const unallocated = (parseFloat(p.amount) || 0) - totalAllocated;
+                    if (unallocated > 0.01) {
+                        const exRate = await getConversionRate(companyCurrency, companyCurrency);
+                        inputVatTransactions.push({
+                            id: `PAY-${p.id}-ADV`,
+                            type: 'Vendor Advance',
+                            docNumber: p.paymentNumber || `PAY-${p.id}`,
+                            refNumber: 'Unallocated Payment',
+                            partyName: vendorName,
+                            date: p.date,
+                            taxableAmount: unallocated * exRate,
+                            vatRate: 0,
+                            vatAmount: 0,
+                            grossAmount: unallocated * exRate,
+                            status: 'Paid',
+                            paymentMode: p.paymentMode
+                        });
+                    }
+                } else if (p.purchasebill && p.purchasebill.totalAmount > 0) {
+                    const bill = p.purchasebill;
+                    const exRate = await getConversionRate(bill.currency || companyCurrency, companyCurrency);
+                    const payRatio = Math.min(1.0, (parseFloat(p.amount) || 0) / bill.totalAmount);
                     const taxable = (parseFloat(bill.subtotal) || 0) * payRatio * exRate;
                     const tax = (parseFloat(bill.taxAmount) || 0) * payRatio * exRate;
-                    const gross = p.amount * exRate;
+                    const gross = (parseFloat(p.amount) || 0) * exRate;
                     const rate = taxable > 0 ? Number(((tax / taxable) * 100).toFixed(1)) : 0;
+
+                    const itemsBreakdown = [];
+                    if (bill.purchasebillitem && bill.purchasebillitem.length > 0) {
+                        const rMap = {};
+                        for (const it of bill.purchasebillitem) {
+                            const r = it.taxRate !== undefined && it.taxRate !== null ? parseFloat(it.taxRate) : 0;
+                            const itTaxable = (parseFloat(it.amount) || (parseFloat(it.quantity) * parseFloat(it.rate) * (1 - (parseFloat(it.discount) || 0) / 100))) * payRatio * exRate;
+                            const itTax = (parseFloat(it.taxAmount) || (itTaxable * (r / 100))) * payRatio * exRate;
+                            if (!rMap[r]) rMap[r] = { rate: r, taxable: 0, tax: 0 };
+                            rMap[r].taxable += itTaxable;
+                            rMap[r].tax += itTax;
+                        }
+                        for (const k in rMap) itemsBreakdown.push(rMap[k]);
+                    }
 
                     inputVatTransactions.push({
                         id: `PAY-${p.id}`,
@@ -2110,10 +2407,12 @@ const getVatReport = async (req, res) => {
                         vatAmount: tax,
                         grossAmount: gross,
                         status: 'Paid',
-                        paymentMode: p.paymentMode
+                        paymentMode: p.paymentMode,
+                        itemsBreakdown: itemsBreakdown.length > 0 ? itemsBreakdown : undefined
                     });
                 } else {
-                    const exRate = await getConversionRate('USD', companyCurrency);
+                    const exRate = await getConversionRate(companyCurrency, companyCurrency);
+                    const gross = (parseFloat(p.amount) || 0) * exRate;
                     inputVatTransactions.push({
                         id: `PAY-${p.id}`,
                         type: 'Vendor Advance',
@@ -2121,10 +2420,10 @@ const getVatReport = async (req, res) => {
                         refNumber: '-',
                         partyName: vendorName,
                         date: p.date,
-                        taxableAmount: p.amount * exRate,
+                        taxableAmount: gross,
                         vatRate: 0,
                         vatAmount: 0,
-                        grossAmount: p.amount * exRate,
+                        grossAmount: gross,
                         status: 'Paid',
                         paymentMode: p.paymentMode
                     });
@@ -2140,7 +2439,7 @@ const getVatReport = async (req, res) => {
             });
 
             for (const exp of expenses) {
-                const exRate = await getConversionRate('USD', companyCurrency);
+                const exRate = await getConversionRate(companyCurrency, companyCurrency);
                 const gross = (parseFloat(exp.amount) || 0) * exRate;
                 inputVatTransactions.push({
                     id: `EXP-${exp.id}`,
@@ -2351,8 +2650,20 @@ const getVatReport = async (req, res) => {
             rateMap[key].netVat = rateMap[key].salesVat - rateMap[key].purchasesVat;
         };
 
-        outputVatTransactions.forEach(t => registerRate(t.vatRate, t.taxableAmount, t.vatAmount, 'sales'));
-        inputVatTransactions.forEach(t => registerRate(t.vatRate, t.taxableAmount, t.vatAmount, 'purchases'));
+        outputVatTransactions.forEach(t => {
+            if (t.itemsBreakdown && t.itemsBreakdown.length > 0) {
+                t.itemsBreakdown.forEach(b => registerRate(b.rate, b.taxable, b.tax, 'sales'));
+            } else {
+                registerRate(t.vatRate, t.taxableAmount, t.vatAmount, 'sales');
+            }
+        });
+        inputVatTransactions.forEach(t => {
+            if (t.itemsBreakdown && t.itemsBreakdown.length > 0) {
+                t.itemsBreakdown.forEach(b => registerRate(b.rate, b.taxable, b.tax, 'purchases'));
+            } else {
+                registerRate(t.vatRate, t.taxableAmount, t.vatAmount, 'purchases');
+            }
+        });
 
         const rateBreakdown = Object.values(rateMap).sort((a, b) => b.rate - a.rate);
 

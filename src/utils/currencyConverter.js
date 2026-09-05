@@ -226,11 +226,11 @@ const getExchangeRates = () => {
  */
 const getConversionRate = async (from, to) => {
     const rates = await getExchangeRates();
-    const fromUpper = (from || 'USD').toUpperCase();
-    const toUpper = (to || 'USD').toUpperCase();
+    const fromUpper = (from || 'EUR').toUpperCase();
+    const toUpper = (to || 'EUR').toUpperCase();
     const fromRate = rates[fromUpper] || FALLBACK_RATES[fromUpper] || 1.0;
     const toRate = rates[toUpper] || FALLBACK_RATES[toUpper] || 1.0;
-    // from -> USD -> to
+    // from -> Base -> to
     return toRate / fromRate;
 };
 
@@ -243,10 +243,10 @@ const getCompanyCurrency = async (companyId) => {
             where: { id: parseInt(companyId) },
             select: { currency: true }
         });
-        return company?.currency || 'USD';
+        return company?.currency || 'EUR';
     } catch (e) {
         console.error('Error fetching company currency:', e.message);
-        return 'USD';
+        return 'EUR';
     }
 };
 
@@ -256,10 +256,10 @@ const getCompanyHistoricalCurrency = async (companyId) => {
             where: { id: parseInt(companyId) },
             select: { originalCurrency: true, currency: true }
         });
-        return company?.originalCurrency || company?.currency || 'USD';
+        return company?.originalCurrency || company?.currency || 'EUR';
     } catch (e) {
         console.error('Error fetching company historical currency:', e.message);
-        return 'USD';
+        return 'EUR';
     }
 };
 

@@ -14,6 +14,7 @@ router.post('/fiscal-rollover/execute', authenticateToken, controller.executeFis
 // 3. Fixed Assets & Depreciation
 router.get('/assets', authenticateToken, controller.getFixedAssets);
 router.post('/assets', authenticateToken, controller.createFixedAsset);
+router.get('/assets/:id/schedule', authenticateToken, controller.getAssetDepreciationSchedule);
 router.post('/assets/depreciate', authenticateToken, controller.runDepreciation);
 router.delete('/assets/:id', authenticateToken, controller.deleteFixedAsset);
 
@@ -27,6 +28,8 @@ router.get('/cash-flow-forecast', authenticateToken, controller.getCashFlowForec
 router.get('/recurring', authenticateToken, controller.getRecurringTemplates);
 router.post('/recurring', authenticateToken, controller.createRecurringTemplate);
 router.post('/recurring/run-pending', authenticateToken, controller.runPendingRecurringTransactions);
+router.post('/recurring/:id/run-now', authenticateToken, controller.runSingleRecurringTransaction);
+router.patch('/recurring/:id/toggle-status', authenticateToken, controller.toggleRecurringTemplateStatus);
 router.delete('/recurring/:id', authenticateToken, controller.deleteRecurringTemplate);
 
 module.exports = router;

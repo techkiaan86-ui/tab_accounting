@@ -94,11 +94,11 @@ model category {
 model company {
   id                    Int                     @id @default(autoincrement())
   name                  String
-  email                 String                  @unique(map: "Company_email_key")
+  email                 String
   logo                  String?                 @db.LongText
   startDate             DateTime?
   endDate               DateTime?
-  invoiceTemplate       String                  @default("New York")
+  invoiceTemplate       String                  @default("Standard VAT (CEA)")
   invoiceColor          String                  @default("#000000")
   showQrCode            Boolean                 @default(true)
   invoiceLogo           String?                 @db.LongText
@@ -112,8 +112,8 @@ model company {
   state                 String?
   zip                   String?
   country               String?
-  currency              String?                 @default("USD")
-  originalCurrency      String?                 @default("USD")
+  currency              String?                 @default("EUR")
+  originalCurrency      String?                 @default("EUR")
   bankName              String?
   accountHolder         String?
   accountName           String?
@@ -123,6 +123,7 @@ model company {
   sortCode              String?
   ifsc                  String?
   vatNumber             String?
+  defaultVatRate        String?                 @default("23")
   gstNumber             String?
   defaultVatRateId      Int?
   isVatRegistered       Boolean                 @default(true)
@@ -191,8 +192,10 @@ model company {
   salesperson           salesperson[]
   deliveryperson        deliveryperson[]
   advanceadjustment     advanceadjustment[]
+  company_user          company_user[]
 
   @@index([planId], map: "Company_planId_fkey")
+  @@index([email], map: "Company_email_idx")
 }
 
 model customer {
@@ -1477,8 +1480,25 @@ model user {
   company              company?               @relation(fields: [companyId], references: [id], map: "User_companyId_fkey")
   auditlog             auditlog[]
   inventorytransaction inventorytransaction[]
+  company_user         company_user[]
 
   @@index([companyId], map: "User_companyId_fkey")
+}
+
+model company_user {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  companyId Int
+  role      String   @default("COMPANY")
+  roleId    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "company_user_userId_fkey")
+  company   company  @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "company_user_companyId_fkey")
+
+  @@unique([userId, companyId], map: "company_user_userId_companyId_key")
+  @@index([companyId], map: "company_user_companyId_fkey")
+  @@index([userId], map: "company_user_userId_fkey")
 }
 
 model vendor {

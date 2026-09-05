@@ -57,8 +57,8 @@ const createProduct = async (req, res) => {
         if (!companyId) {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
         }
-        if (!name || !sku) {
-            return res.status(400).json({ success: false, message: 'Name and SKU are required' });
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Item Name is required' });
         }
 
         const existingProduct = await prisma.product.findFirst({
@@ -802,11 +802,20 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-// Generate Cloudinary Signature for Frontend Upload
 const getCloudinarySignature = async (req, res) => {
     try {
+        const { isCloudinaryConfigured } = require('../utils/cloudinaryConfig');
+        const apiKey = cloudinary.config().api_key;
+        if (!isCloudinaryConfigured || !apiKey || apiKey === 'placeholder') {
+            return res.status(200).json({
+                success: false,
+                isConfigured: false,
+                message: 'Cloudinary is not configured on the server. Please use /api/upload.'
+            });
+        }
+
         const timestamp = Math.round((new Date).getTime() / 1000);
-        const folder = 'products'; // Optional: organize in a folder
+        const folder = 'products';
 
         const signature = cloudinary.utils.api_sign_request({
             timestamp: timestamp,
@@ -815,6 +824,7 @@ const getCloudinarySignature = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            isConfigured: true,
             signature,
             timestamp,
             apiKey: cloudinary.config().api_key,

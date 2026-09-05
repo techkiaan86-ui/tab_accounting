@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const { cloudinary } = require('../utils/cloudinaryConfig');
+const { isCloudinaryConfigured, uploadToCloudinaryOrBase64 } = require('../utils/cloudinaryConfig');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // Use memory storage so we can handle the buffer ourselves
@@ -12,10 +12,10 @@ const upload = multer({
 
 /**
  * POST /api/upload
- * Uploads a single file (image or any file) to Cloudinary.
+ * Uploads a single file (image or any file) to Cloudinary or local storage.
  * Accepts: multipart/form-data with field "file"
  * Optional: query param ?folder=vendors|customers|products (default: "uploads")
- * Returns: { success: true, url: "https://..." }
+ * Returns: { success: true, url: "..." }
  */
 router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
     try {
@@ -24,30 +24,31 @@ router.post('/', authenticateToken, upload.single('file'), async (req, res) => {
         }
 
         const folder = req.query.folder || 'uploads';
-        const resourceType = req.file.mimetype.startsWith('image/') ? 'image' : 'raw';
+        const fileUrl = await uploadToCloudinaryOrBase64(req.file, folder);
 
-        // Convert buffer to base64 data URI
-        const base64Data = req.file.buffer.toString('base64');
-        const dataUri = `data:${req.file.mimetype};base64,${base64Data}`;
-
-        // Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(dataUri, {
-            folder: folder,
-            resource_type: resourceType,
-            use_filename: true,
-            unique_filename: true
-        });
+        let finalUrl = fileUrl;
+        if (fileUrl && typeof fileUrl === 'string' && fileUrl.startsWith('/uploads/')) {
+            const host = req.get('host');
+            const protocol = req.protocol;
+            finalUrl = `${protocol}://${host}${fileUrl}`;
+        }
 
         return res.status(200).json({
             success: true,
-            url: result.secure_url,
-            public_id: result.public_id,
-            resource_type: resourceType,
+            url: finalUrl,
             original_name: req.file.originalname
         });
 
     } catch (error) {
         console.error('Upload Error:', error);
+        if (req.file && req.file.buffer) {
+            const dataUri = `data:${req.file.mimetype || 'image/png'};base64,${req.file.buffer.toString('base64')}`;
+            return res.status(200).json({
+                success: true,
+                url: dataUri,
+                original_name: req.file.originalname
+            });
+        }
         return res.status(500).json({ success: false, message: error.message || 'Upload failed' });
     }
 });

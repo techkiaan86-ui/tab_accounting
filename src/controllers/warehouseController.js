@@ -4,11 +4,17 @@ const prisma = require('../config/prisma');
 const createWarehouse = async (req, res) => {
     try {
         const companyId = req.user?.companyId || req.query.companyId || req.body.companyId;
-        const { name, location, addressLine1, addressLine2, city, state, postalCode, country } = req.body;
+        let { name, location, addressLine1, addressLine2, city, state, postalCode, country } = req.body;
 
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID is required' });
-        if (!name || !location) {
-            return res.status(400).json({ success: false, message: 'Name and Location are required' });
+        if (!name || !name.trim()) {
+            return res.status(400).json({ success: false, message: 'Warehouse name is required' });
+        }
+        name = name.trim();
+        if (!location || !location.trim()) {
+            location = name;
+        } else {
+            location = location.trim();
         }
 
         const existingWarehouse = await prisma.warehouse.findFirst({

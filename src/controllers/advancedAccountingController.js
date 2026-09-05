@@ -882,10 +882,46 @@ const getBudgetVarianceReport = async (req, res) => {
         const ledgers = await prisma.ledger.findMany({ where: { companyId }, include: { accountgroup: true } });
         const ledgerMap = new Map(ledgers.map(l => [l.id, l]));
 
+        // Calculate actual movements within the budget date range
+        const ledgerIds = budgetItems.map(b => b.ledgerId);
+        const periodActualMap = new Map();
+
+        try {
+            const voucherItems = await prisma.voucheritem.findMany({
+                where: {
+                    ledgerId: { in: ledgerIds },
+                    voucher: {
+                        companyId,
+                        date: {
+                            gte: new Date(budget.startDate),
+                            lte: new Date(budget.endDate)
+                        }
+                    }
+                },
+                select: {
+                    ledgerId: true,
+                    debit: true,
+                    credit: true,
+                    amount: true
+                }
+            });
+
+            voucherItems.forEach(vi => {
+                const current = periodActualMap.get(vi.ledgerId) || 0;
+                const netDebit = (vi.debit !== null && vi.debit !== undefined) ? vi.debit - (vi.credit || 0) : (vi.amount || 0);
+                periodActualMap.set(vi.ledgerId, current + netDebit);
+            });
+        } catch (e) {
+            console.warn('Could not query voucheritem period actuals:', e.message);
+        }
+
         const comparison = budgetItems.map(item => {
             const ledger = ledgerMap.get(item.ledgerId);
             const budgeted = item.allocatedAmount;
-            const actual = Math.abs(ledger?.currentBalance || 0);
+            const periodActual = periodActualMap.get(item.ledgerId);
+            const actual = (periodActual !== undefined && periodActual !== null)
+                ? Math.abs(periodActual)
+                : Math.abs(ledger?.currentBalance || 0);
             const variance = budgeted - actual;
             const variancePercent = budgeted > 0 ? ((variance / budgeted) * 100).toFixed(1) : '0';
             const status = variance >= 0 ? 'UNDER_BUDGET' : 'OVER_BUDGET';
@@ -1088,89 +1124,161 @@ const createRecurringTemplate = async (req, res) => {
     }
 };
 
+const executeSingleTemplate = async (t, companyId) => {
+    const now = new Date();
+    let data = {};
+    try { data = typeof t.templateData === 'string' ? JSON.parse(t.templateData) : (t.templateData || {}); } catch (e) {}
+
+    let generated = null;
+
+    if (t.transactionType === 'INVOICE') {
+        const invoiceNumber = `REC-INV-${Date.now().toString().slice(-5)}`;
+        const customerId = data.customerId ? parseInt(data.customerId) : null;
+
+        if (customerId) {
+            await prisma.invoice.create({
+                data: {
+                    invoiceNumber,
+                    date: now,
+                    dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+                    customerId,
+                    subtotal: t.totalAmount,
+                    taxAmount: 0,
+                    totalAmount: t.totalAmount,
+                    balanceAmount: t.totalAmount,
+                    currency: data.currency || 'EUR',
+                    notes: `Auto-generated from recurring template: ${t.templateName}`,
+                    status: 'UNPAID',
+                    companyId
+                }
+            });
+            generated = { templateId: t.id, type: 'INVOICE', refNumber: invoiceNumber, amount: t.totalAmount };
+        }
+    } else if (t.transactionType === 'PURCHASE_BILL') {
+        const billNumber = `REC-BILL-${Date.now().toString().slice(-5)}`;
+        const vendorId = data.vendorId ? parseInt(data.vendorId) : null;
+
+        if (vendorId) {
+            await prisma.purchasebill.create({
+                data: {
+                    billNumber,
+                    date: now,
+                    dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+                    vendorId,
+                    subtotal: t.totalAmount,
+                    taxAmount: 0,
+                    totalAmount: t.totalAmount,
+                    balanceAmount: t.totalAmount,
+                    currency: data.currency || 'EUR',
+                    notes: `Auto-generated from recurring template: ${t.templateName}`,
+                    status: 'UNPAID',
+                    companyId
+                }
+            });
+            generated = { templateId: t.id, type: 'PURCHASE_BILL', refNumber: billNumber, amount: t.totalAmount };
+        }
+    } else if (t.transactionType === 'JOURNAL') {
+        const voucherNumber = `REC-JV-${Date.now().toString().slice(-5)}`;
+        const debitLedgerId = data.debitLedgerId ? parseInt(data.debitLedgerId) : null;
+        const creditLedgerId = data.creditLedgerId ? parseInt(data.creditLedgerId) : null;
+
+        if (debitLedgerId && creditLedgerId) {
+            const debitLedger = await prisma.ledger.findUnique({ where: { id: debitLedgerId } });
+            const creditLedger = await prisma.ledger.findUnique({ where: { id: creditLedgerId } });
+
+            await prisma.voucher.create({
+                data: {
+                    voucherNumber,
+                    voucherType: 'JOURNAL',
+                    date: now,
+                    totalAmount: t.totalAmount,
+                    notes: data.narration || `Auto-generated from recurring template: ${t.templateName}`,
+                    companyId,
+                    voucheritem: {
+                        create: [
+                            {
+                                ledgerId: debitLedgerId,
+                                ledgerName: debitLedger?.name || 'Debit Account',
+                                debit: t.totalAmount,
+                                credit: 0,
+                                amount: t.totalAmount,
+                                narration: data.narration || `Recurring Journal: ${t.templateName}`
+                            },
+                            {
+                                ledgerId: creditLedgerId,
+                                ledgerName: creditLedger?.name || 'Credit Account',
+                                debit: 0,
+                                credit: t.totalAmount,
+                                amount: t.totalAmount,
+                                narration: data.narration || `Recurring Journal: ${t.templateName}`
+                            }
+                        ]
+                    }
+                }
+            });
+
+            await prisma.transaction.create({
+                data: {
+                    date: now,
+                    debitLedgerId,
+                    creditLedgerId,
+                    amount: t.totalAmount,
+                    voucherType: 'JOURNAL',
+                    voucherNumber,
+                    narration: data.narration || `Recurring Journal: ${t.templateName}`,
+                    companyId
+                }
+            });
+
+            await prisma.ledger.update({
+                where: { id: debitLedgerId },
+                data: { currentBalance: { increment: t.totalAmount } }
+            });
+            await prisma.ledger.update({
+                where: { id: creditLedgerId },
+                data: { currentBalance: { decrement: t.totalAmount } }
+            });
+
+            generated = { templateId: t.id, type: 'JOURNAL', refNumber: voucherNumber, amount: t.totalAmount };
+        }
+    }
+
+    let nextDate = new Date(t.nextRunDate);
+    if (t.frequency === 'WEEKLY') nextDate.setDate(nextDate.getDate() + 7);
+    else if (t.frequency === 'BIWEEKLY') nextDate.setDate(nextDate.getDate() + 14);
+    else if (t.frequency === 'MONTHLY') nextDate.setMonth(nextDate.getMonth() + 1);
+    else if (t.frequency === 'QUARTERLY') nextDate.setMonth(nextDate.getMonth() + 3);
+    else if (t.frequency === 'ANNUALLY') nextDate.setFullYear(nextDate.getFullYear() + 1);
+
+    let newStatus = t.status;
+    if (t.endDate && nextDate > new Date(t.endDate)) {
+        newStatus = 'COMPLETED';
+    }
+
+    await prisma.$executeRawUnsafe(`
+        UPDATE recurring_template 
+        SET lastRunDate = NOW(), nextRunDate = ?, executionCount = executionCount + 1, status = ?
+        WHERE id = ?
+    `, nextDate, newStatus, t.id);
+
+    return generated;
+};
+
 const runPendingRecurringTransactions = async (req, res) => {
     try {
         await ensureTablesExist();
         const companyId = req.user?.companyId || parseInt(req.body.companyId);
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID required' });
 
-        const now = new Date();
         const templates = await prisma.$queryRawUnsafe(`
             SELECT * FROM recurring_template 
             WHERE companyId = ? AND status = 'ACTIVE' AND nextRunDate <= NOW()
         `, companyId);
 
         const generated = [];
-
         for (const t of templates) {
-            let data = {};
-            try { data = JSON.parse(t.templateData); } catch (e) {}
-
-            if (t.transactionType === 'INVOICE') {
-                const invoiceNumber = `REC-INV-${Date.now().toString().slice(-5)}`;
-                const customerId = data.customerId ? parseInt(data.customerId) : null;
-
-                if (customerId) {
-                    await prisma.invoice.create({
-                        data: {
-                            invoiceNumber,
-                            date: now,
-                            dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
-                            customerId,
-                            subtotal: t.totalAmount,
-                            taxAmount: 0,
-                            totalAmount: t.totalAmount,
-                            balanceAmount: t.totalAmount,
-                            currency: data.currency || 'EUR',
-                            notes: `Auto-generated from recurring template: ${t.templateName}`,
-                            status: 'UNPAID',
-                            companyId
-                        }
-                    });
-                    generated.push({ templateId: t.id, type: 'INVOICE', refNumber: invoiceNumber, amount: t.totalAmount });
-                }
-            } else if (t.transactionType === 'PURCHASE_BILL') {
-                const billNumber = `REC-BILL-${Date.now().toString().slice(-5)}`;
-                const vendorId = data.vendorId ? parseInt(data.vendorId) : null;
-
-                if (vendorId) {
-                    await prisma.purchasebill.create({
-                        data: {
-                            billNumber,
-                            date: now,
-                            dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
-                            vendorId,
-                            subtotal: t.totalAmount,
-                            taxAmount: 0,
-                            totalAmount: t.totalAmount,
-                            balanceAmount: t.totalAmount,
-                            currency: data.currency || 'EUR',
-                            notes: `Auto-generated from recurring template: ${t.templateName}`,
-                            status: 'UNPAID',
-                            companyId
-                        }
-                    });
-                    generated.push({ templateId: t.id, type: 'PURCHASE_BILL', refNumber: billNumber, amount: t.totalAmount });
-                }
-            }
-
-            let nextDate = new Date(t.nextRunDate);
-            if (t.frequency === 'WEEKLY') nextDate.setDate(nextDate.getDate() + 7);
-            else if (t.frequency === 'BIWEEKLY') nextDate.setDate(nextDate.getDate() + 14);
-            else if (t.frequency === 'MONTHLY') nextDate.setMonth(nextDate.getMonth() + 1);
-            else if (t.frequency === 'QUARTERLY') nextDate.setMonth(nextDate.getMonth() + 3);
-            else if (t.frequency === 'ANNUALLY') nextDate.setFullYear(nextDate.getFullYear() + 1);
-
-            let newStatus = t.status;
-            if (t.endDate && nextDate > new Date(t.endDate)) {
-                newStatus = 'COMPLETED';
-            }
-
-            await prisma.$executeRawUnsafe(`
-                UPDATE recurring_template 
-                SET lastRunDate = NOW(), nextRunDate = ?, executionCount = executionCount + 1, status = ?
-                WHERE id = ?
-            `, nextDate, newStatus, t.id);
+            const resItem = await executeSingleTemplate(t, companyId);
+            if (resItem) generated.push(resItem);
         }
 
         return res.status(200).json({
@@ -1180,6 +1288,64 @@ const runPendingRecurringTransactions = async (req, res) => {
         });
     } catch (error) {
         console.error('Run Pending Recurring Transactions Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const runSingleRecurringTransaction = async (req, res) => {
+    try {
+        await ensureTablesExist();
+        const companyId = req.user?.companyId || parseInt(req.body.companyId);
+        const templateId = parseInt(req.params.id);
+
+        if (!companyId || !templateId) return res.status(400).json({ success: false, message: 'Invalid ID' });
+
+        const templates = await prisma.$queryRawUnsafe(`
+            SELECT * FROM recurring_template WHERE id = ? AND companyId = ?
+        `, templateId, companyId);
+
+        if (!templates.length) return res.status(404).json({ success: false, message: 'Recurring template not found' });
+
+        const generated = await executeSingleTemplate(templates[0], companyId);
+        return res.status(200).json({
+            success: true,
+            message: `Successfully executed "${templates[0].templateName}"! Generated ${generated?.refNumber || 'transaction'}.`,
+            data: generated
+        });
+    } catch (error) {
+        console.error('Run Single Recurring Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const toggleRecurringTemplateStatus = async (req, res) => {
+    try {
+        await ensureTablesExist();
+        const companyId = req.user?.companyId || parseInt(req.body.companyId);
+        const templateId = parseInt(req.params.id);
+
+        if (!companyId || !templateId) return res.status(400).json({ success: false, message: 'Invalid ID' });
+
+        const templates = await prisma.$queryRawUnsafe(`
+            SELECT * FROM recurring_template WHERE id = ? AND companyId = ?
+        `, templateId, companyId);
+
+        if (!templates.length) return res.status(404).json({ success: false, message: 'Recurring template not found' });
+
+        const currentStatus = templates[0].status;
+        const newStatus = currentStatus === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+
+        await prisma.$executeRawUnsafe(`
+            UPDATE recurring_template SET status = ? WHERE id = ?
+        `, newStatus, templateId);
+
+        return res.status(200).json({
+            success: true,
+            message: `Recurring template is now ${newStatus}`,
+            data: { id: templateId, status: newStatus }
+        });
+    } catch (error) {
+        console.error('Toggle Recurring Status Error:', error);
         return res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -1200,6 +1366,79 @@ const deleteRecurringTemplate = async (req, res) => {
     }
 };
 
+// ==========================================
+// 6. ASSET DEPRECIATION SCHEDULE GENERATOR
+// ==========================================
+
+const getAssetDepreciationSchedule = async (req, res) => {
+    try {
+        await ensureTablesExist();
+        const companyId = req.user?.companyId || parseInt(req.query.companyId);
+        const assetId = parseInt(req.params.id);
+
+        if (!companyId || !assetId) return res.status(400).json({ success: false, message: 'Invalid Asset ID' });
+
+        const assets = await prisma.$queryRawUnsafe(`SELECT * FROM fixed_asset WHERE id = ? AND companyId = ?`, assetId, companyId);
+        const asset = assets[0];
+        if (!asset) return res.status(404).json({ success: false, message: 'Fixed Asset not found' });
+
+        const cost = asset.purchaseCost;
+        const salvage = asset.salvageValue || 0;
+        const usefulYears = asset.usefulLifeYears || 5;
+        const method = asset.depreciationMethod || 'STRAIGHT_LINE';
+        const purchaseDate = new Date(asset.purchaseDate);
+
+        const schedule = [];
+        let currentBookValue = cost;
+        let accumulatedDep = 0;
+        const totalYears = Math.ceil(usefulYears);
+
+        for (let year = 1; year <= totalYears; year++) {
+            const periodDate = new Date(purchaseDate);
+            periodDate.setFullYear(purchaseDate.getFullYear() + year);
+
+            let depAmount = 0;
+            if (method === 'STRAIGHT_LINE') {
+                const annualDep = (cost - salvage) / usefulYears;
+                const remainingDep = Math.max(0, currentBookValue - salvage);
+                depAmount = Math.min(annualDep, remainingDep);
+            } else {
+                const rate = (1 / usefulYears) * 1.5;
+                const calculatedDep = currentBookValue * rate;
+                const remainingDep = Math.max(0, currentBookValue - salvage);
+                depAmount = Math.min(calculatedDep, remainingDep);
+            }
+
+            accumulatedDep += depAmount;
+            const endingBookValue = Math.max(salvage, cost - accumulatedDep);
+
+            schedule.push({
+                periodIndex: year,
+                periodYear: purchaseDate.getFullYear() + year - 1,
+                date: periodDate.toISOString().split('T')[0],
+                beginningBookValue: parseFloat(currentBookValue.toFixed(2)),
+                depreciationAmount: parseFloat(depAmount.toFixed(2)),
+                accumulatedDepreciation: parseFloat(accumulatedDep.toFixed(2)),
+                endingBookValue: parseFloat(endingBookValue.toFixed(2))
+            });
+
+            currentBookValue = endingBookValue;
+            if (currentBookValue <= salvage) break;
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                asset,
+                schedule
+            }
+        });
+    } catch (error) {
+        console.error('Depreciation Schedule Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     // 1. Currency Revaluation
     getCurrencyRevaluationPreview,
@@ -1209,11 +1448,12 @@ module.exports = {
     getFiscalYearRolloverPreview,
     executeFiscalYearRollover,
 
-    // 3. Fixed Assets
+    // 3. Fixed Assets & Depreciation
     getFixedAssets,
     createFixedAsset,
     runDepreciation,
     deleteFixedAsset,
+    getAssetDepreciationSchedule,
 
     // 4. Budgets & Forecasts
     getBudgets,
@@ -1225,5 +1465,7 @@ module.exports = {
     getRecurringTemplates,
     createRecurringTemplate,
     runPendingRecurringTransactions,
+    runSingleRecurringTransaction,
+    toggleRecurringTemplateStatus,
     deleteRecurringTemplate
 };

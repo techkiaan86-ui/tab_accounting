@@ -56,6 +56,7 @@ const searchRoutes = require('./src/routes/searchRoutes');
 const bulkImportRoutes = require('./src/routes/bulkImportRoutes');
 const advancedAccountingRoutes = require('./src/routes/advancedAccountingRoutes');
 const integrationRoutes = require('./src/routes/integrationRoutes');
+const bankingRoutes = require('./src/routes/bankingRoutes');
 
 const prisma = require('./src/config/prisma');
 
@@ -121,8 +122,7 @@ app.use(cors({
         'http://localhost:5173',
         'https://localhost:5173',
         'https://new-accounting.netlify.app',
-        'http://new-accounting.netlify.app',
-        'https://tab-accounting.netlify.app'
+        'http://new-accounting.netlify.app'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
@@ -135,6 +135,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/companies', companyRoutes);
+app.use('/api/company', companyRoutes);
 app.use('/api/plans', planRoutes);
 app.use('/api/plan-requests', planRequestRoutes);
 app.use('/api/payments', paymentRoutes);
@@ -181,6 +182,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/bulk-import', bulkImportRoutes);
 app.use('/api/advanced-accounting', advancedAccountingRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/banking', bankingRoutes);
 
 // Health Check
 app.get('/', (req, res) => {

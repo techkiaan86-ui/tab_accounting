@@ -207,6 +207,7 @@ exports.Prisma.CompanyScalarFieldEnum = {
   sortCode: 'sortCode',
   ifsc: 'ifsc',
   vatNumber: 'vatNumber',
+  defaultVatRate: 'defaultVatRate',
   gstNumber: 'gstNumber',
   defaultVatRateId: 'defaultVatRateId',
   isVatRegistered: 'isVatRegistered',
@@ -1106,6 +1107,16 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.Company_userScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  companyId: 'companyId',
+  role: 'role',
+  roleId: 'roleId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.VendorScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -1572,6 +1583,7 @@ exports.Prisma.ModelName = {
   transaction: 'transaction',
   uom: 'uom',
   user: 'user',
+  company_user: 'company_user',
   vendor: 'vendor',
   warehouse: 'warehouse',
   voucher: 'voucher',

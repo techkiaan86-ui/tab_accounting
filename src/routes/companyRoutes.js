@@ -1,6 +1,8 @@
 const express = require('express');
 const {
     createCompany,
+    createUserCompany,
+    getUserCompanies,
     getCompanies,
     getCompanyById,
     updateCompany,
@@ -24,6 +26,9 @@ const checkCompanyAccess = (req, res, next) => {
 
     // Convert to numbers for safe comparison
     const requestedCompanyId = Number(req.params.id);
+    if (isNaN(requestedCompanyId)) {
+        return next('route');
+    }
     const userCompanyId = Number(req.user.companyId);
 
     if (userCompanyId === requestedCompanyId) {
@@ -45,12 +50,20 @@ const checkCompanyAccess = (req, res, next) => {
     });
 };
 
+// User multi-company endpoints
+router.post('/user-company', authenticateToken, upload.single('logo'), createUserCompany);
+router.get('/user-companies', authenticateToken, getUserCompanies);
+
 // Only Superadmin can create or delete companies
 router.post('/', authenticateToken, authorizeRoles('SUPERADMIN'), upload.single('logo'), createCompany);
 router.get('/', authenticateToken, authorizeRoles('SUPERADMIN'), getCompanies);
 router.delete('/:id', authenticateToken, authorizeRoles('SUPERADMIN'), deleteCompany);
 
 // Both Superadmin and Company Admin can view/update their own company
+// Direct Period Lock endpoints (using active companyId from token)
+router.get('/period-lock', authenticateToken, getPeriodLockSettings);
+router.put('/period-lock', authenticateToken, updatePeriodLockSettings);
+
 router.get('/:id', authenticateToken, checkCompanyAccess, getCompanyById);
 router.put('/:id', authenticateToken, checkCompanyAccess, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'invoiceLogo', maxCount: 1 }]), updateCompany);
 

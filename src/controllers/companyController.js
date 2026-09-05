@@ -13,25 +13,33 @@ const createCompany = async (req, res) => {
             logoUrl = await uploadToCloudinaryOrBase64(req.file, 'company_logos');
         }
 
-        // Check if company or user already exists
-        const existingCompany = await prisma.company.findUnique({ where: { email } });
-        if (existingCompany) return res.status(400).json({ error: 'Company with this email already exists' });
+        // Check if company with exact same name and email already exists
+        const existingCompany = await prisma.company.findFirst({
+            where: {
+                name: name.trim(),
+                email: email.toLowerCase().trim()
+            }
+        });
+        if (existingCompany) return res.status(400).json({ error: 'A company with this name and email already exists' });
 
-        const existingUser = await prisma.user.findUnique({ where: { email } });
-        if (existingUser) return res.status(400).json({ error: 'User with this email already exists' });
+        const normalizedEmail = email.toLowerCase().trim();
+        const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
-        // Hash password for the company admin
-        if (!password) {
+        // Hash password for the company admin if provided or required
+        let hashedPassword = null;
+        if (!existingUser && !password) {
             return res.status(400).json({ error: 'Password is required for creating a company account' });
         }
-        const hashedPassword = await bcrypt.hash(password, 10);
+        if (password) {
+            hashedPassword = await bcrypt.hash(password, 10);
+        }
 
-        // Create Company and Admin User in a transaction
+        // Create Company and Admin User / Association in a transaction
         const result = await prisma.$transaction(async (tx) => {
             const company = await tx.company.create({
                 data: {
-                    name,
-                    email,
+                    name: name.trim(),
+                    email: normalizedEmail,
                     phone,
                     address,
                     startDate: startDate ? new Date(startDate) : null,
@@ -39,8 +47,8 @@ const createCompany = async (req, res) => {
                     planId: planId ? parseInt(planId) : null,
                     planType,
                     logo: logoUrl,
-                    currency: currency || 'USD',
-                    originalCurrency: currency || 'USD'
+                    currency: currency || 'EUR',
+                    originalCurrency: currency || 'EUR'
                 }
             });
 
@@ -96,18 +104,56 @@ const createCompany = async (req, res) => {
                 }
             });
 
-            const user = await tx.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    role: 'COMPANY',
-                    roleId: role.id,
-                    companyId: company.id
-                }
-            });
+            let finalUser = existingUser;
 
-            return { company, user };
+            if (existingUser) {
+                // Update password if new password was provided
+                if (hashedPassword) {
+                    await tx.user.update({
+                        where: { id: existingUser.id },
+                        data: { password: hashedPassword }
+                    });
+                }
+                // If existing user has no active companyId, set it
+                if (!existingUser.companyId) {
+                    await tx.user.update({
+                        where: { id: existingUser.id },
+                        data: { companyId: company.id }
+                    });
+                }
+                // Link this company to the existing user in company_user
+                await tx.company_user.create({
+                    data: {
+                        userId: existingUser.id,
+                        companyId: company.id,
+                        role: 'COMPANY',
+                        roleId: role.id
+                    }
+                });
+            } else {
+                // Create user and link in company_user
+                finalUser = await tx.user.create({
+                    data: {
+                        name,
+                        email: normalizedEmail,
+                        password: hashedPassword,
+                        role: 'COMPANY',
+                        roleId: role.id,
+                        companyId: company.id
+                    }
+                });
+
+                await tx.company_user.create({
+                    data: {
+                        userId: finalUser.id,
+                        companyId: company.id,
+                        role: 'COMPANY',
+                        roleId: role.id
+                    }
+                });
+            }
+
+            return { company, user: finalUser };
         }, {
             timeout: 15000
         });
@@ -164,11 +210,27 @@ const getCompanyById = async (req, res) => {
 
         logToFile(`📡 getCompanyById ID: ${req.params.id} | company.name: ${company?.name} | company.invoiceLabels: ${company?.invoiceLabels}`);
 
-        if (company && company.inventoryConfig) {
-            try {
-                const config = JSON.parse(company.inventoryConfig);
-                company.storageCapacity = config.storageCapacity;
-            } catch (e) { }
+        if (company) {
+            if (company.inventoryConfig) {
+                try {
+                    const config = JSON.parse(company.inventoryConfig);
+                    company.storageCapacity = config.storageCapacity;
+                    if (config.defaultVatRate) {
+                        company.defaultVatRate = config.defaultVatRate;
+                    }
+                } catch (e) { }
+            }
+            if (!company.defaultVatRate) {
+                try {
+                    const raw = await prisma.$queryRawUnsafe('SELECT defaultVatRate FROM company WHERE id = ?', parseInt(req.params.id));
+                    if (raw && raw[0] && raw[0].defaultVatRate) {
+                        company.defaultVatRate = raw[0].defaultVatRate;
+                    }
+                } catch (e) { }
+            }
+            if (!company.defaultVatRate) {
+                company.defaultVatRate = '23';
+            }
         }
         res.json(company);
     } catch (error) {
@@ -201,7 +263,7 @@ const updateCompany = async (req, res) => {
             startDate, endDate, planId, planType,
             invoiceTemplate, invoiceColor, showQrCode,
             bankName, accountHolder, accountName, accountNumber,
-            iban, bic, sortCode, ifsc, vatNumber, gstNumber, defaultVatRateId, isVatRegistered,
+            iban, bic, sortCode, ifsc, vatNumber, defaultVatRate, gstNumber, defaultVatRateId, isVatRegistered,
             terms,
             termsInvoice,
             termsReceipt,
@@ -236,6 +298,9 @@ const updateCompany = async (req, res) => {
             let configObj = typeof finalInventoryConfig === 'string' ? JSON.parse(finalInventoryConfig) : finalInventoryConfig;
             if (storageCapacity !== undefined) {
                 configObj.storageCapacity = storageCapacity;
+            }
+            if (defaultVatRate !== undefined) {
+                configObj.defaultVatRate = defaultVatRate.toString();
             }
             if (inventoryConfig !== undefined) {
                 // Merge other inventory config if provided
@@ -286,6 +351,12 @@ const updateCompany = async (req, res) => {
         //             }
         //         }
 
+        const cleanArabicStr = (val) => {
+            if (!val) return undefined;
+            let str = typeof val === 'string' ? val : JSON.stringify(val);
+            return str.replace(/[\u0600-\u06FF]/g, '').replace(/\s+/g, ' ').trim();
+        };
+
         const updateData = {
             name,
             email,
@@ -326,12 +397,12 @@ const updateCompany = async (req, res) => {
             termsCreditNote,
             notes,
             inventoryConfig: finalInventoryConfig,
-            invoiceTableHeaders: invoiceTableHeaders ? (typeof invoiceTableHeaders === 'string' ? invoiceTableHeaders : JSON.stringify(invoiceTableHeaders)) : undefined,
-            invoiceLabels: invoiceLabels ? (typeof invoiceLabels === 'string' ? invoiceLabels : JSON.stringify(invoiceLabels)) : undefined,
+            invoiceTableHeaders: invoiceTableHeaders ? cleanArabicStr(invoiceTableHeaders) : undefined,
+            invoiceLabels: invoiceLabels ? cleanArabicStr(invoiceLabels) : undefined,
             receiptTemplate: receiptTemplate || undefined,
             receiptColor: receiptColor || undefined,
-            receiptLabels: receiptLabels ? (typeof receiptLabels === 'string' ? receiptLabels : JSON.stringify(receiptLabels)) : undefined,
-            receiptTableHeaders: receiptTableHeaders ? (typeof receiptTableHeaders === 'string' ? receiptTableHeaders : JSON.stringify(receiptTableHeaders)) : undefined,
+            receiptLabels: receiptLabels ? cleanArabicStr(receiptLabels) : undefined,
+            receiptTableHeaders: receiptTableHeaders ? cleanArabicStr(receiptTableHeaders) : undefined,
             paymentTemplate: paymentTemplate || undefined,
             paymentColor: paymentColor || undefined,
             paymentLabels: paymentLabels ? (typeof paymentLabels === 'string' ? paymentLabels : JSON.stringify(paymentLabels)) : undefined,
@@ -359,12 +430,14 @@ const updateCompany = async (req, res) => {
 
         logToFile(`✅ Company updated in DB. company.invoiceLabels value: ${company.invoiceLabels}`);
 
-        // Add storageCapacity to the response object for frontend
-        if (company.inventoryConfig) {
+        if (defaultVatRate !== undefined) {
             try {
-                const config = JSON.parse(company.inventoryConfig);
-                company.storageCapacity = config.storageCapacity;
+                await prisma.$executeRawUnsafe('UPDATE company SET defaultVatRate = ? WHERE id = ?', defaultVatRate.toString(), parseInt(req.params.id));
+                company.defaultVatRate = defaultVatRate.toString();
             } catch (e) { }
+        }
+        if (!company.defaultVatRate) {
+            company.defaultVatRate = '23';
         }
 
         res.json(company);
@@ -557,8 +630,194 @@ const updatePeriodLockSettings = async (req, res) => {
     }
 };
 
+const createUserCompany = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized: User session missing' });
+        }
+
+        const currentUser = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { company: true }
+        });
+
+        if (!currentUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const { name, currency, phone, address, website, defaultVatRate } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Company name is required' });
+        }
+
+        let logoUrl = null;
+        if (req.file) {
+            logoUrl = await uploadToCloudinaryOrBase64(req.file, 'company_logos');
+        }
+
+        // Check if user already has a company with this exact name
+        const existingUserCompany = await prisma.company_user.findFirst({
+            where: {
+                userId: currentUser.id,
+                company: { name: name.trim() }
+            }
+        });
+        if (existingUserCompany) {
+            return res.status(400).json({ error: `You already have a company named "${name.trim()}"` });
+        }
+
+        const userEmail = currentUser.email.toLowerCase();
+        const planId = currentUser.company?.planId || null;
+        const planType = currentUser.company?.planType || null;
+        const endDate = currentUser.company?.endDate || null;
+
+        const result = await prisma.$transaction(async (tx) => {
+            const company = await tx.company.create({
+                data: {
+                    name: name.trim(),
+                    email: userEmail,
+                    phone: phone || null,
+                    address: address || null,
+                    website: website || null,
+                    currency: currency || currentUser.company?.currency || 'EUR',
+                    originalCurrency: currency || currentUser.company?.currency || 'EUR',
+                    defaultVatRate: defaultVatRate || '23',
+                    logo: logoUrl,
+                    planId: planId ? parseInt(planId) : null,
+                    planType,
+                    endDate,
+                    startDate: new Date()
+                }
+            });
+
+            // Derive permissions for Company Admin
+            let defaultPermissions = [
+                "show dashboard",
+                "manage voucher", "create voucher", "edit voucher", "delete voucher",
+                "manage reports", "view reports",
+                "manage user", "create user", "edit user", "delete user",
+                "manage role", "create role", "edit role", "delete role",
+                "manage settings", "edit settings", "view settings",
+                "manage accounts", "create accounts", "edit accounts", "delete accounts", "view accounts",
+                "manage inventory", "create inventory", "edit inventory", "delete inventory", "view inventory",
+                "manage sales", "create sales", "edit sales", "delete sales", "show sales", "send sales", "view sales",
+                "manage purchases", "create purchases", "edit purchases", "delete purchases", "view purchases",
+                "manage pos", "create pos", "edit pos", "delete pos", "view pos"
+            ];
+
+            const role = await tx.role.create({
+                data: {
+                    name: 'COMPANY',
+                    companyId: company.id,
+                    permissions: JSON.stringify(defaultPermissions)
+                }
+            });
+
+            // Link to current user
+            await tx.company_user.create({
+                data: {
+                    userId: currentUser.id,
+                    companyId: company.id,
+                    role: 'COMPANY',
+                    roleId: role.id
+                }
+            });
+
+            // Update user active companyId to newly created company
+            await tx.user.update({
+                where: { id: currentUser.id },
+                data: { companyId: company.id }
+            });
+
+            return { company, role };
+        }, {
+            timeout: 15000
+        });
+
+        // Initialize Chart of Accounts for the new company
+        try {
+            await chartOfAccountsService.initializeChartOfAccounts(result.company.id);
+        } catch (coaError) {
+            console.error('COA Initialization Error in createUserCompany:', coaError);
+        }
+
+        // Initialize Numbering Settings
+        try {
+            await numberingService.createDefaultSettings(result.company.id);
+        } catch (numError) {
+            console.error('Numbering initialization error in createUserCompany:', numError);
+        }
+
+        // Fetch updated list of user companies
+        const allUserCompanies = await prisma.company_user.findMany({
+            where: { userId: currentUser.id },
+            include: { company: { include: { plan: true } } },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        const companiesList = allUserCompanies.map(cu => ({
+            id: cu.company.id,
+            name: cu.company.name,
+            email: cu.company.email,
+            logo: cu.company.logo,
+            currency: cu.company.currency,
+            role: cu.role,
+            roleId: cu.roleId,
+            plan: cu.company.plan,
+            isDefault: cu.company.id === result.company.id
+        }));
+
+        res.status(201).json({
+            message: 'Company created successfully',
+            company: result.company,
+            companies: companiesList
+        });
+    } catch (error) {
+        console.error('Create User Company Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to create company' });
+    }
+};
+
+const getUserCompanies = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized: User session missing' });
+        }
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const allUserCompanies = await prisma.company_user.findMany({
+            where: { userId: user.id },
+            include: { company: { include: { plan: true } } },
+            orderBy: { createdAt: 'asc' }
+        });
+
+        const companiesList = allUserCompanies.map(cu => ({
+            id: cu.company.id,
+            name: cu.company.name,
+            email: cu.company.email,
+            logo: cu.company.logo,
+            currency: cu.company.currency,
+            role: cu.role,
+            roleId: cu.roleId,
+            plan: cu.company.plan,
+            isDefault: cu.company.id === user.companyId
+        }));
+
+        res.json({ companies: companiesList });
+    } catch (error) {
+        console.error('getUserCompanies Error:', error);
+        res.status(500).json({ error: 'Failed to fetch companies' });
+    }
+};
+
 module.exports = {
     createCompany,
+    createUserCompany,
+    getUserCompanies,
     getCompanies,
     getCompanyById,
     updateCompany,

@@ -103,13 +103,37 @@ exports.getAll = async (req, res) => {
                 },
                 deliverychallan: {
                     select: { challanNumber: true }
+                },
+                receipt: {
+                    select: { id: true, receiptNumber: true, date: true, amount: true, paymentMode: true }
+                },
+                allocations: {
+                    include: {
+                        receipt: {
+                            select: { id: true, receiptNumber: true, date: true, amount: true, paymentMode: true }
+                        }
+                    }
                 }
             },
             orderBy: {
                 date: 'desc'
             }
         });
-        res.json({ success: true, data: invoices });
+
+        const invoicesWithPaymentDate = invoices.map(inv => {
+            let paymentDate = null;
+            if (inv.receipt && inv.receipt.length > 0) {
+                paymentDate = inv.receipt[0].date;
+            } else if (inv.allocations && inv.allocations.length > 0) {
+                paymentDate = inv.allocations[0].receipt?.date;
+            }
+            return {
+                ...inv,
+                paymentDate
+            };
+        });
+
+        res.json({ success: true, data: invoicesWithPaymentDate });
     } catch (error) {
         console.error('Error fetching invoices:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch invoices' });
@@ -141,7 +165,17 @@ exports.getById = async (req, res) => {
                     }
                 },
                 salesorder: true,
-                deliverychallan: true
+                deliverychallan: true,
+                receipt: {
+                    select: { id: true, receiptNumber: true, date: true, amount: true, paymentMode: true }
+                },
+                allocations: {
+                    include: {
+                        receipt: {
+                            select: { id: true, receiptNumber: true, date: true, amount: true, paymentMode: true }
+                        }
+                    }
+                }
             }
         });
 
@@ -149,7 +183,14 @@ exports.getById = async (req, res) => {
             return res.status(404).json({ success: false, error: 'Invoice not found' });
         }
 
-        res.json({ success: true, data: invoice });
+        let paymentDate = null;
+        if (invoice.receipt && invoice.receipt.length > 0) {
+            paymentDate = invoice.receipt[0].date;
+        } else if (invoice.allocations && invoice.allocations.length > 0) {
+            paymentDate = invoice.allocations[0].receipt?.date;
+        }
+
+        res.json({ success: true, data: { ...invoice, paymentDate } });
     } catch (error) {
         console.error('Error fetching invoice:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch invoice' });

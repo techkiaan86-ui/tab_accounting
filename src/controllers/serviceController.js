@@ -12,8 +12,18 @@ const createService = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
         }
 
-        if (!name || !uomId) {
-            return res.status(400).json({ success: false, message: 'Service name and UOM are required' });
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'Service name is required' });
+        }
+
+        let finalUomId = uomId ? parseInt(uomId) : null;
+        if (!finalUomId) {
+            const firstUom = await prisma.uom.findFirst({ where: { companyId: parseInt(companyId) } });
+            if (firstUom) finalUomId = firstUom.id;
+        }
+
+        if (!finalUomId) {
+            return res.status(400).json({ success: false, message: 'UOM is required' });
         }
 
         const service = await prisma.service.create({
@@ -21,8 +31,8 @@ const createService = async (req, res) => {
                 name,
                 sku: sku || null,
                 description: description || null,
-                uomId: parseInt(uomId),
-                price: price !== undefined && price !== '' ? parseFloat(price) : 0,
+                uomId: finalUomId,
+                price: (price !== undefined && price !== '' && price !== null) ? (parseFloat(price) || 0) : 0,
                 taxRate: taxRate ? parseFloat(taxRate) : 0,
                 allowInInvoices: allowInInvoices !== undefined ? allowInInvoices : true,
                 remarks: remarks || null,
@@ -118,7 +128,7 @@ const updateService = async (req, res) => {
                 sku,
                 description,
                 uomId: uomId ? parseInt(uomId) : undefined,
-                price: price !== undefined ? parseFloat(price) : undefined,
+                price: (price !== undefined && price !== null) ? (price === '' ? 0 : (parseFloat(price) || 0)) : undefined,
                 taxRate: taxRate !== undefined ? parseFloat(taxRate) : undefined,
                 allowInInvoices: allowInInvoices !== undefined ? allowInInvoices : undefined,
                 remarks
