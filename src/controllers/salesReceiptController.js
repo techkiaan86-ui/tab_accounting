@@ -406,6 +406,28 @@ const createReceipt = async (req, res) => {
 
         await numberingService.incrementNumber(companyId, 'receipt', receiptNumber);
         logActivity(req, 'CREATE', 'Receipt', result.id, `Receipt #${result.receiptNumber} created for Customer ID ${result.customerId} with amount ${result.amount}`);
+
+        // Invoice audit logging for payment added
+        try {
+            const { logInvoicePaymentAdded } = require('../utils/invoiceAuditHelper');
+            for (const alloc of normalizedAllocations) {
+                if (alloc.invoiceType === 'TAX_INVOICE' && alloc.invoiceId) {
+                    const targetInv = await prisma.invoice.findUnique({ where: { id: alloc.invoiceId } });
+                    if (targetInv) {
+                        logInvoicePaymentAdded(req, targetInv, {
+                            amount: alloc.amount,
+                            receiptNumber: result.receiptNumber,
+                            receiptId: result.id,
+                            paymentMode: result.paymentMode,
+                            previousPaidAmount: Math.max(0, (targetInv.paidAmount || 0) - alloc.amount)
+                        });
+                    }
+                }
+            }
+        } catch (auditErr) {
+            console.error('Failed to log invoice payment addition:', auditErr.message);
+        }
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Receipt Creation Error:', error);
@@ -765,6 +787,44 @@ const updateReceipt = async (req, res) => {
         }, { timeout: 30000 });
 
         logActivity(req, 'UPDATE', 'Receipt', result.id, `Receipt #${result.receiptNumber} updated`);
+
+        // Invoice audit logging for payment changed / added / removed
+        try {
+            const { logInvoicePaymentUpdated, logInvoicePaymentAdded, logInvoicePaymentRemoved } = require('../utils/invoiceAuditHelper');
+            const oldTaxAllocs = (existingReceipt.allocations || []).filter(a => a.invoiceId);
+            const newTaxAllocs = normalizedNewAllocations.filter(a => a.invoiceType === 'TAX_INVOICE' && a.invoiceId);
+
+            for (const newA of newTaxAllocs) {
+                const oldA = oldTaxAllocs.find(o => o.invoiceId === newA.invoiceId);
+                const targetInv = await prisma.invoice.findUnique({ where: { id: newA.invoiceId } });
+                if (targetInv) {
+                    if (oldA) {
+                        if (Math.abs(oldA.amount - newA.amount) > 0.009) {
+                            logInvoicePaymentUpdated(req, targetInv, oldA.amount, newA.amount, { receiptNumber: existingReceipt.receiptNumber });
+                        }
+                    } else {
+                        logInvoicePaymentAdded(req, targetInv, {
+                            amount: newA.amount,
+                            receiptNumber: existingReceipt.receiptNumber,
+                            receiptId: existingReceipt.id,
+                            paymentMode: paymentMode || existingReceipt.paymentMode,
+                            previousPaidAmount: Math.max(0, (targetInv.paidAmount || 0) - newA.amount)
+                        });
+                    }
+                }
+            }
+            for (const oldA of oldTaxAllocs) {
+                if (!newTaxAllocs.some(n => n.invoiceId === oldA.invoiceId)) {
+                    const targetInv = await prisma.invoice.findUnique({ where: { id: oldA.invoiceId } });
+                    if (targetInv) {
+                        logInvoicePaymentRemoved(req, targetInv, oldA.amount, `Payment allocation removed from Receipt #${existingReceipt.receiptNumber}`);
+                    }
+                }
+            }
+        } catch (auditErr) {
+            console.error('Failed to log invoice payment updates:', auditErr.message);
+        }
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error('Receipt Update Error:', error);
@@ -829,7 +889,7 @@ const deleteReceipt = async (req, res) => {
 
         const existingReceipt = await prisma.receipt.findUnique({
             where: { id: parseInt(id) },
-            include: { customer: true }
+            include: { customer: true, allocations: true }
         });
 
         if (!existingReceipt) {
@@ -860,6 +920,24 @@ const deleteReceipt = async (req, res) => {
         }
 
         logActivity(req, 'DELETE', 'Receipt', existingReceipt.id, `Receipt #${existingReceipt.receiptNumber} deleted`);
+
+        // Invoice audit logging for payment removed
+        try {
+            const { logInvoicePaymentRemoved } = require('../utils/invoiceAuditHelper');
+            if (existingReceipt.allocations && existingReceipt.allocations.length > 0) {
+                for (const alloc of existingReceipt.allocations) {
+                    if (alloc.invoiceId) {
+                        const targetInv = await prisma.invoice.findUnique({ where: { id: alloc.invoiceId } });
+                        if (targetInv) {
+                            logInvoicePaymentRemoved(req, targetInv, alloc.amount, `Receipt #${existingReceipt.receiptNumber} deleted`);
+                        }
+                    }
+                }
+            }
+        } catch (auditErr) {
+            console.error('Failed to log invoice payment removal on receipt delete:', auditErr.message);
+        }
+
         res.status(200).json({ success: true, message: 'Receipt deleted successfully' });
     } catch (error) {
         console.error('Receipt Delete Error:', error);

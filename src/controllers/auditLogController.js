@@ -10,7 +10,7 @@ const getAuditLogs = async (req, res) => {
             return res.status(400).json({ message: 'Company ID is required' });
         }
 
-        const { action, entity, startDate, endDate, userId, search, page = 1, limit = 20 } = req.query;
+        const { action, entity, entityId, invoiceId, startDate, endDate, userId, search, page = 1, limit = 20 } = req.query;
 
         const where = {
             companyId: parseInt(companyId)
@@ -22,6 +22,11 @@ const getAuditLogs = async (req, res) => {
 
         if (entity) {
             where.entity = entity;
+        }
+
+        const targetEntityId = entityId || invoiceId;
+        if (targetEntityId) {
+            where.entityId = parseInt(targetEntityId);
         }
 
         if (userId) {
@@ -41,11 +46,16 @@ const getAuditLogs = async (req, res) => {
         }
 
         if (search) {
-            where.OR = [
+            const searchConditions = [
                 { userName: { contains: search } },
                 { userEmail: { contains: search } },
                 { details: { contains: search } }
             ];
+            const parsedNum = parseInt(search);
+            if (!isNaN(parsedNum)) {
+                searchConditions.push({ entityId: parsedNum });
+            }
+            where.OR = searchConditions;
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);

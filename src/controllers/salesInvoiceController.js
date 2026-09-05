@@ -1166,8 +1166,8 @@ const createInvoice = async (req, res) => {
         });
 
         await numberingService.incrementNumber(companyId, 'invoice', invoiceNumber);
-        const { logActivity } = require('../utils/auditLogger');
-        logActivity(req, 'CREATE', 'Invoice', result.id, `Invoice #${result.invoiceNumber} created for Customer ID ${result.customerId} with amount ${result.totalAmount}`);
+        const { logInvoiceCreated } = require('../utils/invoiceAuditHelper');
+        logInvoiceCreated(req, result, invoiceItemsData || items);
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Invoice Creation Error:', error);
@@ -1543,6 +1543,9 @@ const updateInvoice = async (req, res) => {
         }
 
         if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
+            const oldInv = await prisma.invoice.findUnique({
+                where: { id: parseInt(id) }
+            });
             const updated = await prisma.invoice.update({
                 where: { id: parseInt(id) },
                 data: {
@@ -1550,6 +1553,8 @@ const updateInvoice = async (req, res) => {
                     status: status
                 }
             });
+            const { logInvoiceStatusChanged } = require('../utils/invoiceAuditHelper');
+            logInvoiceStatusChanged(req, oldInv, oldInv?.status, status);
             return res.status(200).json({ success: true, data: updated });
         }
 
@@ -2195,8 +2200,8 @@ const updateInvoice = async (req, res) => {
         }, { timeout: 90000 });
 
         const adjustedResult = adjustInvoiceWithReturns(result);
-        const { logActivity } = require('../utils/auditLogger');
-        logActivity(req, 'UPDATE', 'Invoice', result.id, `Invoice #${result.invoiceNumber} updated for Customer ID ${result.customerId} with amount ${result.totalAmount}`);
+        const { logInvoiceUpdated } = require('../utils/invoiceAuditHelper');
+        logInvoiceUpdated(req, existingInvoice, result, invoiceItemsData || items);
         res.status(200).json({ success: true, data: adjustedResult });
     } catch (error) {
         console.error('Invoice Update Error:', error);
@@ -2398,8 +2403,8 @@ const deleteInvoice = async (req, res) => {
             console.error('Customer balance sync error after invoice delete:', syncErr);
         }
 
-        const { logActivity } = require('../utils/auditLogger');
-        logActivity(req, 'DELETE', 'Invoice', invoice.id, `Invoice #${invoice.invoiceNumber} deleted for Customer ID ${invoice.customerId} with amount ${invoice.totalAmount}`);
+        const { logInvoiceDeleted } = require('../utils/invoiceAuditHelper');
+        logInvoiceDeleted(req, invoice);
         res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
     } catch (error) {
         console.error('Invoice Delete Error:', error);
@@ -2661,8 +2666,8 @@ const unpayInvoice = async (req, res) => {
         });
 
         // Audit Logging
-        const { logActivity } = require('../utils/auditLogger');
-        logActivity(req, 'UNPAY', 'Invoice', invoice.id, `Invoice #${invoice.invoiceNumber} marked as UNPAID, reverted payments.`);
+        const { logInvoicePaymentRemoved } = require('../utils/invoiceAuditHelper');
+        logInvoicePaymentRemoved(req, invoice, invoice.paidAmount, 'Invoice marked as UNPAID');
 
         res.status(200).json({ success: true, message: 'Invoice marked as unpaid and all associated payments reversed successfully' });
     } catch (error) {
@@ -2831,6 +2836,52 @@ async function syncSalesOrderStatus(tx, salesOrderId) {
     }
 }
 
+// Get Audit Trail for a specific Invoice
+const getInvoiceAuditTrail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const companyId = req.user?.companyId || req.query.companyId;
+
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is missing' });
+        }
+
+        const invoice = await prisma.invoice.findFirst({
+            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            select: { id: true, invoiceNumber: true }
+        });
+
+        const orConditions = [{ entityId: parseInt(id) }];
+        if (invoice) {
+            orConditions.push({ details: { contains: invoice.invoiceNumber } });
+        }
+
+        const logs = await prisma.auditlog.findMany({
+            where: {
+                companyId: parseInt(companyId),
+                entity: 'Invoice',
+                OR: orConditions
+            },
+            orderBy: { createdAt: 'desc' },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        role: true
+                    }
+                }
+            }
+        });
+
+        res.status(200).json({ success: true, data: logs });
+    } catch (error) {
+        console.error('Invoice Audit Trail Error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     createInvoice,
     getInvoices,
@@ -2842,5 +2893,6 @@ module.exports = {
     cleanupOrphanedJournals,
     adjustInvoiceWithReturns,
     unpayInvoice,
-    sendInvoiceEmail
+    sendInvoiceEmail,
+    getInvoiceAuditTrail
 };

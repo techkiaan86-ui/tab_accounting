@@ -18,16 +18,16 @@ const logActivity = (req, action, entity, entityId, details) => {
 
         const rawUserId = req.user.userId !== undefined ? req.user.userId : req.user.id;
         const userId = rawUserId ? parseInt(rawUserId) : null;
-        const companyId = req.user.companyId ? parseInt(req.user.companyId) : null;
+        const companyId = req.user.companyId ? parseInt(req.user.companyId) : (req.companyId ? parseInt(req.companyId) : null);
 
         if (!companyId) {
-            return;
+            return Promise.resolve();
         }
 
         // Safe conversion of entityId
         const parsedEntityId = entityId ? parseInt(entityId) : null;
 
-        // Non-blocking database insertion
+        // Database insertion promise
         const logPromise = (async () => {
             let userEmail = req.user.email || null;
             let userName = req.user.name || null;
@@ -48,7 +48,7 @@ const logActivity = (req, action, entity, entityId, details) => {
                 }
             }
 
-            await prisma.auditlog.create({
+            return await prisma.auditlog.create({
                 data: {
                     userId,
                     userEmail,
@@ -65,8 +65,11 @@ const logActivity = (req, action, entity, entityId, details) => {
         logPromise.catch(err => {
             console.error('[AuditLog Error] Failed to insert audit log:', err.message);
         });
+
+        return logPromise;
     } catch (err) {
         console.error('[AuditLog Error] Failed in logActivity utility:', err.message);
+        return Promise.resolve();
     }
 };
 
