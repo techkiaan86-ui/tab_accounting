@@ -113,21 +113,35 @@ process.on('unhandledRejection', (err) => {
     process.exit(1);
 });
 
-app.use(cors({
-    origin: [
-        'https://accounting-news.kiaantechnology.com',
-        'https://zirakbook-accounting.wenbear.online',
-        'https://zirakbook-accounting.wenbear.online/',
-        'https://accounting-news.kiaantechnology.com/',
-        'http://localhost:5173',
-        'https://localhost:5173',
-        'https://new-accounting.netlify.app',
-        'http://new-accounting.netlify.app'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+// Comprehensive CORS & Preflight Configuration
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (mobile apps, curl, server-to-server)
+        // or reflect any origin to support localhost (any port), 127.0.0.1, LAN IPs, and web clients
+        return callback(null, origin || true);
+    },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-No-Loader']
-}));
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS', 'HEAD'],
+    optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Explicit fallback headers middleware to guarantee preflight and cross-origin calls never fail
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS, HEAD');
+        res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || 'Content-Type, Authorization, X-Requested-With, Accept, X-No-Loader, Cache-Control, Pragma');
+    }
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204);
+    }
+    next();
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -196,6 +210,12 @@ app.use((err, req, res, next) => {
     console.error('Stack:', err.stack);
     if (err.data) console.error('Cloudinary Data:', err.data);
     console.error('--- ERROR END ---');
+
+    const origin = req.headers.origin;
+    if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
 
     const statusCode = err.status || err.statusCode || 500;
     res.status(statusCode).json({
