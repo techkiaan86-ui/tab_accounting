@@ -211,6 +211,8 @@ const getSalesReport = async (req, res) => {
 
             return {
                 id: ret.id,
+                salesReturnId: ret.id,
+                invoiceId: ret.invoiceId || null,
                 invoiceNumber: ret.returnNumber,
                 date: ret.date,
                 type: isPosReturn ? 'POS_RETURN' : 'RETURN',
@@ -2158,6 +2160,8 @@ const getVatReport = async (req, res) => {
 
                             outputVatTransactions.push({
                                 id: `REC-${rec.id}-ALLOC-${alloc.id}`,
+                                invoiceId: inv.id,
+                                isPos: false,
                                 type: 'Sales Receipt (Allocated)',
                                 docNumber: rec.receiptNumber,
                                 refNumber: inv.invoiceNumber,

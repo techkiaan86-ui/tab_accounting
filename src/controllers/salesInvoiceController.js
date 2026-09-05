@@ -105,12 +105,14 @@ const adjustInvoiceWithReturns = (invoice) => {
 
     const isPos = (invoice.type === 'POS_INVOICE' || !!invoice.posinvoiceitem);
 
+    let totalDisc = parseFloat(invoice.discountAmount) || 0;
     if (hasItems) {
         adjustedSubtotal = newSubtotal;
 
         // Apply overall discounts if standard invoice, or model-level POS discount
         if (isPos) {
             const posDiscount = parseFloat(invoice.discountAmount) || 0;
+            totalDisc = posDiscount;
             const discountedTaxable = Math.max(0, newSubtotal - posDiscount);
             // Recompute tax on discounted taxable
             const discRatio = newSubtotal > 0 ? (posDiscount / newSubtotal) : 0;
@@ -125,7 +127,8 @@ const adjustInvoiceWithReturns = (invoice) => {
         } else {
             const overallDiscount = parseFloat(invoice.overallDiscount) || 0;
             const overallDiscountType = invoice.overallDiscountType || 'percentage';
-            const netBeforeOverall = Math.max(0, newSubtotal - totalDiscount);
+            const lineDiscountSum = (items || []).reduce((sum, item) => sum + (parseFloat(item.discount || 0) || 0), 0);
+            const netBeforeOverall = Math.max(0, newSubtotal - lineDiscountSum);
             let ovDiscountAmt = 0;
             if (overallDiscount && overallDiscountType === 'percentage') {
                 ovDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, overallDiscount))) / 100;
@@ -133,7 +136,7 @@ const adjustInvoiceWithReturns = (invoice) => {
                 ovDiscountAmt = Math.min(netBeforeOverall, Math.max(0, overallDiscount));
             }
 
-            const totalDisc = totalDiscount + ovDiscountAmt;
+            totalDisc = lineDiscountSum + ovDiscountAmt;
             const discountedTaxable = Math.max(0, newSubtotal - totalDisc);
             const overallDiscountRatio = netBeforeOverall > 0 ? (ovDiscountAmt / netBeforeOverall) : 0;
 
@@ -183,6 +186,9 @@ const adjustInvoiceWithReturns = (invoice) => {
     return {
         ...invoice,
         subtotal: adjustedSubtotal,
+        discountAmount: totalDisc,
+        overallDiscount: parseFloat(invoice.overallDiscount) || 0,
+        overallDiscountType: invoice.overallDiscountType || 'percentage',
         taxAmount: adjustedTaxAmount,
         totalAmount: adjustedTotal,
         paidAmount: paidAmount,
@@ -1573,21 +1579,6 @@ const updateInvoice = async (req, res) => {
         let invoiceItemsData = undefined;
 
         if (items) {
-            subtotal = 0;
-            totalDiscount = 0;
-            let lineTaxSum = 0;
-
-            invoiceItemsData = items.map(item => {
-                const itemQty = parseFloat(item.quantity) || 0;
-                const itemRate = parseFloat(item.rate) || 0;
-                const itemDiscount = parseFloat(item.discount) || 0;
-                const itemTaxRate = parseFloat(item.taxRate) || 0;
-
-                const lineGross = itemQty * itemRate;
-                const lineTaxable = lineGross - itemDiscount;
-                const lineTax = (lineTaxable * itemTaxRate) / 100;
-                const lineTotal = lineTaxable + lineTax;
-
             let lineDiscountSum = 0;
             subtotal = 0;
 
@@ -1618,7 +1609,7 @@ const updateInvoice = async (req, res) => {
             const overallDiscountRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
             let lineTaxSum = 0;
 
-            invoiceItems = items.map(item => {
+            invoiceItemsData = items.map(item => {
                 const itemQty = parseFloat(item.quantity) || 0;
                 const itemRate = parseFloat(item.rate) || 0;
                 const itemDiscount = parseFloat(item.discount) || 0;
