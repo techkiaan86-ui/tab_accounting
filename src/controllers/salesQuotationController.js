@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { resolveWarehouseId } = require('../services/warehouseService');
 
 // Create Sales Quotation
 const createQuotation = async (req, res) => {
@@ -524,11 +525,12 @@ const updateQuotation = async (req, res) => {
 
                     // Create new items matching the sales quotation
                     const physicalItems = quotationItems.filter(i => i.productId);
+                    const defaultWhId = await resolveWarehouseId(tx, companyId, 'sales');
                     await tx.deliverychallanitem.createMany({
                         data: physicalItems.map(i => ({
                             challanId: dc.id,
                             productId: i.productId,
-                            warehouseId: i.warehouseId || 1,
+                            warehouseId: i.warehouseId || defaultWhId,
                             quantity: i.quantity,
                             description: i.description || ''
                         }))
@@ -536,7 +538,7 @@ const updateQuotation = async (req, res) => {
 
                     // Apply new stock and log transaction
                     for (const item of physicalItems) {
-                        const wId = item.warehouseId || 1;
+                        const wId = item.warehouseId || defaultWhId;
                         if (item.productId && wId) {
                             if (action === 'ISSUE') {
                                 await tx.stock.upsert({

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { resolveWarehouseId } = require('../services/warehouseService');
 
 async function updateSalesOrderStatus(tx, salesOrderId) {
     if (!salesOrderId) return;
@@ -587,11 +588,12 @@ const updateOrder = async (req, res) => {
 
                 // Re-create items matching physical items in the sales order
                 const physicalItems = orderItems.filter(i => i.productId);
+                const defaultWhId = await resolveWarehouseId(tx, companyId, 'sales');
                 await tx.deliverychallanitem.createMany({
                     data: physicalItems.map(i => ({
                         challanId: dc.id,
                         productId: i.productId,
-                        warehouseId: i.warehouseId || 1,
+                        warehouseId: i.warehouseId || defaultWhId,
                         quantity: i.quantity,
                         description: i.description || ''
                     }))
@@ -599,7 +601,7 @@ const updateOrder = async (req, res) => {
 
                 // Apply new stock and log transaction
                 for (const item of physicalItems) {
-                    const wId = item.warehouseId || 1;
+                    const wId = item.warehouseId || defaultWhId;
                     if (item.productId && wId) {
                         if (action === 'ISSUE') {
                             await tx.stock.upsert({
@@ -817,10 +819,13 @@ const convertToDeliveryChallan = async (req, res) => {
             const numbering = await numberingService.getNextNumber(companyId, 'deliverychallan');
             const challanNumber = numbering.formattedNumber;
 
+            // Resolve default warehouse for company
+            const defaultWhId = await resolveWarehouseId(tx, companyId, 'sales');
+
             // Copy items
             const challanItems = physicalItems.map(item => ({
                 productId: item.productId,
-                warehouseId: item.warehouseId || 1, // fallback to a default warehouse ID if not set
+                warehouseId: item.warehouseId || defaultWhId,
                 quantity: item.quantity,
                 description: item.description || ''
             }));
@@ -859,7 +864,7 @@ const convertToDeliveryChallan = async (req, res) => {
             await numberingService.incrementNumber(companyId, 'deliverychallan', challanNumber);
 
             return challan;
-        });
+        }, { maxWait: 15000, timeout: 25000 });
 
         return res.status(200).json({ success: true, message: 'Sales Order converted successfully', data: result });
     } catch (error) {

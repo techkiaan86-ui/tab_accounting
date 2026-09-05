@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { resolveWarehouseId } = require('../services/warehouseService');
 
 // Create Purchase Quotation
 const createQuotation = async (req, res) => {
@@ -452,9 +453,10 @@ const updateQuotation = async (req, res) => {
             });
             for (const grn of grns) {
                 const physicalItems = linkedPO.purchaseorderitem.filter(i => i.productId);
+                const defaultWhId = await resolveWarehouseId(prisma, companyId, 'purchase');
                 const grnItems = physicalItems.map(i => ({
                     productId: i.productId,
-                    warehouseId: i.warehouseId || 1,
+                    warehouseId: i.warehouseId || defaultWhId,
                     quantity: i.quantity,
                     description: i.description || ''
                 }));

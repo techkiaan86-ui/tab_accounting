@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { resolveWarehouseId } = require('../services/warehouseService');
 
 // Create Purchase Order (Direct or from Quotation)
 const createOrder = async (req, res) => {
@@ -403,9 +404,10 @@ const updateOrder = async (req, res) => {
         for (const grn of grns) {
             // Filter physical items from the updated PO
             const physicalItems = result.purchaseorderitem.filter(i => i.productId);
+            const defaultWhId = await resolveWarehouseId(prisma, companyId, 'purchase');
             const grnItems = physicalItems.map(i => ({
                 productId: i.productId,
-                warehouseId: i.warehouseId || 1,
+                warehouseId: i.warehouseId || defaultWhId,
                 quantity: i.quantity,
                 description: i.description || ''
             }));
@@ -535,6 +537,7 @@ const convertToGRN = async (req, res) => {
 
             // Copy items (subtracting delivered)
             const grnItems = [];
+            const defaultWhId = await resolveWarehouseId(tx, companyId, 'purchase');
             for (const item of physicalItems) {
                 const ordered = item.quantity;
                 const delivered = deliveredMap[item.productId] || 0;
@@ -543,7 +546,7 @@ const convertToGRN = async (req, res) => {
                 if (remaining > 0) {
                     grnItems.push({
                         productId: item.productId,
-                        warehouseId: item.warehouseId || 1,
+                        warehouseId: item.warehouseId || defaultWhId,
                         quantity: remaining,
                         description: item.description || ''
                     });

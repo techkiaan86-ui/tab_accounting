@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { resolveWarehouseId } = require('../services/warehouseService');
 
 // Create GRN (Linked to PO)
 const createGRN = async (req, res) => {
@@ -11,9 +12,10 @@ const createGRN = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please provide all required fields' });
         }
 
+        const defaultWhId = await resolveWarehouseId(prisma, companyId, 'purchase');
         const grnItems = items.map(item => ({
             productId: parseInt(item.productId),
-            warehouseId: parseInt(item.warehouseId), // Required for tracking where stock goes
+            warehouseId: parseInt(item.warehouseId) || defaultWhId, // Required for tracking where stock goes
             quantity: parseFloat(item.quantity),
             description: item.description
         }));
@@ -208,10 +210,11 @@ const updateGRN = async (req, res) => {
             return res.status(404).json({ success: false, message: 'GRN not found' });
         }
 
+        const defaultWhId = await resolveWarehouseId(prisma, companyId, 'purchase');
         const grnItems = items
             .map(item => ({
                 productId: parseInt(item.productId),
-                warehouseId: parseInt(item.warehouseId),
+                warehouseId: parseInt(item.warehouseId) || defaultWhId,
                 quantity: parseFloat(item.quantity),
                 description: item.description || ''
             }))
