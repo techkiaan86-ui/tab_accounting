@@ -280,6 +280,8 @@ const testSmtpConnection = async (req, res) => {
             let errorMessage = connErr.message || 'Unknown network/authentication error';
             if ((connErr.code === 'EAUTH' || connErr.responseCode === 535 || (connErr.message && connErr.message.includes('BadCredentials'))) && (smtpConfig.host || '').includes('gmail.com')) {
                 errorMessage = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
+            } else if (connErr.code === 'ETIMEDOUT' || (connErr.message && connErr.message.toLowerCase().includes('timeout'))) {
+                errorMessage = `Connection timed out connecting to ${smtpConfig.host}:${smtpConfig.port}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. Try switching to Port 587 (TLS), test locally, or request Railway to unblock SMTP.`;
             }
 
             return res.status(400).json({
@@ -401,6 +403,8 @@ const sendSmtpTestEmail = async (req, res) => {
         let errorMsg = error.message || 'SMTP transmission failure';
         if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (bodyHost || '').includes('gmail.com')) {
             errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
+        } else if (error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'))) {
+            errorMsg = `Connection timed out connecting to ${bodyHost || 'SMTP server'}:${bodyPort || 587}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. Try switching to Port 587 (TLS), test locally, or request Railway to unblock SMTP.`;
         }
         return res.status(400).json({
             success: false,
