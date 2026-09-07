@@ -207,8 +207,8 @@ const approvePlanRequest = async (req, res) => {
                     endDate: end,
                     planId: planRequest.planId,
                     planType: planRequest.billingCycle,
-                    currency: 'USD',
-                    originalCurrency: 'USD'
+                    currency: planRequest.plan?.currency || 'EUR',
+                    originalCurrency: planRequest.plan?.currency || 'EUR'
                 }
             });
 

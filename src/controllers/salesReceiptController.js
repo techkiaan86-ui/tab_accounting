@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { logActivity } = require('../utils/auditLogger');
+const { isDuePassed } = require('../utils/invoiceSyncHelper');
 
 // Helper to get currency decimal places (KWD/BHD/OMR etc have 3, others have 2)
 const getDecimalPlaces = (currency) => {
@@ -23,12 +24,23 @@ const updateInvoiceBalance = async (tx, invoiceId, type, deltaPaid) => {
             const newPaid = Math.max(0, roundTo((inv.paidAmount || 0) + deltaPaid, decimals));
             const newBalance = Math.max(0, roundTo((inv.totalAmount || 0) - newPaid, decimals));
             const tolerance = decimals === 3 ? 0.001 : 0.01;
+            const isOverdue = isDuePassed(inv.dueDate || inv.date);
+            let status;
+            if (newBalance <= tolerance) {
+                status = 'Paid';
+            } else if (isOverdue) {
+                status = 'Overdue';
+            } else if (newPaid > tolerance) {
+                status = 'Partial';
+            } else {
+                status = 'Due';
+            }
             await tx.posinvoice.update({
                 where: { id: invoiceId },
                 data: {
                     paidAmount: newPaid,
                     balanceAmount: newBalance,
-                    status: newBalance <= tolerance ? 'Paid' : (newPaid > 0 ? 'Partial' : 'Due'),
+                    status,
                     updatedAt: new Date()
                 }
             });
@@ -40,12 +52,23 @@ const updateInvoiceBalance = async (tx, invoiceId, type, deltaPaid) => {
             const newPaid = Math.max(0, roundTo((inv.paidAmount || 0) + deltaPaid, decimals));
             const newBalance = Math.max(0, roundTo((inv.totalAmount || 0) - newPaid, decimals));
             const tolerance = decimals === 3 ? 0.001 : 0.01;
+            const isOverdue = isDuePassed(inv.dueDate);
+            let status;
+            if (newBalance <= tolerance) {
+                status = 'PAID';
+            } else if (isOverdue) {
+                status = 'OVERDUE';
+            } else if (newPaid > tolerance) {
+                status = 'PARTIAL';
+            } else {
+                status = 'UNPAID';
+            }
             await tx.invoice.update({
                 where: { id: invoiceId },
                 data: {
                     paidAmount: newPaid,
                     balanceAmount: newBalance,
-                    status: newBalance <= tolerance ? 'PAID' : (newPaid > 0 ? 'PARTIAL' : 'UNPAID')
+                    status
                 }
             });
         }

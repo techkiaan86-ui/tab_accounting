@@ -5,6 +5,7 @@ const {
     consumeStock,
     reverseStockOut
 } = require('../services/inventoryValuationService');
+const { isDuePassed } = require('../utils/invoiceSyncHelper');
 
 // Helper to dynamically adjust Sales Invoice quantities and amounts by associated returns
 const adjustInvoiceWithReturns = (invoice) => {
@@ -174,12 +175,16 @@ const adjustInvoiceWithReturns = (invoice) => {
             adjustedStatus = isPos ? 'Partially Returned' : 'PARTIALLY_RETURNED';
         }
     } else {
-        if (adjustedBalance <= 0) {
+        const decimals = (invoice.currency && ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'].includes(invoice.currency.toUpperCase())) ? 3 : 2;
+        const tol = decimals === 3 ? 0.001 : 0.01;
+        if (adjustedBalance <= tol) {
             adjustedStatus = isPos ? 'Paid' : 'PAID';
-        } else if (paidAmount > 0) {
+        } else if (isDuePassed(invoice.dueDate)) {
+            adjustedStatus = isPos ? 'Overdue' : 'OVERDUE';
+        } else if (paidAmount > tol) {
             adjustedStatus = isPos ? 'Partial' : 'PARTIAL';
         } else {
-            adjustedStatus = isPos ? 'Unpaid' : 'UNPAID';
+            adjustedStatus = isPos ? 'Due' : 'UNPAID';
         }
     }
 
@@ -554,19 +559,22 @@ const createInvoice = async (req, res) => {
             if (totalAdjustedAmount > 0) {
                 const finalPaid = totalAdjustedAmount;
                 const finalBalance = Math.max(0, totalAmount - finalPaid);
+                const finalStatus = (manualStatus === true || manualStatus === 'true') && status
+                    ? status
+                    : (finalBalance <= 0.01 ? 'PAID' : (isDuePassed(dueDate) ? 'OVERDUE' : (finalPaid > 0 ? 'PARTIAL' : 'UNPAID')));
                 await tx.invoice.update({
                     where: { id: invoice.id },
                     data: {
                         paidAmount: finalPaid,
                         appliedAdvanceAmount: totalAdvanceApplied,
                         balanceAmount: finalBalance,
-                        status: (manualStatus === true || manualStatus === 'true') && status ? status : (finalBalance <= 0.01 ? 'PAID' : 'PARTIAL')
+                        status: finalStatus
                     }
                 });
                 invoice.paidAmount = finalPaid;
                 invoice.appliedAdvanceAmount = totalAdvanceApplied;
                 invoice.balanceAmount = finalBalance;
-                invoice.status = (manualStatus === true || manualStatus === 'true') && status ? status : (finalBalance <= 0.01 ? 'PAID' : 'PARTIAL');
+                invoice.status = finalStatus;
             }
 
             // B. Inventory OUT Logic
@@ -1336,7 +1344,7 @@ const getInvoices = async (req, res) => {
                     })),
                     salesreturn: associatedReturns,
                     dueDate: pos.date,
-                    status: pos.balanceAmount > 0 ? 'PARTIAL' : 'PAID',
+                    status: pos.balanceAmount <= 0.01 ? 'PAID' : (isDuePassed(pos.dueDate || pos.date) ? 'OVERDUE' : (pos.paidAmount > 0.01 ? 'PARTIAL' : 'UNPAID')),
                     receipt: mappedReceipts
                 });
             })
@@ -1475,7 +1483,7 @@ const getInvoiceById = async (req, res) => {
                     })),
                     salesreturn: posReturns,
                     dueDate: pos.date,
-                    status: pos.balanceAmount > 0 ? 'PARTIAL' : 'PAID',
+                    status: pos.balanceAmount <= 0.01 ? 'PAID' : (isDuePassed(pos.dueDate || pos.date) ? 'OVERDUE' : (pos.paidAmount > 0.01 ? 'PARTIAL' : 'UNPAID')),
                     receipt: mappedReceipts,
                     allocations: []
                 };
@@ -1544,17 +1552,30 @@ const updateInvoice = async (req, res) => {
 
         if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
             const oldInv = await prisma.invoice.findUnique({
-                where: { id: parseInt(id) }
+                where: { id: parseInt(id) },
+                include: { allocations: true }
             });
+            if (!oldInv) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+            const isManual = manualStatus === true || manualStatus === 'true';
+            let targetStatus = status;
+
+            if (!isManual || !targetStatus || targetStatus === 'AUTO') {
+                const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+                const allocSum = (oldInv.allocations || []).reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                const computed = computeInvoiceStatusAndBalance({ ...oldInv, manualStatus: false }, allocSum);
+                targetStatus = computed.status;
+            }
+
             const updated = await prisma.invoice.update({
                 where: { id: parseInt(id) },
                 data: {
-                    manualStatus: manualStatus === true || manualStatus === 'true',
-                    status: status
+                    manualStatus: isManual && !!status && status !== 'AUTO',
+                    status: targetStatus
                 }
             });
             const { logInvoiceStatusChanged } = require('../utils/invoiceAuditHelper');
-            await logInvoiceStatusChanged(req, oldInv, oldInv?.status, status);
+            await logInvoiceStatusChanged(req, oldInv, oldInv?.status, targetStatus);
             return res.status(200).json({ success: true, data: updated });
         }
 
@@ -1821,7 +1842,7 @@ const updateInvoice = async (req, res) => {
                     paidAmount: totalAdjustedAmount,
                     balanceAmount: totalAmount - totalAdjustedAmount,
                     manualStatus: manualStatus === true || manualStatus === 'true',
-                    status: (manualStatus === true || manualStatus === 'true') && status ? status : ((totalAmount - totalAdjustedAmount) <= 0 ? 'PAID' : (totalAdjustedAmount > 0 ? 'PARTIAL' : 'UNPAID')),
+                    status: (manualStatus === true || manualStatus === 'true') && status ? status : ((totalAmount - totalAdjustedAmount) <= 0.01 ? 'PAID' : (isDuePassed(data.dueDate || existingInvoice.dueDate) ? 'OVERDUE' : (totalAdjustedAmount > 0.01 ? 'PARTIAL' : 'UNPAID'))),
                     currency: currency !== undefined ? currency : undefined,
                     exchangeRate: exchangeRate !== undefined ? parseFloat(exchangeRate) : undefined,
                     overallDiscount: parseFloat(overallDiscount) || 0,
@@ -2603,7 +2624,7 @@ const unpayInvoice = async (req, res) => {
                                     data: {
                                         paidAmount: newPaid,
                                         balanceAmount: newBalance,
-                                        status: newBalance <= 0.01 ? 'PAID' : (newPaid > 0 ? 'PARTIAL' : 'UNPAID')
+                                        status: newBalance <= 0.01 ? 'PAID' : (isDuePassed(inv.dueDate) ? 'OVERDUE' : (newPaid > 0.01 ? 'PARTIAL' : 'UNPAID'))
                                     }
                                 });
                             }

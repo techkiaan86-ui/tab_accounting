@@ -221,8 +221,12 @@ const getAllCustomers = async (req, res) => {
                         id: true,
                         invoiceNumber: true,
                         totalAmount: true,
+                        paidAmount: true,
                         balanceAmount: true,
-                        status: true
+                        status: true,
+                        dueDate: true,
+                        currency: true,
+                        manualStatus: true
                     }
                 }
             },
@@ -232,6 +236,7 @@ const getAllCustomers = async (req, res) => {
         // Calculate dynamic ledger balances to ensure they align with the Chart of Accounts
         try {
             const chartOfAccountsService = require('../services/chartOfAccountsService');
+            const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
             const inventoryValue = await chartOfAccountsService.calculateInventoryValue(companyId);
             const balanceMap = await chartOfAccountsService.calculateDynamicLedgerBalances(companyId, inventoryValue);
 
@@ -242,6 +247,12 @@ const getAllCustomers = async (req, res) => {
                         customer.ledger.currentBalance = entry.dynamicBalance;
                         customer.ledger.balance = entry.dynamicBalance;
                     }
+                }
+                if (customer.invoice && Array.isArray(customer.invoice)) {
+                    customer.invoice = customer.invoice.map(inv => {
+                        const { status, balanceAmount, paidAmount } = computeInvoiceStatusAndBalance(inv);
+                        return { ...inv, status, balanceAmount, paidAmount };
+                    });
                 }
             });
         } catch (dynamicErr) {
@@ -321,6 +332,13 @@ const getCustomerById = async (req, res) => {
                 if (entry) {
                     customer.ledger.currentBalance = entry.dynamicBalance;
                 }
+            }
+            if (customer.invoice && Array.isArray(customer.invoice)) {
+                const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+                customer.invoice = customer.invoice.map(inv => {
+                    const { status, balanceAmount, paidAmount } = computeInvoiceStatusAndBalance(inv);
+                    return { ...inv, status, balanceAmount, paidAmount };
+                });
             }
         } catch (dynamicErr) {
             console.error('Error calculating dynamic balance in getCustomerById:', dynamicErr);

@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { getConversionRate, getCompanyCurrency } = require('../utils/currencyConverter');
+const { isDuePassed } = require('../utils/invoiceSyncHelper');
 
 // Create Sales Return
 const createReturn = async (req, res) => {
@@ -213,7 +214,7 @@ const createReturn = async (req, res) => {
                         where: { id: posInvoice.id },
                         data: {
                             balanceAmount: newBalance,
-                            status: newBalance <= 0 ? 'Paid' : (posInvoice.paidAmount > 0 ? 'Partial' : 'Due')
+                            status: newBalance <= 0 ? 'Paid' : (isDuePassed(posInvoice.dueDate || posInvoice.date) ? 'Overdue' : (posInvoice.paidAmount > 0 ? 'Partial' : 'Due'))
                         }
                     });
                 } else {
@@ -228,7 +229,7 @@ const createReturn = async (req, res) => {
                             where: { id: invoice.id },
                             data: {
                                 balanceAmount: newBalance,
-                                status: newBalance <= 0 ? 'PAID' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+                                status: newBalance <= 0 ? 'PAID' : (isDuePassed(invoice.dueDate) ? 'OVERDUE' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
                             }
                         });
                     }
@@ -679,7 +680,7 @@ const updateReturn = async (req, res) => {
                         where: { id: oldPosInvoice.id },
                         data: {
                             balanceAmount: revBalance,
-                            status: revBalance <= 0 ? 'Paid' : (oldPosInvoice.paidAmount > 0 ? 'Partial' : 'Due')
+                            status: revBalance <= 0 ? 'Paid' : (isDuePassed(oldPosInvoice.dueDate || oldPosInvoice.date) ? 'Overdue' : (oldPosInvoice.paidAmount > 0 ? 'Partial' : 'Due'))
                         }
                     });
                 }
@@ -691,7 +692,7 @@ const updateReturn = async (req, res) => {
                         where: { id: oldInvoice.id },
                         data: {
                             balanceAmount: revBalance,
-                            status: revBalance <= 0 ? 'PAID' : (oldInvoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+                            status: revBalance <= 0 ? 'PAID' : (isDuePassed(oldInvoice.dueDate) ? 'OVERDUE' : (oldInvoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
                         }
                     });
                 }
@@ -854,7 +855,7 @@ const updateReturn = async (req, res) => {
                         where: { id: posInvoice.id },
                         data: {
                             balanceAmount: newBalance,
-                            status: newBalance <= 0 ? 'Paid' : (posInvoice.paidAmount > 0 ? 'Partial' : 'Due')
+                            status: newBalance <= 0 ? 'Paid' : (isDuePassed(posInvoice.dueDate || posInvoice.date) ? 'Overdue' : (posInvoice.paidAmount > 0 ? 'Partial' : 'Due'))
                         }
                     });
                 } else {
@@ -866,7 +867,7 @@ const updateReturn = async (req, res) => {
                             where: { id: invoice.id },
                             data: {
                                 balanceAmount: newBalance,
-                                status: newBalance <= 0 ? 'PAID' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+                                status: newBalance <= 0 ? 'PAID' : (isDuePassed(invoice.dueDate) ? 'OVERDUE' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
                             }
                         });
                     }
@@ -1088,7 +1089,7 @@ const deleteReturn = async (req, res) => {
                         where: { id: invoice.id },
                         data: {
                             balanceAmount: revBalance,
-                            status: revBalance <= 0 ? 'Paid' : (invoice.paidAmount > 0 ? 'Partial' : 'Due')
+                            status: revBalance <= 0 ? 'Paid' : (isDuePassed(invoice.dueDate || invoice.date) ? 'Overdue' : (invoice.paidAmount > 0 ? 'Partial' : 'Due'))
                         }
                     });
                 }
@@ -1101,7 +1102,7 @@ const deleteReturn = async (req, res) => {
                         where: { id: invoice.id },
                         data: {
                             balanceAmount: revBalance,
-                            status: revBalance <= 0 ? 'PAID' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID')
+                            status: revBalance <= 0 ? 'PAID' : (isDuePassed(invoice.dueDate) ? 'OVERDUE' : (invoice.paidAmount > 0 ? 'PARTIAL' : 'UNPAID'))
                         }
                     });
                 }

@@ -790,11 +790,23 @@ const updatePOSInvoice = async (req, res) => {
         const currentCompanyId = req.user?.companyId || companyId;
 
         if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
+            const oldPos = await prisma.posinvoice.findUnique({ where: { id: parseInt(id) } });
+            if (!oldPos) return res.status(404).json({ success: false, message: 'POS Invoice not found' });
+            const isManual = manualStatus === true || manualStatus === 'true';
+            let targetStatus = status;
+            if (!isManual || !targetStatus || targetStatus === 'AUTO') {
+                const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+                const computed = computeInvoiceStatusAndBalance(
+                    { ...oldPos, type: 'POS_INVOICE', dueDate: oldPos.dueDate || oldPos.date, manualStatus: false },
+                    oldPos.paidAmount
+                );
+                targetStatus = computed.status;
+            }
             const updated = await prisma.posinvoice.update({
                 where: { id: parseInt(id) },
                 data: {
-                    manualStatus: manualStatus === true || manualStatus === 'true',
-                    status: status
+                    manualStatus: isManual && !!status && status !== 'AUTO',
+                    status: targetStatus
                 }
             });
             return res.status(200).json({ success: true, data: updated });

@@ -1774,6 +1774,7 @@ enum invoice_status {
   PAID
   CANCELLED
   COMPLETED
+  OVERDUE
 }
 
 enum purchasebill_status {

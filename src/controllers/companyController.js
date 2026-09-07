@@ -368,7 +368,7 @@ const updateCompany = async (req, res) => {
             zip,
             country,
             currency,
-            originalCurrency: currentCompany.originalCurrency || currentCompany.currency || 'USD',
+            originalCurrency: currency || currentCompany.currency || 'EUR',
             startDate: startDate ? new Date(startDate) : undefined,
             endDate: endDate ? new Date(endDate) : undefined,
             planId: planId ? parseInt(planId) : undefined,

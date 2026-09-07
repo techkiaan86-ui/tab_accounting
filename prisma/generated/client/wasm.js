@@ -1438,7 +1438,8 @@ exports.invoice_status = exports.$Enums.invoice_status = {
   PARTIAL: 'PARTIAL',
   PAID: 'PAID',
   CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  OVERDUE: 'OVERDUE'
 };
 
 exports.payment_paymentMode = exports.$Enums.payment_paymentMode = {

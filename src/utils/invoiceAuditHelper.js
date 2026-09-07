@@ -1,4 +1,5 @@
 const { logActivity } = require('./auditLogger');
+const { isDuePassed } = require('./invoiceSyncHelper');
 
 /**
  * Helper to safely format numbers or return string representation
@@ -378,7 +379,7 @@ const logInvoicePaymentAdded = async (req, invoice, paymentInfo) => {
         const total = parseFloat(invoice.totalAmount) || 0;
         const newBalance = Math.max(0, total - newPaid);
         const oldStatus = invoice.status || 'UNPAID';
-        const newStatus = newBalance <= 0.01 ? 'PAID' : (newPaid > 0 ? 'PARTIAL' : 'UNPAID');
+        const newStatus = newBalance <= 0.01 ? 'PAID' : (isDuePassed(invoice.dueDate) ? 'OVERDUE' : (newPaid > 0 ? 'PARTIAL' : 'UNPAID'));
 
         const summary = `Payment of ${fmtNum(paymentAmt)} added to Invoice #${invoice.invoiceNumber} via ${paymentInfo.paymentMode || 'Receipt'} (${paymentInfo.receiptNumber ? `#${paymentInfo.receiptNumber}` : 'Payment'}). Paid: ${fmtNum(oldPaid)} → ${fmtNum(newPaid)}, Status: ${oldStatus} → ${newStatus}`;
 
@@ -456,7 +457,9 @@ const logInvoicePaymentRemoved = async (req, invoice, removedAmount, reason = 'P
         const oldPaid = parseFloat(invoice.paidAmount) || 0;
         const newPaid = Math.max(0, oldPaid - amt);
         const oldStatus = invoice.status || 'PAID';
-        const newStatus = newPaid <= 0.01 ? 'UNPAID' : 'PARTIAL';
+        const total = parseFloat(invoice.totalAmount) || 0;
+        const newBalance = Math.max(0, total - newPaid);
+        const newStatus = newBalance <= 0.01 ? 'PAID' : (isDuePassed(invoice.dueDate) ? 'OVERDUE' : (newPaid > 0 ? 'PARTIAL' : 'UNPAID'));
 
         const summary = `Payment of ${fmtNum(amt)} removed from Invoice #${invoice.invoiceNumber} (${reason}). Paid: ${fmtNum(oldPaid)} → ${fmtNum(newPaid)}, Status: ${oldStatus} → ${newStatus}`;
 

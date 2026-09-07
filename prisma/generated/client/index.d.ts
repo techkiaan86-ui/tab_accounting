@@ -456,7 +456,8 @@ export const invoice_status: {
   PARTIAL: 'PARTIAL',
   PAID: 'PAID',
   CANCELLED: 'CANCELLED',
-  COMPLETED: 'COMPLETED'
+  COMPLETED: 'COMPLETED',
+  OVERDUE: 'OVERDUE'
 };
 
 export type invoice_status = (typeof invoice_status)[keyof typeof invoice_status]
