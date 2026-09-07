@@ -1,7 +1,30 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 const prisma = require('../config/prisma');
 const { decryptPassword } = require('../utils/cryptoUtils');
 const { generateInvoicePdfBuffer } = require('../utils/pdfGenerator');
+
+// Force IPv4 lookup globally to prevent ENETUNREACH in cloud/container environments (Railway, Docker, etc.)
+if (typeof dns.setDefaultResultOrder === 'function') {
+    dns.setDefaultResultOrder('ipv4first');
+}
+
+// Filter Nodemailer's internal network interface cache to IPv4 only.
+// This prevents Nodemailer from attempting IPv6 socket connections on hosts without IPv6 routing.
+try {
+    const shared = require('nodemailer/lib/shared');
+    if (shared && shared.networkInterfaces) {
+        for (const k in shared.networkInterfaces) {
+            if (Array.isArray(shared.networkInterfaces[k])) {
+                shared.networkInterfaces[k] = shared.networkInterfaces[k].filter(
+                    i => i.family === 'IPv4' || i.family === 4
+                );
+            }
+        }
+    }
+} catch (e) {
+    // Ignore if nodemailer internals differ
+}
 
 /**
  * Configure Nodemailer Transporter using Company's SMTP Credentials
@@ -30,7 +53,8 @@ const createCompanyTransporter = (smtpConfig) => {
             pass: smtpConfig.password
         },
         tls: {
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
+            servername: smtpConfig.host
         },
         connectionTimeout: 10000,
         greetingTimeout: 10000,

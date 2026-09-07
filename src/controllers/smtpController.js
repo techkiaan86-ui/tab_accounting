@@ -277,9 +277,14 @@ const testSmtpConnection = async (req, res) => {
                 });
             } catch (dbErr) {}
 
+            let errorMessage = connErr.message || 'Unknown network/authentication error';
+            if ((connErr.code === 'EAUTH' || connErr.responseCode === 535 || (connErr.message && connErr.message.includes('BadCredentials'))) && (smtpConfig.host || '').includes('gmail.com')) {
+                errorMessage = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
+            }
+
             return res.status(400).json({
                 success: false,
-                message: `SMTP Connection Failed: ${connErr.message || 'Unknown network/authentication error'}`
+                message: `SMTP Connection Failed: ${errorMessage}`
             });
         }
 
@@ -393,9 +398,13 @@ const sendSmtpTestEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending test email:', error);
+        let errorMsg = error.message || 'SMTP transmission failure';
+        if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (bodyHost || '').includes('gmail.com')) {
+            errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
+        }
         return res.status(400).json({
             success: false,
-            message: `Failed to send test email: ${error.message || 'SMTP transmission failure'}`
+            message: `Failed to send test email: ${errorMsg}`
         });
     }
 };
