@@ -2053,3 +2053,36 @@ model advanceadjustment {
   @@index([purchaseBillId])
 }
 
+model company_integration {
+  id               Int       @id @default(autoincrement())
+  companyId        Int
+  provider         String    @db.VarChar(50)
+  enabled          Boolean   @default(false)
+  webhookUrl       String?   @db.Text
+  accessToken      String?   @db.Text
+  syncContacts     Boolean   @default(true)
+  syncInvoices     Boolean   @default(true)
+  autoSyncInterval String    @default("DAILY") @db.VarChar(50)
+  status           String    @default("NOT_CONFIGURED") @db.VarChar(50)
+  lastSync         DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  @@unique([companyId, provider], map: "uq_company_provider")
+  @@index([companyId], map: "idx_company")
+}
+
+model integration_log {
+  id        Int      @id @default(autoincrement())
+  companyId Int
+  provider  String   @db.VarChar(50)
+  action    String   @db.VarChar(50)
+  status    String   @db.VarChar(20)
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([companyId, provider], map: "idx_company_provider")
+  @@index([createdAt], map: "idx_created")
+}
+
+

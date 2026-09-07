@@ -57,6 +57,7 @@ const bulkImportRoutes = require('./src/routes/bulkImportRoutes');
 const advancedAccountingRoutes = require('./src/routes/advancedAccountingRoutes');
 const integrationRoutes = require('./src/routes/integrationRoutes');
 const bankingRoutes = require('./src/routes/bankingRoutes');
+const { startIntegrationSyncWorker } = require('./src/services/integrationSyncWorker');
 
 const prisma = require('./src/config/prisma');
 
@@ -227,4 +228,9 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
+    try {
+        startIntegrationSyncWorker(30);
+    } catch (e) {
+        console.error('Failed to start CRM sync worker:', e.message);
+    }
 });

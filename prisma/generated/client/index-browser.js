@@ -1358,6 +1358,32 @@ exports.Prisma.AdvanceadjustmentScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.Company_integrationScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  provider: 'provider',
+  enabled: 'enabled',
+  webhookUrl: 'webhookUrl',
+  accessToken: 'accessToken',
+  syncContacts: 'syncContacts',
+  syncInvoices: 'syncInvoices',
+  autoSyncInterval: 'autoSyncInterval',
+  status: 'status',
+  lastSync: 'lastSync',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.Integration_logScalarFieldEnum = {
+  id: 'id',
+  companyId: 'companyId',
+  provider: 'provider',
+  action: 'action',
+  status: 'status',
+  details: 'details',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1618,7 +1644,9 @@ exports.Prisma.ModelName = {
   auditlog: 'auditlog',
   salesperson: 'salesperson',
   deliveryperson: 'deliveryperson',
-  advanceadjustment: 'advanceadjustment'
+  advanceadjustment: 'advanceadjustment',
+  company_integration: 'company_integration',
+  integration_log: 'integration_log'
 };
 
 /**

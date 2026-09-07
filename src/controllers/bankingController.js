@@ -179,7 +179,7 @@ const getBankAccounts = async (req, res) => {
         const companyId = parseInt(req.user?.companyId || req.query.companyId);
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID required' });
 
-        const accounts = await prisma.$queryRawUnsafe(`
+        let accounts = await prisma.$queryRawUnsafe(`
             SELECT ba.*, 
                    COALESCE(l.name, '') AS ledgerName,
                    COALESCE(l.currentBalance, ba.currentBalance) AS bookBalance
@@ -188,6 +188,45 @@ const getBankAccounts = async (req, res) => {
             WHERE ba.companyId = ?
             ORDER BY ba.id DESC
         `, companyId);
+
+        // Auto-provision initial bank account if none exists yet
+        if (!accounts || accounts.length === 0) {
+            const bankLedger = await prisma.ledger.findFirst({
+                where: {
+                    companyId,
+                    name: { contains: 'Bank' },
+                    accountgroup: { type: 'ASSETS' }
+                }
+            });
+
+            const company = await prisma.company.findUnique({
+                where: { id: companyId }
+            });
+
+            if (bankLedger || company?.bankName || company?.accountNumber) {
+                const accName = company?.accountName || bankLedger?.name || 'Main Bank Account';
+                const bName = company?.bankName || 'Bank of Ireland';
+                const accNum = company?.accountNumber || '123456789076';
+                const cur = company?.currency || 'EUR';
+                const bal = bankLedger ? Number(bankLedger.currentBalance || 0) : 0;
+                const ledId = bankLedger ? bankLedger.id : null;
+
+                await prisma.$executeRawUnsafe(`
+                    INSERT INTO bankaccount (accountName, accountNumber, bankName, iban, swiftBic, currency, openingBalance, currentBalance, ledgerId, companyId)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, accName, accNum, bName, company?.iban || null, company?.bic || company?.swiftBic || null, cur, bal, bal, ledId, companyId);
+
+                accounts = await prisma.$queryRawUnsafe(`
+                    SELECT ba.*, 
+                           COALESCE(l.name, '') AS ledgerName,
+                           COALESCE(l.currentBalance, ba.currentBalance) AS bookBalance
+                    FROM bankaccount ba
+                    LEFT JOIN ledger l ON ba.ledgerId = l.id
+                    WHERE ba.companyId = ?
+                    ORDER BY ba.id DESC
+                `, companyId);
+            }
+        }
 
         // Fetch counts of unmatched/pending transactions and last reconciled date per account
         const enriched = await Promise.all(accounts.map(async (acc) => {
@@ -887,6 +926,9 @@ const commitReconciliation = async (req, res) => {
             });
         }
 
+        const dateObj = new Date(statementDate);
+        const formattedDate = !isNaN(dateObj.getTime()) ? dateObj.toISOString().slice(0, 19).replace('T', ' ') : new Date().toISOString().slice(0, 19).replace('T', ' ');
+
         // Insert reconciliation record
         await prisma.$executeRawUnsafe(`
             INSERT INTO bank_reconciliation 
@@ -894,7 +936,7 @@ const commitReconciliation = async (req, res) => {
              clearedDepositsCount, clearedDepositsAmount, clearedWithdrawalsCount, clearedWithdrawalsAmount,
              status, notes, companyId, reconciledByUserId)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?)
-        `, bId, new Date(statementDate), parseFloat(statementEndingBalance), parseFloat(beginningBalance),
+        `, bId, formattedDate, parseFloat(statementEndingBalance), parseFloat(beginningBalance),
            parseFloat(clearedBalance), diff, parseInt(clearedDepositsCount), parseFloat(clearedDepositsAmount),
            parseInt(clearedWithdrawalsCount), parseFloat(clearedWithdrawalsAmount), notes, companyId, userId);
 
