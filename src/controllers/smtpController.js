@@ -59,6 +59,8 @@ const getSmtpSettings = async (req, res) => {
                     username: '',
                     fromEmail: '',
                     fromName: '',
+                    invoiceSubjectTemplate: 'Invoice #{InvoiceNumber} from {CompanyName}',
+                    invoiceBodyTemplate: 'Dear {CustomerName},\n\nPlease find attached your invoice #{InvoiceNumber} for {InvoiceAmount}, due on {DueDate}.\n\nYou can also review and pay your invoice online through our secure portal.\n\nThank you for your business.\n\nKind regards,\n{CompanyName}',
                     hasPassword: false,
                     isConfigured: false,
                     lastTestedAt: null,
@@ -80,6 +82,8 @@ const getSmtpSettings = async (req, res) => {
                 username: settings.username || '',
                 fromEmail: settings.fromEmail || '',
                 fromName: settings.fromName || '',
+                invoiceSubjectTemplate: settings.invoiceSubjectTemplate || 'Invoice #{InvoiceNumber} from {CompanyName}',
+                invoiceBodyTemplate: settings.invoiceBodyTemplate || 'Dear {CustomerName},\n\nPlease find attached your invoice #{InvoiceNumber} for {InvoiceAmount}, due on {DueDate}.\n\nYou can also review and pay your invoice online through our secure portal.\n\nThank you for your business.\n\nKind regards,\n{CompanyName}',
                 hasPassword: Boolean(settings.password && settings.password.length > 0),
                 isConfigured: settings.isConfigured,
                 lastTestedAt: settings.lastTestedAt,
@@ -114,7 +118,9 @@ const updateSmtpSettings = async (req, res) => {
             username,
             password,
             fromEmail,
-            fromName
+            fromName,
+            invoiceSubjectTemplate,
+            invoiceBodyTemplate
         } = req.body;
 
         // Fetch existing settings
@@ -154,6 +160,13 @@ const updateSmtpSettings = async (req, res) => {
             isConfigured
         };
 
+        if (invoiceSubjectTemplate !== undefined) {
+            dataToSave.invoiceSubjectTemplate = invoiceSubjectTemplate ? invoiceSubjectTemplate.trim() : null;
+        }
+        if (invoiceBodyTemplate !== undefined) {
+            dataToSave.invoiceBodyTemplate = invoiceBodyTemplate ? invoiceBodyTemplate.trim() : null;
+        }
+
         const savedSettings = await prisma.company_smtp_settings.upsert({
             where: { companyId },
             update: dataToSave,
@@ -175,6 +188,8 @@ const updateSmtpSettings = async (req, res) => {
                 username: savedSettings.username,
                 fromEmail: savedSettings.fromEmail,
                 fromName: savedSettings.fromName,
+                invoiceSubjectTemplate: savedSettings.invoiceSubjectTemplate || 'Invoice #{InvoiceNumber} from {CompanyName}',
+                invoiceBodyTemplate: savedSettings.invoiceBodyTemplate || 'Dear {CustomerName},\n\nPlease find attached your invoice #{InvoiceNumber} for {InvoiceAmount}, due on {DueDate}.\n\nYou can also review and pay your invoice online through our secure portal.\n\nThank you for your business.\n\nKind regards,\n{CompanyName}',
                 hasPassword: Boolean(savedSettings.password),
                 isConfigured: savedSettings.isConfigured,
                 lastTestedAt: savedSettings.lastTestedAt,

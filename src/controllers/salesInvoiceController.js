@@ -344,8 +344,8 @@ const createInvoice = async (req, res) => {
             const lineGross = itemQty * itemRate;
             const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
             const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
-            const lineTax = (lineDiscountedTaxable * itemTaxRate) / 100;
-            const lineTotal = lineDiscountedTaxable + lineTax;
+            const lineTax = itemTaxRate > 0 ? (lineDiscountedTaxable * itemTaxRate) / 100 : 0;
+            const lineDiscountedAmount = Number(lineDiscountedTaxable.toFixed(2));
 
             let cgstRate = 0, sgstRate = 0, igstRate = 0;
             let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
@@ -370,7 +370,7 @@ const createInvoice = async (req, res) => {
                 quantity: itemQty,
                 rate: itemRate,
                 discount: itemDiscount,
-                amount: lineTotal,
+                amount: lineDiscountedAmount,
                 taxRate: itemTaxRate,
                 cgstRate,
                 sgstRate,
@@ -1364,6 +1364,83 @@ const getInvoiceById = async (req, res) => {
 
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID Missing' });
 
+        const rawId = String(id);
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
+
+        if (isCombined) {
+            let custId = req.query.customerId ? parseInt(req.query.customerId) : null;
+            if (!custId && rawId.includes('CUST-')) {
+                custId = parseInt(rawId.split('CUST-')[1]);
+            } else if (!custId && rawId.includes('combined-')) {
+                const afterPrefix = rawId.replace(/combined-/i, '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
+                }
+            }
+
+            let customer = null;
+            if (custId && !isNaN(custId)) {
+                customer = await prisma.customer.findUnique({
+                    where: { id: parseInt(custId) }
+                });
+            }
+
+            const company = await prisma.company.findUnique({ where: { id: parseInt(companyId) } });
+
+            let customerInvoices = [];
+            if (custId && !isNaN(custId)) {
+                customerInvoices = await prisma.invoice.findMany({
+                    where: {
+                        customerId: parseInt(custId),
+                        companyId: parseInt(companyId)
+                    },
+                    include: {
+                        invoiceitem: {
+                            include: {
+                                product: true,
+                                service: true,
+                                warehouse: true,
+                                uom: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+            const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
+            const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
+
+            const combinedItems = [];
+            customerInvoices.forEach(inv => {
+                (inv.invoiceitem || []).forEach(item => {
+                    combinedItems.push({
+                        ...item,
+                        description: item.description || `Inv #${inv.invoiceNumber || inv.id}: ${item.product?.name || item.service?.name || ''}`
+                    });
+                });
+            });
+
+            const combinedInvoice = {
+                id: rawId,
+                invoiceNumber: rawId.toUpperCase(),
+                date: new Date(),
+                dueDate: null,
+                totalAmount,
+                paidAmount,
+                balanceAmount,
+                currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
+                customer: customer || { name: customer?.name || 'Customer' },
+                isCombined: true,
+                invoiceitem: combinedItems,
+                items: combinedItems,
+                invoices: customerInvoices,
+                company
+            };
+
+            return res.status(200).json({ success: true, data: combinedInvoice });
+        }
+
         const parsedId = parseInt(id);
         if (isNaN(parsedId)) {
             return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
@@ -1644,8 +1721,8 @@ const updateInvoice = async (req, res) => {
                 const lineGross = itemQty * itemRate;
                 const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
                 const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
-                const lineTax = (lineDiscountedTaxable * itemTaxRate) / 100;
-                const lineTotal = lineDiscountedTaxable + lineTax;
+                const lineTax = itemTaxRate > 0 ? (lineDiscountedTaxable * itemTaxRate) / 100 : 0;
+                const lineDiscountedAmount = Number(lineDiscountedTaxable.toFixed(2));
 
                 lineTaxSum += lineTax;
 
@@ -1656,7 +1733,7 @@ const updateInvoice = async (req, res) => {
                     quantity: itemQty,
                     rate: itemRate,
                     discount: itemDiscount,
-                    amount: lineTotal,
+                    amount: lineDiscountedAmount,
                     taxRate: itemTaxRate,
                     warehouseId: item.warehouseId ? parseInt(item.warehouseId) : null
                 };
@@ -2452,6 +2529,83 @@ const getNextNumber = async (req, res) => {
 const getPublicInvoiceById = async (req, res) => {
     try {
         const { id } = req.params;
+        const rawId = String(id);
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
+
+        if (isCombined) {
+            let custId = req.query.customerId ? parseInt(req.query.customerId) : null;
+            if (!custId && rawId.includes('CUST-')) {
+                custId = parseInt(rawId.split('CUST-')[1]);
+            } else if (!custId && rawId.includes('combined-')) {
+                const afterPrefix = rawId.replace(/combined-/i, '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
+                }
+            }
+
+            let customer = null;
+            if (custId && !isNaN(custId)) {
+                customer = await prisma.customer.findUnique({
+                    where: { id: parseInt(custId) }
+                });
+            }
+
+            let customerInvoices = [];
+            if (custId && !isNaN(custId)) {
+                customerInvoices = await prisma.invoice.findMany({
+                    where: {
+                        customerId: parseInt(custId)
+                    },
+                    include: {
+                        invoiceitem: {
+                            include: {
+                                product: true,
+                                service: true,
+                                warehouse: true,
+                                uom: true
+                            }
+                        },
+                        company: true
+                    }
+                });
+            }
+
+            const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+            const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
+            const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
+
+            const combinedItems = [];
+            customerInvoices.forEach(inv => {
+                (inv.invoiceitem || []).forEach(item => {
+                    combinedItems.push({
+                        ...item,
+                        description: item.description || `Inv #${inv.invoiceNumber || inv.id}: ${item.product?.name || item.service?.name || ''}`
+                    });
+                });
+            });
+
+            const company = customerInvoices[0]?.company || null;
+
+            const combinedInvoice = {
+                id: rawId,
+                invoiceNumber: rawId.toUpperCase(),
+                date: new Date(),
+                dueDate: null,
+                totalAmount,
+                paidAmount,
+                balanceAmount,
+                currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
+                customer: customer || { name: customer?.name || 'Customer' },
+                isCombined: true,
+                invoiceitem: combinedItems,
+                items: combinedItems,
+                invoices: customerInvoices,
+                company
+            };
+
+            return res.status(200).json({ success: true, data: combinedInvoice });
+        }
+
         const parsedId = parseInt(id);
         if (isNaN(parsedId)) {
             return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });

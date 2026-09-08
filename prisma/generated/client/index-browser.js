@@ -1128,6 +1128,8 @@ exports.Prisma.Company_smtp_settingsScalarFieldEnum = {
   password: 'password',
   fromEmail: 'fromEmail',
   fromName: 'fromName',
+  invoiceSubjectTemplate: 'invoiceSubjectTemplate',
+  invoiceBodyTemplate: 'invoiceBodyTemplate',
   isConfigured: 'isConfigured',
   lastTestedAt: 'lastTestedAt',
   lastTestStatus: 'lastTestStatus',
