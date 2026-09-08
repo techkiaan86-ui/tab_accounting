@@ -16,15 +16,7 @@ const createService = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Service name is required' });
         }
 
-        let finalUomId = uomId ? parseInt(uomId) : null;
-        if (!finalUomId) {
-            const firstUom = await prisma.uom.findFirst({ where: { companyId: parseInt(companyId) } });
-            if (firstUom) finalUomId = firstUom.id;
-        }
-
-        if (!finalUomId) {
-            return res.status(400).json({ success: false, message: 'UOM is required' });
-        }
+        const finalUomId = uomId ? parseInt(uomId) : null;
 
         const service = await prisma.service.create({
             data: {
@@ -127,7 +119,7 @@ const updateService = async (req, res) => {
                 name,
                 sku,
                 description,
-                uomId: uomId ? parseInt(uomId) : undefined,
+                uomId: uomId !== undefined ? (uomId ? parseInt(uomId) : null) : undefined,
                 price: (price !== undefined && price !== null) ? (price === '' ? 0 : (parseFloat(price) || 0)) : undefined,
                 taxRate: taxRate !== undefined ? parseFloat(taxRate) : undefined,
                 allowInInvoices: allowInInvoices !== undefined ? allowInInvoices : undefined,

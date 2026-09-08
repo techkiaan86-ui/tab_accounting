@@ -55,19 +55,19 @@ const computeInvoiceStatusAndBalance = (invoice, paymentsReceived = null, tolera
 
     const isPos = invoice.type === 'POS_INVOICE' || !!invoice.posinvoiceitem;
 
-    let computedStatus = invoice.status;
-    if (invoice.manualStatus === true || invoice.manualStatus === 'true') {
-        computedStatus = invoice.status;
+    let computedStatus;
+    if (invoice.status === 'CANCELLED' || invoice.status === 'Cancelled') {
+        computedStatus = isPos ? 'Cancelled' : 'CANCELLED';
+    } else if (balance <= tol && (total > 0 || paid > 0)) {
+        computedStatus = isPos ? 'Paid' : 'PAID';
+    } else if (balance > tol && isDuePassed(invoice.dueDate)) {
+        computedStatus = isPos ? 'Overdue' : 'OVERDUE';
+    } else if (paid > tol && balance > tol) {
+        computedStatus = isPos ? 'Partial' : 'PARTIAL';
+    } else if (balance <= tol && total === 0 && paid === 0) {
+        computedStatus = isPos ? 'Paid' : 'PAID';
     } else {
-        if (balance <= tol) {
-            computedStatus = isPos ? 'Paid' : 'PAID';
-        } else if (isDuePassed(invoice.dueDate)) {
-            computedStatus = isPos ? 'Overdue' : 'OVERDUE';
-        } else if (paid > tol) {
-            computedStatus = isPos ? 'Partial' : 'PARTIAL';
-        } else {
-            computedStatus = isPos ? 'Due' : 'UNPAID';
-        }
+        computedStatus = isPos ? 'Due' : 'UNPAID';
     }
 
     return {
@@ -107,6 +107,7 @@ const syncInvoiceInDb = async (txOrPrisma, invoiceId, type = 'TAX_INVOICE', delt
                 paidAmount,
                 balanceAmount,
                 status,
+                manualStatus: false,
                 updatedAt: new Date()
             }
         });
@@ -144,6 +145,7 @@ const syncInvoiceInDb = async (txOrPrisma, invoiceId, type = 'TAX_INVOICE', delt
                 paidAmount,
                 balanceAmount,
                 status,
+                manualStatus: false,
                 updatedAt: new Date()
             }
         });

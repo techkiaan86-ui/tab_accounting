@@ -28344,6 +28344,7 @@ export namespace Prisma {
     id: number | null
     invoiceNumber: string | null
     manualReference: string | null
+    poNumber: string | null
     date: Date | null
     dueDate: Date | null
     customerId: number | null
@@ -28388,6 +28389,7 @@ export namespace Prisma {
     id: number | null
     invoiceNumber: string | null
     manualReference: string | null
+    poNumber: string | null
     date: Date | null
     dueDate: Date | null
     customerId: number | null
@@ -28432,6 +28434,7 @@ export namespace Prisma {
     id: number
     invoiceNumber: number
     manualReference: number
+    poNumber: number
     date: number
     dueDate: number
     customerId: number
@@ -28516,6 +28519,7 @@ export namespace Prisma {
     id?: true
     invoiceNumber?: true
     manualReference?: true
+    poNumber?: true
     date?: true
     dueDate?: true
     customerId?: true
@@ -28560,6 +28564,7 @@ export namespace Prisma {
     id?: true
     invoiceNumber?: true
     manualReference?: true
+    poNumber?: true
     date?: true
     dueDate?: true
     customerId?: true
@@ -28604,6 +28609,7 @@ export namespace Prisma {
     id?: true
     invoiceNumber?: true
     manualReference?: true
+    poNumber?: true
     date?: true
     dueDate?: true
     customerId?: true
@@ -28735,6 +28741,7 @@ export namespace Prisma {
     id: number
     invoiceNumber: string
     manualReference: string | null
+    poNumber: string | null
     date: Date
     dueDate: Date | null
     customerId: number
@@ -28798,6 +28805,7 @@ export namespace Prisma {
     id?: boolean
     invoiceNumber?: boolean
     manualReference?: boolean
+    poNumber?: boolean
     date?: boolean
     dueDate?: boolean
     customerId?: boolean
@@ -28857,6 +28865,7 @@ export namespace Prisma {
     id?: boolean
     invoiceNumber?: boolean
     manualReference?: boolean
+    poNumber?: boolean
     date?: boolean
     dueDate?: boolean
     customerId?: boolean
@@ -28935,6 +28944,7 @@ export namespace Prisma {
       id: number
       invoiceNumber: string
       manualReference: string | null
+      poNumber: string | null
       date: Date
       dueDate: Date | null
       customerId: number
@@ -29358,6 +29368,7 @@ export namespace Prisma {
     readonly id: FieldRef<"invoice", 'Int'>
     readonly invoiceNumber: FieldRef<"invoice", 'String'>
     readonly manualReference: FieldRef<"invoice", 'String'>
+    readonly poNumber: FieldRef<"invoice", 'String'>
     readonly date: FieldRef<"invoice", 'DateTime'>
     readonly dueDate: FieldRef<"invoice", 'DateTime'>
     readonly customerId: FieldRef<"invoice", 'Int'>
@@ -60632,7 +60643,7 @@ export namespace Prisma {
     name: string
     sku: string | null
     description: string | null
-    uomId: number
+    uomId: number | null
     price: number
     taxRate: number
     allowInInvoices: boolean
@@ -60678,7 +60689,7 @@ export namespace Prisma {
     salesorderitem?: boolean | service$salesorderitemArgs<ExtArgs>
     salesquotationitem?: boolean | service$salesquotationitemArgs<ExtArgs>
     company?: boolean | companyDefaultArgs<ExtArgs>
-    uom?: boolean | uomDefaultArgs<ExtArgs>
+    uom?: boolean | service$uomArgs<ExtArgs>
     _count?: boolean | ServiceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["service"]>
 
@@ -60703,7 +60714,7 @@ export namespace Prisma {
     salesorderitem?: boolean | service$salesorderitemArgs<ExtArgs>
     salesquotationitem?: boolean | service$salesquotationitemArgs<ExtArgs>
     company?: boolean | companyDefaultArgs<ExtArgs>
-    uom?: boolean | uomDefaultArgs<ExtArgs>
+    uom?: boolean | service$uomArgs<ExtArgs>
     _count?: boolean | ServiceCountOutputTypeDefaultArgs<ExtArgs>
   }
 
@@ -60714,14 +60725,14 @@ export namespace Prisma {
       salesorderitem: Prisma.$salesorderitemPayload<ExtArgs>[]
       salesquotationitem: Prisma.$salesquotationitemPayload<ExtArgs>[]
       company: Prisma.$companyPayload<ExtArgs>
-      uom: Prisma.$uomPayload<ExtArgs>
+      uom: Prisma.$uomPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: number
       name: string
       sku: string | null
       description: string | null
-      uomId: number
+      uomId: number | null
       price: number
       taxRate: number
       allowInInvoices: boolean
@@ -61073,7 +61084,7 @@ export namespace Prisma {
     salesorderitem<T extends service$salesorderitemArgs<ExtArgs> = {}>(args?: Subset<T, service$salesorderitemArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$salesorderitemPayload<ExtArgs>, T, "findMany"> | Null>
     salesquotationitem<T extends service$salesquotationitemArgs<ExtArgs> = {}>(args?: Subset<T, service$salesquotationitemArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$salesquotationitemPayload<ExtArgs>, T, "findMany"> | Null>
     company<T extends companyDefaultArgs<ExtArgs> = {}>(args?: Subset<T, companyDefaultArgs<ExtArgs>>): Prisma__companyClient<$Result.GetResult<Prisma.$companyPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
-    uom<T extends uomDefaultArgs<ExtArgs> = {}>(args?: Subset<T, uomDefaultArgs<ExtArgs>>): Prisma__uomClient<$Result.GetResult<Prisma.$uomPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    uom<T extends service$uomArgs<ExtArgs> = {}>(args?: Subset<T, service$uomArgs<ExtArgs>>): Prisma__uomClient<$Result.GetResult<Prisma.$uomPayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -61471,6 +61482,21 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: SalesquotationitemScalarFieldEnum | SalesquotationitemScalarFieldEnum[]
+  }
+
+  /**
+   * service.uom
+   */
+  export type service$uomArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the uom
+     */
+    select?: uomSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: uomInclude<ExtArgs> | null
+    where?: uomWhereInput
   }
 
   /**
@@ -88458,6 +88484,7 @@ export namespace Prisma {
     id: 'id',
     invoiceNumber: 'invoiceNumber',
     manualReference: 'manualReference',
+    poNumber: 'poNumber',
     date: 'date',
     dueDate: 'dueDate',
     customerId: 'customerId',
@@ -91822,6 +91849,7 @@ export namespace Prisma {
     id?: IntFilter<"invoice"> | number
     invoiceNumber?: StringFilter<"invoice"> | string
     manualReference?: StringNullableFilter<"invoice"> | string | null
+    poNumber?: StringNullableFilter<"invoice"> | string | null
     date?: DateTimeFilter<"invoice"> | Date | string
     dueDate?: DateTimeNullableFilter<"invoice"> | Date | string | null
     customerId?: IntFilter<"invoice"> | number
@@ -91879,6 +91907,7 @@ export namespace Prisma {
     id?: SortOrder
     invoiceNumber?: SortOrder
     manualReference?: SortOrderInput | SortOrder
+    poNumber?: SortOrderInput | SortOrder
     date?: SortOrder
     dueDate?: SortOrderInput | SortOrder
     customerId?: SortOrder
@@ -91939,6 +91968,7 @@ export namespace Prisma {
     NOT?: invoiceWhereInput | invoiceWhereInput[]
     invoiceNumber?: StringFilter<"invoice"> | string
     manualReference?: StringNullableFilter<"invoice"> | string | null
+    poNumber?: StringNullableFilter<"invoice"> | string | null
     date?: DateTimeFilter<"invoice"> | Date | string
     dueDate?: DateTimeNullableFilter<"invoice"> | Date | string | null
     customerId?: IntFilter<"invoice"> | number
@@ -91996,6 +92026,7 @@ export namespace Prisma {
     id?: SortOrder
     invoiceNumber?: SortOrder
     manualReference?: SortOrderInput | SortOrder
+    poNumber?: SortOrderInput | SortOrder
     date?: SortOrder
     dueDate?: SortOrderInput | SortOrder
     customerId?: SortOrder
@@ -92048,6 +92079,7 @@ export namespace Prisma {
     id?: IntWithAggregatesFilter<"invoice"> | number
     invoiceNumber?: StringWithAggregatesFilter<"invoice"> | string
     manualReference?: StringNullableWithAggregatesFilter<"invoice"> | string | null
+    poNumber?: StringNullableWithAggregatesFilter<"invoice"> | string | null
     date?: DateTimeWithAggregatesFilter<"invoice"> | Date | string
     dueDate?: DateTimeNullableWithAggregatesFilter<"invoice"> | Date | string | null
     customerId?: IntWithAggregatesFilter<"invoice"> | number
@@ -95601,7 +95633,7 @@ export namespace Prisma {
     name?: StringFilter<"service"> | string
     sku?: StringNullableFilter<"service"> | string | null
     description?: StringNullableFilter<"service"> | string | null
-    uomId?: IntFilter<"service"> | number
+    uomId?: IntNullableFilter<"service"> | number | null
     price?: FloatFilter<"service"> | number
     taxRate?: FloatFilter<"service"> | number
     allowInInvoices?: BoolFilter<"service"> | boolean
@@ -95613,7 +95645,7 @@ export namespace Prisma {
     salesorderitem?: SalesorderitemListRelationFilter
     salesquotationitem?: SalesquotationitemListRelationFilter
     company?: XOR<CompanyRelationFilter, companyWhereInput>
-    uom?: XOR<UomRelationFilter, uomWhereInput>
+    uom?: XOR<UomNullableRelationFilter, uomWhereInput> | null
   }
 
   export type serviceOrderByWithRelationInput = {
@@ -95621,7 +95653,7 @@ export namespace Prisma {
     name?: SortOrder
     sku?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
-    uomId?: SortOrder
+    uomId?: SortOrderInput | SortOrder
     price?: SortOrder
     taxRate?: SortOrder
     allowInInvoices?: SortOrder
@@ -95645,7 +95677,7 @@ export namespace Prisma {
     name?: StringFilter<"service"> | string
     sku?: StringNullableFilter<"service"> | string | null
     description?: StringNullableFilter<"service"> | string | null
-    uomId?: IntFilter<"service"> | number
+    uomId?: IntNullableFilter<"service"> | number | null
     price?: FloatFilter<"service"> | number
     taxRate?: FloatFilter<"service"> | number
     allowInInvoices?: BoolFilter<"service"> | boolean
@@ -95657,7 +95689,7 @@ export namespace Prisma {
     salesorderitem?: SalesorderitemListRelationFilter
     salesquotationitem?: SalesquotationitemListRelationFilter
     company?: XOR<CompanyRelationFilter, companyWhereInput>
-    uom?: XOR<UomRelationFilter, uomWhereInput>
+    uom?: XOR<UomNullableRelationFilter, uomWhereInput> | null
   }, "id" | "companyId_name">
 
   export type serviceOrderByWithAggregationInput = {
@@ -95665,7 +95697,7 @@ export namespace Prisma {
     name?: SortOrder
     sku?: SortOrderInput | SortOrder
     description?: SortOrderInput | SortOrder
-    uomId?: SortOrder
+    uomId?: SortOrderInput | SortOrder
     price?: SortOrder
     taxRate?: SortOrder
     allowInInvoices?: SortOrder
@@ -95688,7 +95720,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"service"> | string
     sku?: StringNullableWithAggregatesFilter<"service"> | string | null
     description?: StringNullableWithAggregatesFilter<"service"> | string | null
-    uomId?: IntWithAggregatesFilter<"service"> | number
+    uomId?: IntNullableWithAggregatesFilter<"service"> | number | null
     price?: FloatWithAggregatesFilter<"service"> | number
     taxRate?: FloatWithAggregatesFilter<"service"> | number
     allowInInvoices?: BoolWithAggregatesFilter<"service"> | boolean
@@ -100459,6 +100491,7 @@ export namespace Prisma {
   export type invoiceCreateInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -100511,6 +100544,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -100562,6 +100596,7 @@ export namespace Prisma {
   export type invoiceUpdateInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -100614,6 +100649,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -100666,6 +100702,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -100709,6 +100746,7 @@ export namespace Prisma {
   export type invoiceUpdateManyMutationInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -100748,6 +100786,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -104651,7 +104690,7 @@ export namespace Prisma {
     salesorderitem?: salesorderitemCreateNestedManyWithoutServiceInput
     salesquotationitem?: salesquotationitemCreateNestedManyWithoutServiceInput
     company: companyCreateNestedOneWithoutServiceInput
-    uom: uomCreateNestedOneWithoutServiceInput
+    uom?: uomCreateNestedOneWithoutServiceInput
   }
 
   export type serviceUncheckedCreateInput = {
@@ -104659,7 +104698,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -104686,7 +104725,7 @@ export namespace Prisma {
     salesorderitem?: salesorderitemUpdateManyWithoutServiceNestedInput
     salesquotationitem?: salesquotationitemUpdateManyWithoutServiceNestedInput
     company?: companyUpdateOneRequiredWithoutServiceNestedInput
-    uom?: uomUpdateOneRequiredWithoutServiceNestedInput
+    uom?: uomUpdateOneWithoutServiceNestedInput
   }
 
   export type serviceUncheckedUpdateInput = {
@@ -104694,7 +104733,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -104712,7 +104751,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -104739,7 +104778,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -109535,6 +109574,7 @@ export namespace Prisma {
     id?: SortOrder
     invoiceNumber?: SortOrder
     manualReference?: SortOrder
+    poNumber?: SortOrder
     date?: SortOrder
     dueDate?: SortOrder
     customerId?: SortOrder
@@ -109598,6 +109638,7 @@ export namespace Prisma {
     id?: SortOrder
     invoiceNumber?: SortOrder
     manualReference?: SortOrder
+    poNumber?: SortOrder
     date?: SortOrder
     dueDate?: SortOrder
     customerId?: SortOrder
@@ -109642,6 +109683,7 @@ export namespace Prisma {
     id?: SortOrder
     invoiceNumber?: SortOrder
     manualReference?: SortOrder
+    poNumber?: SortOrder
     date?: SortOrder
     dueDate?: SortOrder
     customerId?: SortOrder
@@ -112417,11 +112459,6 @@ export namespace Prisma {
     taxRate?: SortOrder
     discount?: SortOrder
     amount?: SortOrder
-  }
-
-  export type UomRelationFilter = {
-    is?: uomWhereInput
-    isNot?: uomWhereInput
   }
 
   export type serviceCompanyIdNameCompoundUniqueInput = {
@@ -121601,10 +121638,12 @@ export namespace Prisma {
     update?: XOR<XOR<companyUpdateToOneWithWhereWithoutServiceInput, companyUpdateWithoutServiceInput>, companyUncheckedUpdateWithoutServiceInput>
   }
 
-  export type uomUpdateOneRequiredWithoutServiceNestedInput = {
+  export type uomUpdateOneWithoutServiceNestedInput = {
     create?: XOR<uomCreateWithoutServiceInput, uomUncheckedCreateWithoutServiceInput>
     connectOrCreate?: uomCreateOrConnectWithoutServiceInput
     upsert?: uomUpsertWithoutServiceInput
+    disconnect?: uomWhereInput | boolean
+    delete?: uomWhereInput | boolean
     connect?: uomWhereUniqueInput
     update?: XOR<XOR<uomUpdateToOneWithWhereWithoutServiceInput, uomUpdateWithoutServiceInput>, uomUncheckedUpdateWithoutServiceInput>
   }
@@ -128389,6 +128428,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutCompanyInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -128440,6 +128480,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -129400,7 +129441,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemCreateNestedManyWithoutServiceInput
     salesorderitem?: salesorderitemCreateNestedManyWithoutServiceInput
     salesquotationitem?: salesquotationitemCreateNestedManyWithoutServiceInput
-    uom: uomCreateNestedOneWithoutServiceInput
+    uom?: uomCreateNestedOneWithoutServiceInput
   }
 
   export type serviceUncheckedCreateWithoutCompanyInput = {
@@ -129408,7 +129449,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -130565,6 +130606,7 @@ export namespace Prisma {
     id?: IntFilter<"invoice"> | number
     invoiceNumber?: StringFilter<"invoice"> | string
     manualReference?: StringNullableFilter<"invoice"> | string | null
+    poNumber?: StringNullableFilter<"invoice"> | string | null
     date?: DateTimeFilter<"invoice"> | Date | string
     dueDate?: DateTimeNullableFilter<"invoice"> | Date | string | null
     customerId?: IntFilter<"invoice"> | number
@@ -131182,7 +131224,7 @@ export namespace Prisma {
     name?: StringFilter<"service"> | string
     sku?: StringNullableFilter<"service"> | string | null
     description?: StringNullableFilter<"service"> | string | null
-    uomId?: IntFilter<"service"> | number
+    uomId?: IntNullableFilter<"service"> | number | null
     price?: FloatFilter<"service"> | number
     taxRate?: FloatFilter<"service"> | number
     allowInInvoices?: BoolFilter<"service"> | boolean
@@ -132002,6 +132044,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutCustomerInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -132053,6 +132096,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     companyId: number
@@ -133427,6 +133471,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutDeliverychallansInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -133478,6 +133523,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -133562,6 +133608,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutDeliverychallanInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -133613,6 +133660,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -134098,6 +134146,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutDeliverychallansInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -134149,6 +134198,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -140541,6 +140591,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutInvoiceitemInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -140592,6 +140643,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -140751,7 +140803,7 @@ export namespace Prisma {
     salesorderitem?: salesorderitemCreateNestedManyWithoutServiceInput
     salesquotationitem?: salesquotationitemCreateNestedManyWithoutServiceInput
     company: companyCreateNestedOneWithoutServiceInput
-    uom: uomCreateNestedOneWithoutServiceInput
+    uom?: uomCreateNestedOneWithoutServiceInput
   }
 
   export type serviceUncheckedCreateWithoutInvoiceitemInput = {
@@ -140759,7 +140811,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -140914,6 +140966,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutInvoiceitemInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -140965,6 +141018,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -141136,7 +141190,7 @@ export namespace Prisma {
     salesorderitem?: salesorderitemUpdateManyWithoutServiceNestedInput
     salesquotationitem?: salesquotationitemUpdateManyWithoutServiceNestedInput
     company?: companyUpdateOneRequiredWithoutServiceNestedInput
-    uom?: uomUpdateOneRequiredWithoutServiceNestedInput
+    uom?: uomUpdateOneWithoutServiceNestedInput
   }
 
   export type serviceUncheckedUpdateWithoutInvoiceitemInput = {
@@ -141144,7 +141198,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -155857,6 +155911,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutReceiptInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -155908,6 +155963,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -156535,6 +156591,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutReceiptInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -156586,6 +156643,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -156881,6 +156939,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutSalesorderInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -156932,6 +156991,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -158059,7 +158119,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemCreateNestedManyWithoutServiceInput
     salesquotationitem?: salesquotationitemCreateNestedManyWithoutServiceInput
     company: companyCreateNestedOneWithoutServiceInput
-    uom: uomCreateNestedOneWithoutServiceInput
+    uom?: uomCreateNestedOneWithoutServiceInput
   }
 
   export type serviceUncheckedCreateWithoutSalesorderitemInput = {
@@ -158067,7 +158127,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -158418,7 +158478,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemUpdateManyWithoutServiceNestedInput
     salesquotationitem?: salesquotationitemUpdateManyWithoutServiceNestedInput
     company?: companyUpdateOneRequiredWithoutServiceNestedInput
-    uom?: uomUpdateOneRequiredWithoutServiceNestedInput
+    uom?: uomUpdateOneWithoutServiceNestedInput
   }
 
   export type serviceUncheckedUpdateWithoutSalesorderitemInput = {
@@ -158426,7 +158486,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -159620,7 +159680,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemCreateNestedManyWithoutServiceInput
     salesorderitem?: salesorderitemCreateNestedManyWithoutServiceInput
     company: companyCreateNestedOneWithoutServiceInput
-    uom: uomCreateNestedOneWithoutServiceInput
+    uom?: uomCreateNestedOneWithoutServiceInput
   }
 
   export type serviceUncheckedCreateWithoutSalesquotationitemInput = {
@@ -159628,7 +159688,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -159971,7 +160031,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemUpdateManyWithoutServiceNestedInput
     salesorderitem?: salesorderitemUpdateManyWithoutServiceNestedInput
     company?: companyUpdateOneRequiredWithoutServiceNestedInput
-    uom?: uomUpdateOneRequiredWithoutServiceNestedInput
+    uom?: uomUpdateOneWithoutServiceNestedInput
   }
 
   export type serviceUncheckedUpdateWithoutSalesquotationitemInput = {
@@ -159979,7 +160039,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -160446,6 +160506,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutSalesreturnInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -160497,6 +160558,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -160926,6 +160988,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutSalesreturnInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -160977,6 +161040,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -163885,6 +163949,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutTransactionInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -163936,6 +164001,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -164638,6 +164704,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutTransactionInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -164689,6 +164756,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -173730,6 +173798,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutInventory_consumptionInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -173781,6 +173850,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -173979,6 +174049,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutInventory_consumptionInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -174030,6 +174101,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -174234,6 +174306,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutAllocationsInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -174285,6 +174358,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -174411,6 +174485,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutAllocationsInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -174462,6 +174537,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -175984,6 +176060,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutSalespersonInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -176035,6 +176112,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -177196,6 +177274,7 @@ export namespace Prisma {
   export type invoiceCreateWithoutAdvanceadjustmentsInput = {
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     subtotal: number
@@ -177247,6 +177326,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -177753,6 +177833,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutAdvanceadjustmentsInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -177804,6 +177885,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -178550,6 +178632,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -178920,7 +179003,7 @@ export namespace Prisma {
     name: string
     sku?: string | null
     description?: string | null
-    uomId: number
+    uomId?: number | null
     price?: number
     taxRate?: number
     allowInInvoices?: boolean
@@ -179704,6 +179787,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutCompanyInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -179755,6 +179839,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -179806,6 +179891,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -180934,7 +181020,7 @@ export namespace Prisma {
     invoiceitem?: invoiceitemUpdateManyWithoutServiceNestedInput
     salesorderitem?: salesorderitemUpdateManyWithoutServiceNestedInput
     salesquotationitem?: salesquotationitemUpdateManyWithoutServiceNestedInput
-    uom?: uomUpdateOneRequiredWithoutServiceNestedInput
+    uom?: uomUpdateOneWithoutServiceNestedInput
   }
 
   export type serviceUncheckedUpdateWithoutCompanyInput = {
@@ -180942,7 +181028,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -180959,7 +181045,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    uomId?: IntFieldUpdateOperationsInput | number
+    uomId?: NullableIntFieldUpdateOperationsInput | number | null
     price?: FloatFieldUpdateOperationsInput | number
     taxRate?: FloatFieldUpdateOperationsInput | number
     allowInInvoices?: BoolFieldUpdateOperationsInput | boolean
@@ -181692,6 +181778,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     companyId: number
@@ -181978,6 +182065,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutCustomerInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -182029,6 +182117,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companyId?: IntFieldUpdateOperationsInput | number
@@ -182080,6 +182169,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     companyId?: IntFieldUpdateOperationsInput | number
@@ -182639,6 +182729,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -182710,6 +182801,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutDeliverychallanInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -182761,6 +182853,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -182812,6 +182905,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -187421,6 +187515,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -187560,6 +187655,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutSalesorderInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -187611,6 +187707,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -187662,6 +187759,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -191271,6 +191369,7 @@ export namespace Prisma {
     id?: number
     invoiceNumber: string
     manualReference?: string | null
+    poNumber?: string | null
     date?: Date | string
     dueDate?: Date | string | null
     customerId: number
@@ -191356,6 +191455,7 @@ export namespace Prisma {
   export type invoiceUpdateWithoutSalespersonInput = {
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     subtotal?: FloatFieldUpdateOperationsInput | number
@@ -191407,6 +191507,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number
@@ -191458,6 +191559,7 @@ export namespace Prisma {
     id?: IntFieldUpdateOperationsInput | number
     invoiceNumber?: StringFieldUpdateOperationsInput | string
     manualReference?: NullableStringFieldUpdateOperationsInput | string | null
+    poNumber?: NullableStringFieldUpdateOperationsInput | string | null
     date?: DateTimeFieldUpdateOperationsInput | Date | string
     dueDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     customerId?: IntFieldUpdateOperationsInput | number

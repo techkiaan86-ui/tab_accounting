@@ -5,16 +5,26 @@ const prisma = require('../config/prisma');
  */
 const getAuditLogs = async (req, res) => {
     try {
-        const companyId = req.user.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Company ID is required' });
+        const userRole = req.user?.role?.toUpperCase();
+        const requestedCompanyId = req.query.companyId ? parseInt(req.query.companyId) : null;
+        const userCompanyId = req.user?.companyId ? parseInt(req.user.companyId) : null;
+
+        const where = {};
+
+        if (userRole === 'SUPERADMIN') {
+            if (requestedCompanyId) {
+                where.companyId = requestedCompanyId;
+            } else if (userCompanyId) {
+                where.companyId = userCompanyId;
+            }
+            // If neither, superadmin sees logs across all companies!
+        } else {
+            const activeCompanyId = userCompanyId || requestedCompanyId;
+            if (!activeCompanyId) {
+                return res.status(400).json({ message: 'Company ID is required' });
+            }
+            where.companyId = activeCompanyId;
         }
-
-        const { action, entity, entityId, invoiceId, startDate, endDate, userId, search, page = 1, limit = 20 } = req.query;
-
-        const where = {
-            companyId: parseInt(companyId)
-        };
 
         if (action) {
             where.action = action;
@@ -76,6 +86,12 @@ const getAuditLogs = async (req, res) => {
                             name: true,
                             email: true,
                             role: true
+                        }
+                    },
+                    company: {
+                        select: {
+                            id: true,
+                            name: true
                         }
                     }
                 }

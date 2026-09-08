@@ -463,6 +463,7 @@ model invoice {
   id                    Int                        @id @default(autoincrement())
   invoiceNumber         String
   manualReference       String?
+  poNumber              String?
   date                  DateTime                   @default(now())
   dueDate               DateTime?
   customerId            Int
@@ -1312,7 +1313,7 @@ model service {
   name               String
   sku                String?
   description        String?              @db.Text
-  uomId              Int
+  uomId              Int?
   price              Float                @default(0)
   taxRate            Float                @default(0)
   allowInInvoices    Boolean              @default(true)
@@ -1324,7 +1325,7 @@ model service {
   salesorderitem     salesorderitem[]
   salesquotationitem salesquotationitem[]
   company            company              @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "Service_companyId_fkey")
-  uom                uom                  @relation(fields: [uomId], references: [id], map: "Service_uomId_fkey")
+  uom                uom?                 @relation(fields: [uomId], references: [id], map: "Service_uomId_fkey")
 
   @@unique([companyId, name], map: "Service_companyId_name_key")
   @@index([uomId], map: "Service_uomId_fkey")
