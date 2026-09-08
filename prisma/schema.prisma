@@ -1513,6 +1513,8 @@ model company_smtp_settings {
   password       String?   @db.Text
   fromEmail      String?   @db.VarChar(255)
   fromName       String?   @db.VarChar(255)
+  invoiceSubjectTemplate String? @db.VarChar(500)
+  invoiceBodyTemplate    String? @db.Text
   isConfigured   Boolean   @default(false)
   lastTestedAt   DateTime?
   lastTestStatus String?   @db.VarChar(50)

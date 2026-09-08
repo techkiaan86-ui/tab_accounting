@@ -2479,7 +2479,7 @@ const getVatReport = async (req, res) => {
 
             for (const inv of invoices) {
                 const exRate = await getConversionRate(inv.currency || 'USD', companyCurrency);
-                const taxable = (parseFloat(inv.subtotal) || 0) * exRate;
+                const taxable = Math.max(0, (parseFloat(inv.subtotal) || 0) - (parseFloat(inv.discountAmount) || 0)) * exRate;
                 const tax = (parseFloat(inv.taxAmount) || 0) * exRate;
                 const rate = taxable > 0 ? Number(((tax / taxable) * 100).toFixed(1)) : 0;
                 const gross = (parseFloat(inv.totalAmount) || 0) * exRate;

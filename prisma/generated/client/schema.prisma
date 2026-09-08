@@ -1503,22 +1503,24 @@ model company_user {
 }
 
 model company_smtp_settings {
-  id             Int       @id @default(autoincrement())
-  companyId      Int       @unique(map: "company_smtp_settings_companyId_key")
-  host           String?   @db.VarChar(255)
-  ip             String?   @db.VarChar(255)
-  port           Int?      @default(587)
-  security       String?   @default("TLS") @db.VarChar(50)
-  username       String?   @db.VarChar(255)
-  password       String?   @db.Text
-  fromEmail      String?   @db.VarChar(255)
-  fromName       String?   @db.VarChar(255)
-  isConfigured   Boolean   @default(false)
-  lastTestedAt   DateTime?
-  lastTestStatus String?   @db.VarChar(50)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now()) @updatedAt
-  company        company   @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "company_smtp_settings_companyId_fkey")
+  id                     Int       @id @default(autoincrement())
+  companyId              Int       @unique(map: "company_smtp_settings_companyId_key")
+  host                   String?   @db.VarChar(255)
+  ip                     String?   @db.VarChar(255)
+  port                   Int?      @default(587)
+  security               String?   @default("TLS") @db.VarChar(50)
+  username               String?   @db.VarChar(255)
+  password               String?   @db.Text
+  fromEmail              String?   @db.VarChar(255)
+  fromName               String?   @db.VarChar(255)
+  invoiceSubjectTemplate String?   @db.VarChar(500)
+  invoiceBodyTemplate    String?   @db.Text
+  isConfigured           Boolean   @default(false)
+  lastTestedAt           DateTime?
+  lastTestStatus         String?   @db.VarChar(50)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @default(now()) @updatedAt
+  company                company   @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "company_smtp_settings_companyId_fkey")
 
   @@index([companyId], map: "company_smtp_settings_companyId_idx")
 }

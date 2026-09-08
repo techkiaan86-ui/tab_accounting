@@ -4,7 +4,14 @@ const { getCompanyCurrency, getCompanyHistoricalCurrency, getConversionRate } = 
 // Create Customer with Automatic Ledger Creation
 const createCustomer = async (req, res) => {
     try {
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.body?.companyId || req.query?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Company ID is required'
+            });
+        }
+        const companyId = parseInt(rawCompanyId);
         const customerData = req.body;
 
         // Validate required fields
@@ -47,7 +54,8 @@ const createCustomer = async (req, res) => {
         if (existingCustomer) {
             return res.status(409).json({
                 success: false,
-                message: 'A customer with this name or email already exists in this company.'
+                message: 'A customer with this name or email already exists in this company.',
+                data: existingCustomer
             });
         }
 
@@ -202,7 +210,7 @@ const createCustomer = async (req, res) => {
 // Get All Customers
 const getAllCustomers = async (req, res) => {
     try {
-        const rawCompanyId = req.user?.companyId || req.query.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
         if (!rawCompanyId) {
             return res.status(400).json({
                 success: false,
@@ -275,7 +283,7 @@ const getAllCustomers = async (req, res) => {
 // Get Customer by ID
 const getCustomerById = async (req, res) => {
     try {
-        const rawCompanyId = req.user?.companyId || req.query.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
         if (!rawCompanyId) {
             return res.status(400).json({
                 success: false,
@@ -360,7 +368,14 @@ const getCustomerById = async (req, res) => {
 // Update Customer
 const updateCustomer = async (req, res) => {
     try {
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.body?.companyId || req.query?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Company ID is required'
+            });
+        }
+        const companyId = parseInt(rawCompanyId);
         const { id } = req.params;
         const customerData = req.body;
 
@@ -521,7 +536,11 @@ const getCustomerStatement = async (req, res) => {
     try {
         const { id } = req.params;
         const { startDate, endDate, invoiceId } = req.query;
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+        const companyId = parseInt(rawCompanyId);
 
         const customer = await prisma.customer.findFirst({
             where: { id: parseInt(id), companyId: companyId },
@@ -714,7 +733,14 @@ const getCustomerStatement = async (req, res) => {
 // Delete Customer
 const deleteCustomer = async (req, res) => {
     try {
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Company ID is required'
+            });
+        }
+        const companyId = parseInt(rawCompanyId);
         const { id } = req.params;
 
         // Check if customer exists
@@ -817,7 +843,11 @@ const deleteCustomer = async (req, res) => {
 const recalculateBalance = async (req, res) => {
     try {
         const { id } = req.params;
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+        const companyId = parseInt(rawCompanyId);
 
         const customer = await prisma.customer.findFirst({
             where: { id: parseInt(id), companyId: companyId },
@@ -875,7 +905,11 @@ const recalculateBalance = async (req, res) => {
 // Recalculate All Customers Ledger Balances
 const recalculateAllBalances = async (req, res) => {
     try {
-        const companyId = req.user.companyId;
+        const rawCompanyId = req.query?.companyId || req.body?.companyId || req.user?.companyId;
+        if (!rawCompanyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+        const companyId = parseInt(rawCompanyId);
 
         // Fetch all customers for this company, including their ledgers
         const customers = await prisma.customer.findMany({

@@ -69109,6 +69109,8 @@ export namespace Prisma {
     password: string | null
     fromEmail: string | null
     fromName: string | null
+    invoiceSubjectTemplate: string | null
+    invoiceBodyTemplate: string | null
     isConfigured: boolean | null
     lastTestedAt: Date | null
     lastTestStatus: string | null
@@ -69127,6 +69129,8 @@ export namespace Prisma {
     password: string | null
     fromEmail: string | null
     fromName: string | null
+    invoiceSubjectTemplate: string | null
+    invoiceBodyTemplate: string | null
     isConfigured: boolean | null
     lastTestedAt: Date | null
     lastTestStatus: string | null
@@ -69145,6 +69149,8 @@ export namespace Prisma {
     password: number
     fromEmail: number
     fromName: number
+    invoiceSubjectTemplate: number
+    invoiceBodyTemplate: number
     isConfigured: number
     lastTestedAt: number
     lastTestStatus: number
@@ -69177,6 +69183,8 @@ export namespace Prisma {
     password?: true
     fromEmail?: true
     fromName?: true
+    invoiceSubjectTemplate?: true
+    invoiceBodyTemplate?: true
     isConfigured?: true
     lastTestedAt?: true
     lastTestStatus?: true
@@ -69195,6 +69203,8 @@ export namespace Prisma {
     password?: true
     fromEmail?: true
     fromName?: true
+    invoiceSubjectTemplate?: true
+    invoiceBodyTemplate?: true
     isConfigured?: true
     lastTestedAt?: true
     lastTestStatus?: true
@@ -69213,6 +69223,8 @@ export namespace Prisma {
     password?: true
     fromEmail?: true
     fromName?: true
+    invoiceSubjectTemplate?: true
+    invoiceBodyTemplate?: true
     isConfigured?: true
     lastTestedAt?: true
     lastTestStatus?: true
@@ -69318,6 +69330,8 @@ export namespace Prisma {
     password: string | null
     fromEmail: string | null
     fromName: string | null
+    invoiceSubjectTemplate: string | null
+    invoiceBodyTemplate: string | null
     isConfigured: boolean
     lastTestedAt: Date | null
     lastTestStatus: string | null
@@ -69355,6 +69369,8 @@ export namespace Prisma {
     password?: boolean
     fromEmail?: boolean
     fromName?: boolean
+    invoiceSubjectTemplate?: boolean
+    invoiceBodyTemplate?: boolean
     isConfigured?: boolean
     lastTestedAt?: boolean
     lastTestStatus?: boolean
@@ -69375,6 +69391,8 @@ export namespace Prisma {
     password?: boolean
     fromEmail?: boolean
     fromName?: boolean
+    invoiceSubjectTemplate?: boolean
+    invoiceBodyTemplate?: boolean
     isConfigured?: boolean
     lastTestedAt?: boolean
     lastTestStatus?: boolean
@@ -69402,6 +69420,8 @@ export namespace Prisma {
       password: string | null
       fromEmail: string | null
       fromName: string | null
+      invoiceSubjectTemplate: string | null
+      invoiceBodyTemplate: string | null
       isConfigured: boolean
       lastTestedAt: Date | null
       lastTestStatus: string | null
@@ -69787,6 +69807,8 @@ export namespace Prisma {
     readonly password: FieldRef<"company_smtp_settings", 'String'>
     readonly fromEmail: FieldRef<"company_smtp_settings", 'String'>
     readonly fromName: FieldRef<"company_smtp_settings", 'String'>
+    readonly invoiceSubjectTemplate: FieldRef<"company_smtp_settings", 'String'>
+    readonly invoiceBodyTemplate: FieldRef<"company_smtp_settings", 'String'>
     readonly isConfigured: FieldRef<"company_smtp_settings", 'Boolean'>
     readonly lastTestedAt: FieldRef<"company_smtp_settings", 'DateTime'>
     readonly lastTestStatus: FieldRef<"company_smtp_settings", 'String'>
@@ -89246,6 +89268,8 @@ export namespace Prisma {
     password: 'password',
     fromEmail: 'fromEmail',
     fromName: 'fromName',
+    invoiceSubjectTemplate: 'invoiceSubjectTemplate',
+    invoiceBodyTemplate: 'invoiceBodyTemplate',
     isConfigured: 'isConfigured',
     lastTestedAt: 'lastTestedAt',
     lastTestStatus: 'lastTestStatus',
@@ -96399,6 +96423,8 @@ export namespace Prisma {
     password?: StringNullableFilter<"company_smtp_settings"> | string | null
     fromEmail?: StringNullableFilter<"company_smtp_settings"> | string | null
     fromName?: StringNullableFilter<"company_smtp_settings"> | string | null
+    invoiceSubjectTemplate?: StringNullableFilter<"company_smtp_settings"> | string | null
+    invoiceBodyTemplate?: StringNullableFilter<"company_smtp_settings"> | string | null
     isConfigured?: BoolFilter<"company_smtp_settings"> | boolean
     lastTestedAt?: DateTimeNullableFilter<"company_smtp_settings"> | Date | string | null
     lastTestStatus?: StringNullableFilter<"company_smtp_settings"> | string | null
@@ -96418,6 +96444,8 @@ export namespace Prisma {
     password?: SortOrderInput | SortOrder
     fromEmail?: SortOrderInput | SortOrder
     fromName?: SortOrderInput | SortOrder
+    invoiceSubjectTemplate?: SortOrderInput | SortOrder
+    invoiceBodyTemplate?: SortOrderInput | SortOrder
     isConfigured?: SortOrder
     lastTestedAt?: SortOrderInput | SortOrder
     lastTestStatus?: SortOrderInput | SortOrder
@@ -96440,6 +96468,8 @@ export namespace Prisma {
     password?: StringNullableFilter<"company_smtp_settings"> | string | null
     fromEmail?: StringNullableFilter<"company_smtp_settings"> | string | null
     fromName?: StringNullableFilter<"company_smtp_settings"> | string | null
+    invoiceSubjectTemplate?: StringNullableFilter<"company_smtp_settings"> | string | null
+    invoiceBodyTemplate?: StringNullableFilter<"company_smtp_settings"> | string | null
     isConfigured?: BoolFilter<"company_smtp_settings"> | boolean
     lastTestedAt?: DateTimeNullableFilter<"company_smtp_settings"> | Date | string | null
     lastTestStatus?: StringNullableFilter<"company_smtp_settings"> | string | null
@@ -96459,6 +96489,8 @@ export namespace Prisma {
     password?: SortOrderInput | SortOrder
     fromEmail?: SortOrderInput | SortOrder
     fromName?: SortOrderInput | SortOrder
+    invoiceSubjectTemplate?: SortOrderInput | SortOrder
+    invoiceBodyTemplate?: SortOrderInput | SortOrder
     isConfigured?: SortOrder
     lastTestedAt?: SortOrderInput | SortOrder
     lastTestStatus?: SortOrderInput | SortOrder
@@ -96485,6 +96517,8 @@ export namespace Prisma {
     password?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
     fromEmail?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
     fromName?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    invoiceSubjectTemplate?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
+    invoiceBodyTemplate?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
     isConfigured?: BoolWithAggregatesFilter<"company_smtp_settings"> | boolean
     lastTestedAt?: DateTimeNullableWithAggregatesFilter<"company_smtp_settings"> | Date | string | null
     lastTestStatus?: StringNullableWithAggregatesFilter<"company_smtp_settings"> | string | null
@@ -105443,6 +105477,8 @@ export namespace Prisma {
     password?: string | null
     fromEmail?: string | null
     fromName?: string | null
+    invoiceSubjectTemplate?: string | null
+    invoiceBodyTemplate?: string | null
     isConfigured?: boolean
     lastTestedAt?: Date | string | null
     lastTestStatus?: string | null
@@ -105462,6 +105498,8 @@ export namespace Prisma {
     password?: string | null
     fromEmail?: string | null
     fromName?: string | null
+    invoiceSubjectTemplate?: string | null
+    invoiceBodyTemplate?: string | null
     isConfigured?: boolean
     lastTestedAt?: Date | string | null
     lastTestStatus?: string | null
@@ -105478,6 +105516,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
@@ -105497,6 +105537,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
@@ -105515,6 +105557,8 @@ export namespace Prisma {
     password?: string | null
     fromEmail?: string | null
     fromName?: string | null
+    invoiceSubjectTemplate?: string | null
+    invoiceBodyTemplate?: string | null
     isConfigured?: boolean
     lastTestedAt?: Date | string | null
     lastTestStatus?: string | null
@@ -105531,6 +105575,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
@@ -105549,6 +105595,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
@@ -112945,6 +112993,8 @@ export namespace Prisma {
     password?: SortOrder
     fromEmail?: SortOrder
     fromName?: SortOrder
+    invoiceSubjectTemplate?: SortOrder
+    invoiceBodyTemplate?: SortOrder
     isConfigured?: SortOrder
     lastTestedAt?: SortOrder
     lastTestStatus?: SortOrder
@@ -112969,6 +113019,8 @@ export namespace Prisma {
     password?: SortOrder
     fromEmail?: SortOrder
     fromName?: SortOrder
+    invoiceSubjectTemplate?: SortOrder
+    invoiceBodyTemplate?: SortOrder
     isConfigured?: SortOrder
     lastTestedAt?: SortOrder
     lastTestStatus?: SortOrder
@@ -112987,6 +113039,8 @@ export namespace Prisma {
     password?: SortOrder
     fromEmail?: SortOrder
     fromName?: SortOrder
+    invoiceSubjectTemplate?: SortOrder
+    invoiceBodyTemplate?: SortOrder
     isConfigured?: SortOrder
     lastTestedAt?: SortOrder
     lastTestStatus?: SortOrder
@@ -130015,6 +130069,8 @@ export namespace Prisma {
     password?: string | null
     fromEmail?: string | null
     fromName?: string | null
+    invoiceSubjectTemplate?: string | null
+    invoiceBodyTemplate?: string | null
     isConfigured?: boolean
     lastTestedAt?: Date | string | null
     lastTestStatus?: string | null
@@ -130032,6 +130088,8 @@ export namespace Prisma {
     password?: string | null
     fromEmail?: string | null
     fromName?: string | null
+    invoiceSubjectTemplate?: string | null
+    invoiceBodyTemplate?: string | null
     isConfigured?: boolean
     lastTestedAt?: Date | string | null
     lastTestStatus?: string | null
@@ -131638,6 +131696,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
@@ -131655,6 +131715,8 @@ export namespace Prisma {
     password?: NullableStringFieldUpdateOperationsInput | string | null
     fromEmail?: NullableStringFieldUpdateOperationsInput | string | null
     fromName?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceSubjectTemplate?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceBodyTemplate?: NullableStringFieldUpdateOperationsInput | string | null
     isConfigured?: BoolFieldUpdateOperationsInput | boolean
     lastTestedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastTestStatus?: NullableStringFieldUpdateOperationsInput | string | null
