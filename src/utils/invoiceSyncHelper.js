@@ -111,8 +111,11 @@ const syncInvoiceInDb = async (txOrPrisma, invoiceId, type = 'TAX_INVOICE', delt
             }
         });
     } else {
+        const parsedId = parseInt(invoiceId);
+        if (isNaN(parsedId)) return null;
+
         const inv = await txOrPrisma.invoice.findUnique({
-            where: { id: parseInt(invoiceId) },
+            where: { id: parsedId },
             include: {
                 allocations: true
             }

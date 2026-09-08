@@ -27,6 +27,7 @@ router.get('/cash-flow-forecast', authenticateToken, controller.getCashFlowForec
 // 5. Recurring Transactions
 router.get('/recurring', authenticateToken, controller.getRecurringTemplates);
 router.post('/recurring', authenticateToken, controller.createRecurringTemplate);
+router.put('/recurring/:id', authenticateToken, controller.updateRecurringTemplate);
 router.post('/recurring/run-pending', authenticateToken, controller.runPendingRecurringTransactions);
 router.post('/recurring/:id/run-now', authenticateToken, controller.runSingleRecurringTransaction);
 router.patch('/recurring/:id/toggle-status', authenticateToken, controller.toggleRecurringTemplateStatus);

@@ -1627,9 +1627,90 @@ const updateInvoice = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is missing' });
         }
 
+        const rawId = String(id || '');
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
+
+        if (isCombined) {
+            let custId = req.query.customerId || req.body.customerId ? parseInt(req.query.customerId || req.body.customerId) : null;
+            if (!custId && rawId.toUpperCase().includes('CUST-')) {
+                custId = parseInt(rawId.toUpperCase().split('CUST-')[1]);
+            } else if (!custId && rawId.toLowerCase().includes('combined-')) {
+                const afterPrefix = rawId.toLowerCase().replace(/combined-/i, '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
+                }
+            }
+
+            if (!custId || isNaN(custId)) {
+                return res.status(400).json({ success: false, message: 'Invalid customer ID for combined invoice' });
+            }
+
+            if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
+                const childInvoices = await prisma.invoice.findMany({
+                    where: { customerId: parseInt(custId), companyId: parseInt(companyId) },
+                    include: { allocations: true }
+                });
+
+                if (!childInvoices.length) {
+                    return res.status(404).json({ success: false, message: 'No invoices found for this combined view' });
+                }
+
+                const isManual = manualStatus === true || manualStatus === 'true';
+                let targetStatus = status;
+
+                const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+                const updatedList = [];
+
+                for (const inv of childInvoices) {
+                    let invTargetStatus = targetStatus;
+                    if (!isManual || !targetStatus || targetStatus === 'AUTO') {
+                        const allocSum = (inv.allocations || []).reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                        const computed = computeInvoiceStatusAndBalance({ ...inv, manualStatus: false }, allocSum);
+                        invTargetStatus = computed.status;
+                    }
+                    const up = await prisma.invoice.update({
+                        where: { id: inv.id },
+                        data: {
+                            manualStatus: isManual && !!status && status !== 'AUTO',
+                            status: invTargetStatus
+                        }
+                    });
+                    updatedList.push(up);
+                }
+
+                const allPaid = updatedList.every(i => i.status === 'PAID');
+                const allUnpaid = updatedList.every(i => i.status === 'UNPAID');
+                const anyOverdue = updatedList.some(i => i.status === 'OVERDUE');
+                const combinedStatus = (isManual && !!status && status !== 'AUTO')
+                    ? status
+                    : (allPaid ? 'PAID' : (anyOverdue ? 'OVERDUE' : (allUnpaid ? 'UNPAID' : 'PARTIAL')));
+
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        id: rawId,
+                        isCombined: true,
+                        status: combinedStatus,
+                        manualStatus: isManual && !!status && status !== 'AUTO',
+                        invoices: updatedList
+                    }
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: 'Combined invoices are an aggregated view. Please edit individual invoices.'
+            });
+        }
+
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
             const oldInv = await prisma.invoice.findUnique({
-                where: { id: parseInt(id) },
+                where: { id: parsedId },
                 include: { allocations: true }
             });
             if (!oldInv) return res.status(404).json({ success: false, message: 'Invoice not found' });
@@ -1645,7 +1726,7 @@ const updateInvoice = async (req, res) => {
             }
 
             const updated = await prisma.invoice.update({
-                where: { id: parseInt(id) },
+                where: { id: parsedId },
                 data: {
                     manualStatus: isManual && !!status && status !== 'AUTO',
                     status: targetStatus
@@ -1658,7 +1739,7 @@ const updateInvoice = async (req, res) => {
 
         // 1. Get existing invoice
         const existingInvoice = await prisma.invoice.findFirst({
-            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            where: { id: parsedId, companyId: parseInt(companyId) },
             include: { invoiceitem: true }
         });
 
@@ -2313,8 +2394,13 @@ const deleteInvoice = async (req, res) => {
         const { id } = req.params;
         const companyId = req.user?.companyId || req.query.companyId;
 
+        const invoiceId = parseInt(id);
+        if (isNaN(invoiceId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         const invoice = await prisma.invoice.findUnique({
-            where: { id: parseInt(id) },
+            where: { id: invoiceId },
             include: { invoiceitem: true, transaction: true }
         });
 
@@ -2733,6 +2819,10 @@ const unpayInvoice = async (req, res) => {
         const companyId = req.user?.companyId || req.body.companyId;
 
         const invoiceId = parseInt(id);
+        if (isNaN(invoiceId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         const invoice = await prisma.invoice.findUnique({
             where: { id: invoiceId },
             include: { customer: true }
@@ -3021,14 +3111,18 @@ const getInvoiceAuditTrail = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is missing' });
         }
 
-        const invoice = await prisma.invoice.findFirst({
-            where: { id: parseInt(id), companyId: parseInt(companyId) },
+        const parsedId = !isNaN(parseInt(id)) ? parseInt(id) : null;
+        const invoice = parsedId ? await prisma.invoice.findFirst({
+            where: { id: parsedId, companyId: parseInt(companyId) },
             select: { id: true, invoiceNumber: true }
-        });
+        }) : null;
 
-        const orConditions = [{ entityId: parseInt(id) }];
+        const orConditions = [];
+        if (parsedId) orConditions.push({ entityId: parsedId });
         if (invoice) {
             orConditions.push({ details: { contains: invoice.invoiceNumber } });
+        } else if (typeof id === 'string' && id) {
+            orConditions.push({ details: { contains: id } });
         }
 
         const logs = await prisma.auditlog.findMany({

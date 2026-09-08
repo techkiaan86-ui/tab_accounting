@@ -63,6 +63,7 @@ const advancedAccountingRoutes = require('./src/routes/advancedAccountingRoutes'
 const integrationRoutes = require('./src/routes/integrationRoutes');
 const bankingRoutes = require('./src/routes/bankingRoutes');
 const { startIntegrationSyncWorker } = require('./src/services/integrationSyncWorker');
+const { startRecurringSchedulerWorker } = require('./src/services/recurringSchedulerWorker');
 
 const prisma = require('./src/config/prisma');
 
@@ -237,5 +238,10 @@ app.listen(PORT, '0.0.0.0', () => {
         startIntegrationSyncWorker(30);
     } catch (e) {
         console.error('Failed to start CRM sync worker:', e.message);
+    }
+    try {
+        startRecurringSchedulerWorker(5);
+    } catch (e) {
+        console.error('Failed to start recurring scheduler worker:', e.message);
     }
 });
