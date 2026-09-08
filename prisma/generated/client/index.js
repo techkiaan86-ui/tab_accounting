@@ -1628,7 +1628,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\HGP\\Desktop\\intern projects\\TAB ACCOUNTS\\Backend\\tab_accounting\\prisma\\generated\\client",
+      "value": "I:\\tab accounts\\tab_accounting\\prisma\\generated\\client",
       "fromEnvVar": null
     },
     "config": {
@@ -1646,7 +1646,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\HGP\\Desktop\\intern projects\\TAB ACCOUNTS\\Backend\\tab_accounting\\prisma\\schema.prisma",
+    "sourceFilePath": "I:\\tab accounts\\tab_accounting\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
