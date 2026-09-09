@@ -17,7 +17,8 @@ const {
     getSmtpSettings,
     updateSmtpSettings,
     testSmtpConnection,
-    sendSmtpTestEmail
+    sendSmtpTestEmail,
+    clearSmtpSettings
 } = require('../controllers/smtpController');
 const { authenticateToken, authorizeRoles } = require('../middlewares/authMiddleware');
 const { upload } = require('../utils/cloudinaryConfig');
@@ -73,6 +74,7 @@ router.put('/period-lock', authenticateToken, updatePeriodLockSettings);
 // Direct SMTP Settings endpoints (using active companyId from token)
 router.get('/smtp-settings', authenticateToken, getSmtpSettings);
 router.put('/smtp-settings', authenticateToken, updateSmtpSettings);
+router.delete('/smtp-settings', authenticateToken, clearSmtpSettings);
 router.post('/smtp-test-connection', authenticateToken, testSmtpConnection);
 router.post('/smtp-send-test-email', authenticateToken, sendSmtpTestEmail);
 
@@ -91,6 +93,7 @@ router.put('/:id/period-lock', authenticateToken, checkCompanyAccess, updatePeri
 // SMTP Settings endpoints
 router.get('/:id/smtp-settings', authenticateToken, checkCompanyAccess, getSmtpSettings);
 router.put('/:id/smtp-settings', authenticateToken, checkCompanyAccess, updateSmtpSettings);
+router.delete('/:id/smtp-settings', authenticateToken, checkCompanyAccess, clearSmtpSettings);
 router.post('/:id/smtp-test-connection', authenticateToken, checkCompanyAccess, testSmtpConnection);
 router.post('/:id/smtp-send-test-email', authenticateToken, checkCompanyAccess, sendSmtpTestEmail);
 
