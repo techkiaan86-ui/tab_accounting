@@ -5,9 +5,23 @@ const prisma = require('../config/prisma');
  */
 const getAuditLogs = async (req, res) => {
     try {
+        const {
+            page = 1,
+            limit = 20,
+            action,
+            entity,
+            entityId,
+            invoiceId,
+            userId,
+            startDate,
+            endDate,
+            search,
+            companyId
+        } = req.query;
+
         const userRole = req.user?.role?.toUpperCase();
-        const requestedCompanyId = req.query.companyId ? parseInt(req.query.companyId) : null;
-        const userCompanyId = req.user?.companyId ? parseInt(req.user.companyId) : null;
+        const requestedCompanyId = (companyId || req.query.companyId) ? parseInt(companyId || req.query.companyId, 10) : null;
+        const userCompanyId = req.user?.companyId ? parseInt(req.user.companyId, 10) : null;
 
         const where = {};
 
@@ -19,57 +33,77 @@ const getAuditLogs = async (req, res) => {
             }
             // If neither, superadmin sees logs across all companies!
         } else {
-            const activeCompanyId = userCompanyId || requestedCompanyId;
+            const activeCompanyId = requestedCompanyId || userCompanyId;
             if (!activeCompanyId) {
                 return res.status(400).json({ message: 'Company ID is required' });
             }
             where.companyId = activeCompanyId;
         }
 
-        if (action) {
-            where.action = action;
+        if (action && typeof action === 'string' && action.trim()) {
+            where.action = action.trim();
         }
 
-        if (entity) {
-            where.entity = entity;
+        if (entity && typeof entity === 'string' && entity.trim()) {
+            where.entity = entity.trim();
         }
 
         const targetEntityId = entityId || invoiceId;
-        if (targetEntityId) {
-            where.entityId = parseInt(targetEntityId);
+        if (targetEntityId !== undefined && targetEntityId !== null && String(targetEntityId).trim()) {
+            const trimmedTarget = String(targetEntityId).trim();
+            const parsedTargetNum = parseInt(trimmedTarget, 10);
+            if (!isNaN(parsedTargetNum) && String(parsedTargetNum) === trimmedTarget) {
+                where.entityId = parsedTargetNum;
+            } else {
+                where.details = { contains: trimmedTarget };
+            }
         }
 
         if (userId) {
-            where.userId = parseInt(userId);
+            const parsedUserId = parseInt(userId, 10);
+            if (!isNaN(parsedUserId)) {
+                where.userId = parsedUserId;
+            }
         }
 
         if (startDate || endDate) {
             where.createdAt = {};
             if (startDate) {
-                where.createdAt.gte = new Date(startDate);
+                const start = new Date(startDate);
+                if (!isNaN(start.getTime())) {
+                    where.createdAt.gte = start;
+                }
             }
             if (endDate) {
                 const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999);
-                where.createdAt.lte = end;
+                if (!isNaN(end.getTime())) {
+                    end.setHours(23, 59, 59, 999);
+                    where.createdAt.lte = end;
+                }
+            }
+            if (Object.keys(where.createdAt).length === 0) {
+                delete where.createdAt;
             }
         }
 
-        if (search) {
+        if (search && typeof search === 'string' && search.trim()) {
+            const trimmedSearch = search.trim();
             const searchConditions = [
-                { userName: { contains: search } },
-                { userEmail: { contains: search } },
-                { details: { contains: search } }
+                { userName: { contains: trimmedSearch } },
+                { userEmail: { contains: trimmedSearch } },
+                { details: { contains: trimmedSearch } }
             ];
-            const parsedNum = parseInt(search);
-            if (!isNaN(parsedNum)) {
+            const parsedNum = parseInt(trimmedSearch, 10);
+            if (!isNaN(parsedNum) && String(parsedNum) === trimmedSearch) {
                 searchConditions.push({ entityId: parsedNum });
             }
             where.OR = searchConditions;
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-        const take = parseInt(limit);
+        const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+        const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+        const skip = (parsedPage - 1) * parsedLimit;
+        const take = parsedLimit;
 
         const [logs, total] = await Promise.all([
             prisma.auditlog.findMany({
@@ -103,9 +137,9 @@ const getAuditLogs = async (req, res) => {
             logs,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                totalPages: Math.ceil(total / limit)
+                page: parsedPage,
+                limit: parsedLimit,
+                totalPages: Math.ceil(total / parsedLimit) || 1
             }
         });
     } catch (err) {
