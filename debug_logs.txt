@@ -4845,3 +4845,4 @@ Server has closed the connection.
 =======
 [2026-09-07T12:24:36.333Z] 📡 getCompanyById ID: 3 | company.name: CEAC LTD. | company.invoiceLabels: {"billTo":"Bill To:","shipTo":"Ship To:","subTotal":"Sub Total","tax":"Tax","total":"Total","number":"Number:","issue":"Issue","dueDate":"Due Date:","showHeader":true,"showFooter":true,"showWarehouse":false,"showQty":true,"showUom":false,"showRate":true,"showTax":true,"showDiscount":false}
 >>>>>>> 37630b32f46575352795532c9fce45c0ec0245fb
+[2026-09-08T06:21:12.695Z] 📡 getCompanyById ID: 3 | company.name: CEAC LTD. | company.invoiceLabels: {"billTo":"Bill To:","shipTo":"Ship To:","subTotal":"Sub Total","tax":"Tax","total":"Total","number":"Number:","issue":"Issue","dueDate":"Due Date:","showHeader":true,"showFooter":true,"showWarehouse":false,"showQty":true,"showUom":false,"showRate":true,"showTax":true,"showDiscount":false}
