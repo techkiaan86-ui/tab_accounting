@@ -329,14 +329,18 @@ const postCurrencyRevaluationJournal = async (req, res) => {
         await prisma.transaction.create({
             data: {
                 date: new Date(date),
-                debitLedgerId: netGainLoss >= 0 ? controlLedger.id : fxLedger.id,
-                creditLedgerId: netGainLoss >= 0 ? fxLedger.id : controlLedger.id,
                 amount: amount,
                 voucherType: 'JOURNAL',
                 voucherNumber: voucherNumber,
                 narration: `FX Revaluation Journal #${voucherNumber}`,
                 company: {
                     connect: { id: parseInt(companyId) }
+                },
+                ledger_transaction_debitLedgerIdToledger: {
+                    connect: { id: netGainLoss >= 0 ? controlLedger.id : fxLedger.id }
+                },
+                ledger_transaction_creditLedgerIdToledger: {
+                    connect: { id: netGainLoss >= 0 ? fxLedger.id : controlLedger.id }
                 }
             }
         });
@@ -798,14 +802,18 @@ const runDepreciation = async (req, res) => {
             await prisma.transaction.create({
                 data: {
                     date: new Date(depreciationDate),
-                    debitLedgerId: expLedgerId,
-                    creditLedgerId: accLedgerId,
                     amount: depAmount,
                     voucherType: 'JOURNAL',
                     voucherNumber: voucherNumber,
                     narration: `Automated Depreciation for Asset: ${asset.assetName} (${asset.assetNumber || 'FA-' + asset.id})`,
                     company: {
                         connect: { id: parseInt(companyId) }
+                    },
+                    ledger_transaction_debitLedgerIdToledger: {
+                        connect: { id: expLedgerId }
+                    },
+                    ledger_transaction_creditLedgerIdToledger: {
+                        connect: { id: accLedgerId }
                     }
                 }
             });
