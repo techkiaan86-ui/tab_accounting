@@ -3088,13 +3088,18 @@ const sendInvoiceEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending invoice email:', error);
+        let errorMsg = error.message || 'Failed to send invoice email';
+        const isTimeout = error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'));
+        if (isTimeout) {
+            errorMsg = 'Connection timed out connecting to SMTP server (port 465/587). Cloud hosting (Railway) blocks outbound SMTP ports by default. Please test using your local backend (http://localhost:8080) or request Railway to unblock outbound SMTP.';
+        }
         const isSmtpConfigError = error.message && (
             error.message.includes('SMTP not configured') ||
             error.message.includes('Incomplete SMTP') ||
             error.message.includes('Invalid SMTP')
         );
-        const statusCode = isSmtpConfigError ? 400 : 500;
-        res.status(statusCode).json({ success: false, message: error.message || 'Failed to send invoice email' });
+        const statusCode = (isSmtpConfigError || isTimeout) ? 400 : 500;
+        res.status(statusCode).json({ success: false, message: errorMsg });
     }
 };
 
