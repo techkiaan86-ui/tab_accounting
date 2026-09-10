@@ -126,180 +126,192 @@ const deleteWarehouse = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
         }
 
-        // 1. Check stock with non-zero quantity or non-zero reservedQuantity
-        const activeStock = await prisma.stock.findFirst({
-            where: {
-                warehouseId,
-                OR: [
-                    { quantity: { not: 0 } },
-                    { reservedQuantity: { not: 0 } }
-                ]
-            }
-        });
-        if (activeStock) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it has active or reserved stock levels.' 
-            });
-        }
+        const parsedCompanyId = parseInt(companyId);
 
-        // 2. Check if there are any related items in any transaction or document tables
-
-        // Check purchase bill items (Purchase)
-        const hasPurchaseBillItem = await prisma.purchasebillitem.findFirst({ where: { warehouseId } });
-        if (hasPurchaseBillItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in purchase bills.' 
-            });
-        }
-
-        // Check invoice items (Sale)
-        const hasInvoiceItem = await prisma.invoiceitem.findFirst({ where: { warehouseId } });
-        if (hasInvoiceItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in sales invoices.' 
-            });
-        }
-
-        // Check POS invoice items (POS Sale)
-        const hasPosInvoiceItem = await prisma.posinvoiceitem.findFirst({ where: { warehouseId } });
-        if (hasPosInvoiceItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in POS invoices.' 
-            });
-        }
-
-        // Check stock transfers
-        const hasStockTransferTo = await prisma.stocktransfer.findFirst({ where: { toWarehouseId: warehouseId } });
-        const hasStockTransferItemFrom = await prisma.stocktransferitem.findFirst({ where: { fromWarehouseId: warehouseId } });
-        if (hasStockTransferTo || hasStockTransferItemFrom) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in stock transfers.' 
-            });
-        }
-
-        // Check inventory transactions (All types of transactions)
-        const hasInventoryTransaction = await prisma.inventorytransaction.findFirst({
-            where: {
-                OR: [
-                    { fromWarehouseId: warehouseId },
-                    { toWarehouseId: warehouseId }
-                ]
-            }
-        });
-        if (hasInventoryTransaction) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in inventory transactions.' 
-            });
-        }
-
-        // Check other operational tables:
-        
-        // Delivery Challans
-        const hasDeliveryChallanItem = await prisma.deliverychallanitem.findFirst({ where: { warehouseId } });
-        if (hasDeliveryChallanItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in delivery challans.' 
-            });
-        }
-
-        // Goods Receipt Notes
-        const hasGoodsReceiptNoteItem = await prisma.goodsreceiptnoteitem.findFirst({ where: { warehouseId } });
-        if (hasGoodsReceiptNoteItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in goods receipt notes.' 
-            });
-        }
-
-        // Inventory Adjustments
-        const hasInventoryAdjustment = await prisma.inventoryadjustment.findFirst({ where: { warehouseId } });
-        const hasInventoryAdjustmentItem = await prisma.inventoryadjustmentitem.findFirst({ where: { warehouseId } });
-        if (hasInventoryAdjustment || hasInventoryAdjustmentItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in inventory adjustments.' 
-            });
-        }
-
-        // Purchase Orders
-        const hasPurchaseOrderItem = await prisma.purchaseorderitem.findFirst({ where: { warehouseId } });
-        if (hasPurchaseOrderItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in purchase orders.' 
-            });
-        }
-
-        // Purchase Quotations
-        const hasPurchaseQuotationItem = await prisma.purchasequotationitem.findFirst({ where: { warehouseId } });
-        if (hasPurchaseQuotationItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in purchase quotations.' 
-            });
-        }
-
-        // Purchase Returns
-        const hasPurchaseReturnItem = await prisma.purchasereturnitem.findFirst({ where: { warehouseId } });
-        if (hasPurchaseReturnItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in purchase returns.' 
-            });
-        }
-
-        // Sales Orders
-        const hasSalesOrderItem = await prisma.salesorderitem.findFirst({ where: { warehouseId } });
-        if (hasSalesOrderItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in sales orders.' 
-            });
-        }
-
-        // Sales Quotations
-        const hasSalesQuotationItem = await prisma.salesquotationitem.findFirst({ where: { warehouseId } });
-        if (hasSalesQuotationItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in sales quotations.' 
-            });
-        }
-
-        // Sales Returns
-        const hasSalesReturnItem = await prisma.salesreturnitem.findFirst({ where: { warehouseId } });
-        if (hasSalesReturnItem) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it is referenced in sales returns.' 
-            });
-        }
-
-        // Inventory Batches
-        const hasInventoryBatch = await prisma.inventory_batch.findFirst({ where: { warehouseId } });
-        if (hasInventoryBatch) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cannot delete warehouse as it has associated inventory batches.' 
-            });
-        }
-
-        // 3. Delete the warehouse (cascade delete will handle 0-quantity stock records)
-        await prisma.warehouse.delete({
+        // 1. Verify warehouse exists and belongs to the company
+        const existingWarehouse = await prisma.warehouse.findFirst({
             where: {
                 id: warehouseId,
-                companyId: parseInt(companyId)
+                companyId: parsedCompanyId
             }
         });
 
-        res.status(200).json({ success: true, message: 'Warehouse deleted successfully' });
+        if (!existingWarehouse) {
+            return res.status(404).json({ success: false, message: 'Warehouse not found' });
+        }
+
+        // 2. Ensure company has more than one warehouse
+        const totalWarehouses = await prisma.warehouse.count({
+            where: { companyId: parsedCompanyId }
+        });
+
+        if (totalWarehouses <= 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete the only remaining warehouse of the company. Please create or designate another warehouse first.'
+            });
+        }
+
+        // 3. Find a fallback warehouse in the same company to safely reassign historical records and stock
+        const fallbackWarehouse = await prisma.warehouse.findFirst({
+            where: {
+                companyId: parsedCompanyId,
+                id: { not: warehouseId }
+            },
+            orderBy: { id: 'asc' }
+        });
+
+        if (!fallbackWarehouse) {
+            return res.status(400).json({
+                success: false,
+                message: 'No fallback warehouse found to transfer existing records.'
+            });
+        }
+
+        // 4. Perform atomic reassignments and deletion inside a Prisma transaction
+        await prisma.$transaction(async (tx) => {
+            // A. Reassign historical operational documents
+            await tx.deliverychallanitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.goodsreceiptnoteitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.inventoryadjustment.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.inventoryadjustmentitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.purchasereturnitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.salesreturnitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.stocktransfer.updateMany({
+                where: { toWarehouseId: warehouseId },
+                data: { toWarehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.stocktransferitem.updateMany({
+                where: { fromWarehouseId: warehouseId },
+                data: { fromWarehouseId: fallbackWarehouse.id }
+            });
+
+            // B. Reassign inventory transactions
+            await tx.inventorytransaction.updateMany({
+                where: { fromWarehouseId: warehouseId },
+                data: { fromWarehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.inventorytransaction.updateMany({
+                where: { toWarehouseId: warehouseId },
+                data: { toWarehouseId: fallbackWarehouse.id }
+            });
+
+            // C. Reassign sales and purchase lines
+            await tx.invoiceitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.posinvoiceitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.purchasebillitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.purchaseorderitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.purchasequotationitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.salesorderitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            await tx.salesquotationitem.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            // D. Reassign inventory batches
+            await tx.inventory_batch.updateMany({
+                where: { warehouseId },
+                data: { warehouseId: fallbackWarehouse.id }
+            });
+
+            // E. Safely merge stock records into fallback warehouse
+            const stocks = await tx.stock.findMany({
+                where: { warehouseId }
+            });
+
+            for (const s of stocks) {
+                const fallbackStock = await tx.stock.findUnique({
+                    where: {
+                        warehouseId_productId: {
+                            warehouseId: fallbackWarehouse.id,
+                            productId: s.productId
+                        }
+                    }
+                });
+
+                if (fallbackStock) {
+                    await tx.stock.update({
+                        where: { id: fallbackStock.id },
+                        data: {
+                            quantity: (fallbackStock.quantity || 0) + (s.quantity || 0),
+                            reservedQuantity: (fallbackStock.reservedQuantity || 0) + (s.reservedQuantity || 0)
+                        }
+                    });
+                    await tx.stock.delete({
+                        where: { id: s.id }
+                    });
+                } else {
+                    await tx.stock.update({
+                        where: { id: s.id },
+                        data: {
+                            warehouseId: fallbackWarehouse.id
+                        }
+                    });
+                }
+            }
+
+            // F. Delete the warehouse
+            await tx.warehouse.delete({
+                where: {
+                    id: warehouseId
+                }
+            });
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Warehouse deleted successfully. Any associated stock and transactions were safely reassigned to "${fallbackWarehouse.name}".`
+        });
 
     } catch (error) {
         console.error('Error deleting warehouse:', error);
