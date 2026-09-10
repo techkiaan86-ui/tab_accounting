@@ -290,7 +290,8 @@ exports.delete = async (req, res) => {
         }
 
         const existing = await prisma.invoice.findFirst({
-            where: { id: parseInt(id), companyId: parseInt(companyId) }
+            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            include: { customer: true, invoiceitem: { include: { product: true } } }
         });
 
         if (!existing) {
@@ -300,6 +301,13 @@ exports.delete = async (req, res) => {
         await prisma.invoice.delete({
             where: { id: parseInt(id), companyId: parseInt(companyId) }
         });
+
+        try {
+            const { logInvoiceDeleted } = require('../utils/invoiceAuditHelper');
+            await logInvoiceDeleted(req, existing);
+        } catch (auditErr) {
+            console.error('Failed to log invoice delete:', auditErr);
+        }
 
         res.json({ success: true, message: 'Invoice deleted successfully' });
     } catch (error) {

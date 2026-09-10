@@ -332,22 +332,42 @@ const logInvoiceDeleted = async (req, invoice) => {
     try {
         if (!invoice) return;
 
-        const summary = `Invoice #${invoice.invoiceNumber} deleted for Customer ID ${invoice.customerId} with amount ${fmtNum(invoice.totalAmount)}`;
+        const customerName = invoice.customer?.name || (invoice.customerId ? `Customer #${invoice.customerId}` : 'N/A');
+        const summary = `Invoice #${invoice.invoiceNumber} deleted for ${customerName} with total ${fmtNum(invoice.totalAmount)}`;
+
+        const deletedItems = (invoice.invoiceitem || []).map((i, idx) => ({
+            id: i.id,
+            itemNumber: idx + 1,
+            description: i.description || i.product?.name || `Item #${idx + 1}`,
+            productId: i.productId,
+            productName: i.product?.name || null,
+            quantity: parseFloat(i.quantity) || 0,
+            rate: parseFloat(i.rate) || 0,
+            discount: parseFloat(i.discount) || 0,
+            taxRate: parseFloat(i.taxRate) || 0,
+            amount: parseFloat(i.amount) || 0
+        }));
 
         const details = {
             invoiceNumber: invoice.invoiceNumber,
             invoiceId: invoice.id,
             action: 'DELETE',
             summary,
-            changes: [
-                { field: 'invoiceNumber', fieldLabel: 'Invoice Number', previousValue: invoice.invoiceNumber, newValue: null },
-                { field: 'customerId', fieldLabel: 'Customer ID', previousValue: invoice.customerId, newValue: null },
-                { field: 'totalAmount', fieldLabel: 'Total Amount', previousValue: fmtNum(invoice.totalAmount), newValue: null },
-                { field: 'status', fieldLabel: 'Status', previousValue: invoice.status, newValue: null }
-            ],
-            previousValue: {
+            customerName,
+            customerId: invoice.customerId,
+            poNumber: invoice.poNumber || invoice.manualReference || null,
+            totalAmount: fmtNum(invoice.totalAmount),
+            date: fmtDate(invoice.date),
+            dueDate: fmtDate(invoice.dueDate),
+            status: invoice.status,
+            items: deletedItems,
+            deletedRecord: {
                 invoiceNumber: invoice.invoiceNumber,
                 customerId: invoice.customerId,
+                customerName,
+                customerEmail: invoice.customer?.email || null,
+                customerPhone: invoice.customer?.phone || null,
+                poNumber: invoice.poNumber || invoice.manualReference || null,
                 date: fmtDate(invoice.date),
                 dueDate: fmtDate(invoice.dueDate),
                 subtotal: invoice.subtotal,
@@ -357,7 +377,35 @@ const logInvoiceDeleted = async (req, invoice) => {
                 paidAmount: invoice.paidAmount,
                 balanceAmount: invoice.balanceAmount,
                 status: invoice.status,
-                itemsCount: (invoice.invoiceitem || []).length
+                itemsCount: deletedItems.length,
+                items: deletedItems
+            },
+            changes: [
+                { field: 'invoiceNumber', fieldLabel: 'Invoice Number', previousValue: invoice.invoiceNumber, newValue: null },
+                { field: 'customer', fieldLabel: 'Customer', previousValue: customerName, newValue: null },
+                { field: 'poNumber', fieldLabel: 'Purchase Order No.', previousValue: invoice.poNumber || invoice.manualReference || null, newValue: null },
+                { field: 'totalAmount', fieldLabel: 'Total Amount', previousValue: fmtNum(invoice.totalAmount), newValue: null },
+                { field: 'date', fieldLabel: 'Invoice Date', previousValue: fmtDate(invoice.date), newValue: null },
+                { field: 'dueDate', fieldLabel: 'Due Date', previousValue: fmtDate(invoice.dueDate), newValue: null },
+                { field: 'status', fieldLabel: 'Status', previousValue: invoice.status, newValue: null },
+                { field: 'itemsCount', fieldLabel: 'Line Items Count', previousValue: `${deletedItems.length} item(s)`, newValue: null }
+            ],
+            previousValue: {
+                invoiceNumber: invoice.invoiceNumber,
+                customerId: invoice.customerId,
+                customerName,
+                poNumber: invoice.poNumber || invoice.manualReference || null,
+                date: fmtDate(invoice.date),
+                dueDate: fmtDate(invoice.dueDate),
+                subtotal: invoice.subtotal,
+                discountAmount: invoice.discountAmount,
+                taxAmount: invoice.taxAmount,
+                totalAmount: invoice.totalAmount,
+                paidAmount: invoice.paidAmount,
+                balanceAmount: invoice.balanceAmount,
+                status: invoice.status,
+                itemsCount: deletedItems.length,
+                items: deletedItems
             },
             newValue: null
         };

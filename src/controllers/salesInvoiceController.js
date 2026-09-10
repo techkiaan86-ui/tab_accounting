@@ -164,10 +164,9 @@ const adjustInvoiceWithReturns = (invoice) => {
     const paidAmount = Math.min(originalPaidAmount, adjustedTotal);
     const adjustedBalance = Math.max(0, adjustedTotal - paidAmount);
 
-    let adjustedStatus = invoice.status;
-    if (invoice.manualStatus === true || invoice.manualStatus === 'true') {
-        // Keep manually selected status
-        adjustedStatus = invoice.status;
+    let adjustedStatus;
+    if (invoice.status === 'CANCELLED' || invoice.status === 'Cancelled') {
+        adjustedStatus = isPos ? 'Cancelled' : 'CANCELLED';
     } else if (returnedTotal > 0) {
         if (adjustedTotal <= 0) {
             adjustedStatus = isPos ? 'Returned' : 'RETURNED';
@@ -177,12 +176,14 @@ const adjustInvoiceWithReturns = (invoice) => {
     } else {
         const decimals = (invoice.currency && ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'].includes(invoice.currency.toUpperCase())) ? 3 : 2;
         const tol = decimals === 3 ? 0.001 : 0.01;
-        if (adjustedBalance <= tol) {
+        if (adjustedBalance <= tol && (adjustedTotal > 0 || paidAmount > 0)) {
             adjustedStatus = isPos ? 'Paid' : 'PAID';
-        } else if (isDuePassed(invoice.dueDate)) {
+        } else if (adjustedBalance > tol && isDuePassed(invoice.dueDate)) {
             adjustedStatus = isPos ? 'Overdue' : 'OVERDUE';
-        } else if (paidAmount > tol) {
+        } else if (paidAmount > tol && adjustedBalance > tol) {
             adjustedStatus = isPos ? 'Partial' : 'PARTIAL';
+        } else if (adjustedBalance <= tol && adjustedTotal === 0) {
+            adjustedStatus = isPos ? 'Paid' : 'PAID';
         } else {
             adjustedStatus = isPos ? 'Due' : 'UNPAID';
         }
@@ -431,7 +432,8 @@ const createInvoice = async (req, res) => {
                     salespersonId: req.body.salespersonId ? parseInt(req.body.salespersonId) : null,
                     carNumber: req.body.carNumber || null,
                     invoiceNumber,
-                    manualReference,
+                    manualReference: manualReference || req.body.poNumber || null,
+                    poNumber: req.body.poNumber || req.body.purchaseOrderNumber || manualReference || null,
                     date: new Date(date),
                     dueDate: dueDate ? new Date(dueDate) : null,
                     customerId: parseInt(customerId),
@@ -447,8 +449,8 @@ const createInvoice = async (req, res) => {
                     currency: docCurrency,
                     exchangeRate: docExchangeRate,
                     notes,
-                    manualStatus: manualStatus === true || manualStatus === 'true',
-                    status: (manualStatus === true || manualStatus === 'true') && status ? status : 'UNPAID',
+                    manualStatus: false,
+                    status: 'UNPAID',
                     overallDiscount: parseFloat(overallDiscount) || 0,
                     overallDiscountType: overallDiscountType || 'percentage',
                     billingName: req.body.billingName,
@@ -1421,14 +1423,21 @@ const getInvoiceById = async (req, res) => {
                 });
             });
 
+            const allPaid = customerInvoices.length > 0 && customerInvoices.every(i => i.status === 'PAID' || (parseFloat(i.balanceAmount) || 0) <= 0.01);
+            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE' || (isDuePassed(i.dueDate) && (parseFloat(i.balanceAmount) || 0) > 0.01));
+            const hasPartial = customerInvoices.some(i => i.status === 'PARTIAL' || ((parseFloat(i.paidAmount) || 0) > 0.01 && (parseFloat(i.balanceAmount) || 0) > 0.01));
+            const combinedStatus = allPaid ? 'PAID' : (anyOverdue ? 'OVERDUE' : (hasPartial ? 'PARTIAL' : 'UNPAID'));
+
             const combinedInvoice = {
                 id: rawId,
                 invoiceNumber: rawId.toUpperCase(),
                 date: new Date(),
-                dueDate: null,
+                dueDate: customerInvoices[0]?.dueDate || null,
                 totalAmount,
                 paidAmount,
                 balanceAmount,
+                status: combinedStatus,
+                manualStatus: false,
                 currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
                 customer: customer || { name: customer?.name || 'Customer' },
                 isCombined: true,
@@ -1627,17 +1636,95 @@ const updateInvoice = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is missing' });
         }
 
+        const rawId = String(id || '');
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
+
+        if (isCombined) {
+            let custId = req.query.customerId || req.body.customerId ? parseInt(req.query.customerId || req.body.customerId) : null;
+            if (!custId && rawId.toUpperCase().includes('CUST-')) {
+                custId = parseInt(rawId.toUpperCase().split('CUST-')[1]);
+            } else if (!custId && rawId.toLowerCase().includes('combined-')) {
+                const afterPrefix = rawId.toLowerCase().replace(/combined-/i, '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
+                }
+            }
+
+            if (!custId || isNaN(custId)) {
+                return res.status(400).json({ success: false, message: 'Invalid customer ID for combined invoice' });
+            }
+
+            if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
+                const childInvoices = await prisma.invoice.findMany({
+                    where: { customerId: parseInt(custId), companyId: parseInt(companyId) },
+                    include: { allocations: true }
+                });
+
+                if (!childInvoices.length) {
+                    return res.status(404).json({ success: false, message: 'No invoices found for this combined view' });
+                }
+
+                const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+                const updatedList = [];
+
+                for (const inv of childInvoices) {
+                    let invTargetStatus;
+                    if (status === 'CANCELLED') {
+                        invTargetStatus = 'CANCELLED';
+                    } else {
+                        const allocSum = (inv.allocations || []).reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                        const computed = computeInvoiceStatusAndBalance({ ...inv, manualStatus: false }, allocSum);
+                        invTargetStatus = computed.status;
+                    }
+                    const up = await prisma.invoice.update({
+                        where: { id: inv.id },
+                        data: {
+                            manualStatus: false,
+                            status: invTargetStatus
+                        }
+                    });
+                    updatedList.push(up);
+                }
+
+                const allPaid = updatedList.every(i => i.status === 'PAID');
+                const anyOverdue = updatedList.some(i => i.status === 'OVERDUE');
+                const hasPartial = updatedList.some(i => i.status === 'PARTIAL');
+                const combinedStatus = status === 'CANCELLED' ? 'CANCELLED' : (allPaid ? 'PAID' : (anyOverdue ? 'OVERDUE' : (hasPartial ? 'PARTIAL' : 'UNPAID')));
+
+                return res.status(200).json({
+                    success: true,
+                    data: {
+                        id: rawId,
+                        isCombined: true,
+                        status: combinedStatus,
+                        manualStatus: false,
+                        invoices: updatedList
+                    }
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: 'Combined invoices are an aggregated view. Please edit individual invoices.'
+            });
+        }
+
+        const parsedId = parseInt(id);
+        if (isNaN(parsedId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         if (onlyUpdateStatus === true || onlyUpdateStatus === 'true') {
             const oldInv = await prisma.invoice.findUnique({
-                where: { id: parseInt(id) },
+                where: { id: parsedId },
                 include: { allocations: true }
             });
             if (!oldInv) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
-            const isManual = manualStatus === true || manualStatus === 'true';
-            let targetStatus = status;
-
-            if (!isManual || !targetStatus || targetStatus === 'AUTO') {
+            let targetStatus;
+            if (status === 'CANCELLED') {
+                targetStatus = 'CANCELLED';
+            } else {
                 const { computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
                 const allocSum = (oldInv.allocations || []).reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
                 const computed = computeInvoiceStatusAndBalance({ ...oldInv, manualStatus: false }, allocSum);
@@ -1645,9 +1732,9 @@ const updateInvoice = async (req, res) => {
             }
 
             const updated = await prisma.invoice.update({
-                where: { id: parseInt(id) },
+                where: { id: parsedId },
                 data: {
-                    manualStatus: isManual && !!status && status !== 'AUTO',
+                    manualStatus: false,
                     status: targetStatus
                 }
             });
@@ -1658,7 +1745,7 @@ const updateInvoice = async (req, res) => {
 
         // 1. Get existing invoice
         const existingInvoice = await prisma.invoice.findFirst({
-            where: { id: parseInt(id), companyId: parseInt(companyId) },
+            where: { id: parsedId, companyId: parseInt(companyId) },
             include: { invoiceitem: true }
         });
 
@@ -1907,7 +1994,8 @@ const updateInvoice = async (req, res) => {
                     salespersonId: req.body.salespersonId !== undefined ? (req.body.salespersonId ? parseInt(req.body.salespersonId) : null) : undefined,
                     carNumber: req.body.carNumber !== undefined ? req.body.carNumber : undefined,
                     invoiceNumber: data.invoiceNumber,
-                    manualReference: data.manualReference,
+                    manualReference: data.manualReference !== undefined ? data.manualReference : (req.body.poNumber !== undefined ? req.body.poNumber : undefined),
+                    poNumber: req.body.poNumber !== undefined ? req.body.poNumber : (req.body.purchaseOrderNumber !== undefined ? req.body.purchaseOrderNumber : (data.manualReference !== undefined ? data.manualReference : undefined)),
                     date: data.date ? new Date(data.date) : undefined,
                     dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
                     customerId: data.customerId ? parseInt(data.customerId) : undefined,
@@ -1917,9 +2005,18 @@ const updateInvoice = async (req, res) => {
                     taxAmount,
                     totalAmount,
                     paidAmount: totalAdjustedAmount,
-                    balanceAmount: totalAmount - totalAdjustedAmount,
-                    manualStatus: manualStatus === true || manualStatus === 'true',
-                    status: (manualStatus === true || manualStatus === 'true') && status ? status : ((totalAmount - totalAdjustedAmount) <= 0.01 ? 'PAID' : (isDuePassed(data.dueDate || existingInvoice.dueDate) ? 'OVERDUE' : (totalAdjustedAmount > 0.01 ? 'PARTIAL' : 'UNPAID'))),
+                    manualStatus: false,
+                    status: (existingInvoice.status === 'CANCELLED' || status === 'CANCELLED')
+                        ? 'CANCELLED'
+                        : ((totalAmount - totalAdjustedAmount) <= 0.01 && (totalAmount > 0 || totalAdjustedAmount > 0)
+                            ? 'PAID'
+                            : ((totalAmount - totalAdjustedAmount) > 0.01 && isDuePassed(data.dueDate || existingInvoice.dueDate)
+                                ? 'OVERDUE'
+                                : (totalAdjustedAmount > 0.01 && (totalAmount - totalAdjustedAmount) > 0.01
+                                    ? 'PARTIAL'
+                                    : ((totalAmount - totalAdjustedAmount) <= 0.01 && totalAmount === 0
+                                        ? 'PAID'
+                                        : 'UNPAID')))),
                     currency: currency !== undefined ? currency : undefined,
                     exchangeRate: exchangeRate !== undefined ? parseFloat(exchangeRate) : undefined,
                     overallDiscount: parseFloat(overallDiscount) || 0,
@@ -2313,9 +2410,20 @@ const deleteInvoice = async (req, res) => {
         const { id } = req.params;
         const companyId = req.user?.companyId || req.query.companyId;
 
+        const invoiceId = parseInt(id);
+        if (isNaN(invoiceId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         const invoice = await prisma.invoice.findUnique({
-            where: { id: parseInt(id) },
-            include: { invoiceitem: true, transaction: true }
+            where: { id: invoiceId },
+            include: {
+                customer: true,
+                invoiceitem: {
+                    include: { product: true }
+                },
+                transaction: true
+            }
         });
 
         if (!invoice) {
@@ -2733,6 +2841,10 @@ const unpayInvoice = async (req, res) => {
         const companyId = req.user?.companyId || req.body.companyId;
 
         const invoiceId = parseInt(id);
+        if (isNaN(invoiceId)) {
+            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        }
+
         const invoice = await prisma.invoice.findUnique({
             where: { id: invoiceId },
             include: { customer: true }
@@ -2976,13 +3088,18 @@ const sendInvoiceEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending invoice email:', error);
+        let errorMsg = error.message || 'Failed to send invoice email';
+        const isTimeout = error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'));
+        if (isTimeout) {
+            errorMsg = 'Connection timed out connecting to SMTP server (port 465/587). Cloud hosting (Railway) blocks outbound SMTP ports by default. Please test using your local backend (http://localhost:8080) or request Railway to unblock outbound SMTP.';
+        }
         const isSmtpConfigError = error.message && (
             error.message.includes('SMTP not configured') ||
             error.message.includes('Incomplete SMTP') ||
             error.message.includes('Invalid SMTP')
         );
-        const statusCode = isSmtpConfigError ? 400 : 500;
-        res.status(statusCode).json({ success: false, message: error.message || 'Failed to send invoice email' });
+        const statusCode = (isSmtpConfigError || isTimeout) ? 400 : 500;
+        res.status(statusCode).json({ success: false, message: errorMsg });
     }
 };
 
@@ -3021,14 +3138,18 @@ const getInvoiceAuditTrail = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is missing' });
         }
 
-        const invoice = await prisma.invoice.findFirst({
-            where: { id: parseInt(id), companyId: parseInt(companyId) },
+        const parsedId = !isNaN(parseInt(id)) ? parseInt(id) : null;
+        const invoice = parsedId ? await prisma.invoice.findFirst({
+            where: { id: parsedId, companyId: parseInt(companyId) },
             select: { id: true, invoiceNumber: true }
-        });
+        }) : null;
 
-        const orConditions = [{ entityId: parseInt(id) }];
+        const orConditions = [];
+        if (parsedId) orConditions.push({ entityId: parsedId });
         if (invoice) {
             orConditions.push({ details: { contains: invoice.invoiceNumber } });
+        } else if (typeof id === 'string' && id) {
+            orConditions.push({ details: { contains: id } });
         }
 
         const logs = await prisma.auditlog.findMany({

@@ -133,6 +133,9 @@ const updateSmtpSettings = async (req, res) => {
         // If new password provided, encrypt it (skip dummy mask like '••••••••')
         if (password && typeof password === 'string' && password.trim() !== '' && !password.includes('•••')) {
             encryptedPassword = encryptPassword(password.trim());
+        } else if (password === '' || password === null) {
+            // User explicitly cleared the password field
+            encryptedPassword = null;
         }
 
         const trimmedHost = (host || '').trim();
@@ -159,6 +162,11 @@ const updateSmtpSettings = async (req, res) => {
             fromName: (fromName || '').trim(),
             isConfigured
         };
+
+        if (!isConfigured) {
+            dataToSave.lastTestedAt = null;
+            dataToSave.lastTestStatus = null;
+        }
 
         if (invoiceSubjectTemplate !== undefined) {
             dataToSave.invoiceSubjectTemplate = invoiceSubjectTemplate ? invoiceSubjectTemplate.trim() : null;
@@ -415,11 +423,29 @@ const sendSmtpTestEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending test email:', error);
+
+        // Update DB test status to FAILED
+        try {
+            const cId = resolveCompanyId(req);
+            if (cId) {
+                await prisma.company_smtp_settings.updateMany({
+                    where: { companyId: cId },
+                    data: {
+                        lastTestedAt: new Date(),
+                        lastTestStatus: 'FAILED'
+                    }
+                });
+            }
+        } catch (dbErr) {}
+
         let errorMsg = error.message || 'SMTP transmission failure';
-        if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (bodyHost || '').includes('gmail.com')) {
+        const targetHost = host || req.body?.host || 'SMTP server';
+        const targetPort = port || req.body?.port || 465;
+
+        if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (targetHost || '').includes('gmail.com')) {
             errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
         } else if (error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'))) {
-            errorMsg = `Connection timed out connecting to ${bodyHost || 'SMTP server'}:${bodyPort || 587}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. Try switching to Port 587 (TLS), test locally, or request Railway to unblock SMTP.`;
+            errorMsg = `Connection timed out connecting to ${targetHost}:${targetPort}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. To send emails from Railway, please request Railway support to unblock outbound SMTP, or test using your local backend where port 465 is open.`;
         }
         return res.status(400).json({
             success: false,
@@ -428,9 +454,66 @@ const sendSmtpTestEmail = async (req, res) => {
     }
 };
 
+/**
+ * DELETE /api/companies/:id/smtp-settings or /api/companies/smtp-settings
+ * Clears saved SMTP configuration and credentials.
+ */
+const clearSmtpSettings = async (req, res) => {
+    try {
+        const companyId = resolveCompanyId(req);
+        if (!companyId) {
+            return res.status(400).json({ success: false, message: 'Company ID is required' });
+        }
+
+        if (!authorizeCompanyAccess(req, companyId)) {
+            return res.status(403).json({ success: false, message: 'Access denied to this company settings' });
+        }
+
+        await prisma.company_smtp_settings.updateMany({
+            where: { companyId },
+            data: {
+                host: '',
+                ip: '',
+                port: 587,
+                security: 'TLS',
+                username: '',
+                password: null,
+                fromEmail: '',
+                fromName: '',
+                isConfigured: false,
+                lastTestedAt: null,
+                lastTestStatus: null
+            }
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'SMTP credentials and settings cleared successfully',
+            data: {
+                companyId,
+                host: '',
+                ip: '',
+                port: 587,
+                security: 'TLS',
+                username: '',
+                fromEmail: '',
+                fromName: '',
+                hasPassword: false,
+                isConfigured: false,
+                lastTestedAt: null,
+                lastTestStatus: null
+            }
+        });
+    } catch (error) {
+        console.error('Error clearing SMTP settings:', error);
+        res.status(500).json({ success: false, message: error.message || 'Internal server error' });
+    }
+};
+
 module.exports = {
     getSmtpSettings,
     updateSmtpSettings,
     testSmtpConnection,
-    sendSmtpTestEmail
+    sendSmtpTestEmail,
+    clearSmtpSettings
 };

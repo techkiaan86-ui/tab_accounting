@@ -180,11 +180,15 @@ const getExchangeRates = () => {
             return resolve(cachedRates);
         }
         
-        // Try first API
-        https.get('https://open.er-api.com/v6/latest/USD', (res) => {
+        let reqTimer = null;
+        const cleanup = () => { if (reqTimer) clearTimeout(reqTimer); };
+
+        // Try first API with 3-second timeout
+        const req = https.get('https://open.er-api.com/v6/latest/USD', (res) => {
             let body = '';
             res.on('data', (chunk) => { body += chunk; });
             res.on('end', () => {
+                cleanup();
                 try {
                     const data = JSON.parse(body);
                     if (data && data.rates) {
@@ -195,15 +199,25 @@ const getExchangeRates = () => {
                 } catch (e) {}
                 tryAlternative();
             });
-        }).on('error', () => {
+        });
+
+        req.on('error', () => {
+            cleanup();
             tryAlternative();
         });
 
+        reqTimer = setTimeout(() => {
+            try { req.destroy(); } catch (e) {}
+            tryAlternative();
+        }, 3000);
+
         function tryAlternative() {
-            https.get('https://api.exchangerate-api.com/v4/latest/USD', (res) => {
+            let altTimer = null;
+            const altReq = https.get('https://api.exchangerate-api.com/v4/latest/USD', (res) => {
                 let body = '';
                 res.on('data', (chunk) => { body += chunk; });
                 res.on('end', () => {
+                    if (altTimer) clearTimeout(altTimer);
                     try {
                         const data = JSON.parse(body);
                         if (data && data.rates) {
@@ -214,9 +228,17 @@ const getExchangeRates = () => {
                     } catch (e) {}
                     resolve(FALLBACK_RATES);
                 });
-            }).on('error', () => {
+            });
+
+            altReq.on('error', () => {
+                if (altTimer) clearTimeout(altTimer);
                 resolve(FALLBACK_RATES);
             });
+
+            altTimer = setTimeout(() => {
+                try { altReq.destroy(); } catch (e) {}
+                resolve(FALLBACK_RATES);
+            }, 3000);
         }
     });
 };
@@ -225,9 +247,10 @@ const getExchangeRates = () => {
  * Get conversion rate from one currency to another
  */
 const getConversionRate = async (from, to) => {
-    const rates = await getExchangeRates();
     const fromUpper = (from || 'EUR').toUpperCase();
     const toUpper = (to || 'EUR').toUpperCase();
+    if (fromUpper === toUpper) return 1.0;
+    const rates = await getExchangeRates();
     const fromRate = rates[fromUpper] || FALLBACK_RATES[fromUpper] || 1.0;
     const toRate = rates[toUpper] || FALLBACK_RATES[toUpper] || 1.0;
     // from -> Base -> to

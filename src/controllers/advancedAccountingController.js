@@ -1120,6 +1120,42 @@ const getRecurringTemplates = async (req, res) => {
     }
 };
 
+const calculateNextRunDate = (fromDate, frequency) => {
+    const nextDate = new Date(fromDate);
+    const day = nextDate.getDate();
+
+    switch (frequency) {
+        case 'WEEKLY':
+            nextDate.setDate(nextDate.getDate() + 7);
+            break;
+        case 'BIWEEKLY':
+            nextDate.setDate(nextDate.getDate() + 14);
+            break;
+        case 'MONTHLY':
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            if (nextDate.getDate() !== day) {
+                nextDate.setDate(0); // clamp to last day of intended month
+            }
+            break;
+        case 'QUARTERLY':
+            nextDate.setMonth(nextDate.getMonth() + 3);
+            if (nextDate.getDate() !== day) {
+                nextDate.setDate(0);
+            }
+            break;
+        case 'ANNUALLY':
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+            break;
+        default:
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            if (nextDate.getDate() !== day) {
+                nextDate.setDate(0);
+            }
+            break;
+    }
+    return nextDate;
+};
+
 const createRecurringTemplate = async (req, res) => {
     try {
         await ensureTablesExist();
@@ -1138,19 +1174,126 @@ const createRecurringTemplate = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Template name is required' });
         }
 
+        const trimmedName = templateName.trim();
+
+        // Prevent duplicate creation from rapid double clicks (within 15 seconds) or identical active template
+        const recentDuplicates = await prisma.$queryRawUnsafe(`
+            SELECT id, templateName, createdAt FROM recurring_template
+            WHERE companyId = ? 
+              AND LOWER(templateName) = LOWER(?)
+              AND transactionType = ?
+              AND createdAt >= DATE_SUB(NOW(), INTERVAL 15 SECOND)
+            LIMIT 1
+        `, companyId, trimmedName, transactionType);
+
+        if (recentDuplicates && recentDuplicates.length > 0) {
+            return res.status(409).json({
+                success: false,
+                isDuplicate: true,
+                message: `Duplicate prevented: A recurring schedule "${trimmedName}" was just created.`
+            });
+        }
+
         const nextRunDate = new Date(startDate);
 
         await prisma.$executeRawUnsafe(`
             INSERT INTO recurring_template (templateName, transactionType, frequency, startDate, endDate, nextRunDate, totalAmount, status, templateData, companyId, executionCount)
             VALUES (?, ?, ?, ?, ?, ?, ?, 'ACTIVE', ?, ?, 0)
-        `, templateName, transactionType, frequency, new Date(startDate), endDate ? new Date(endDate) : null, nextRunDate, parseFloat(totalAmount) || 0, JSON.stringify(templateData), companyId);
+        `, trimmedName, transactionType, frequency, new Date(startDate), endDate ? new Date(endDate) : null, nextRunDate, parseFloat(totalAmount) || 0, JSON.stringify(templateData), companyId);
 
         return res.status(201).json({
             success: true,
-            message: `Recurring template "${templateName}" created successfully!`
+            message: `Recurring template "${trimmedName}" created successfully!`
         });
     } catch (error) {
         console.error('Create Recurring Template Error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+const updateRecurringTemplate = async (req, res) => {
+    try {
+        await ensureTablesExist();
+        const companyId = req.user?.companyId || parseInt(req.body.companyId);
+        const templateId = parseInt(req.params.id);
+
+        if (!companyId || !templateId) {
+            return res.status(400).json({ success: false, message: 'Company ID and Template ID are required' });
+        }
+
+        const existing = await prisma.$queryRawUnsafe(`
+            SELECT * FROM recurring_template WHERE id = ? AND companyId = ?
+        `, templateId, companyId);
+
+        if (!existing || existing.length === 0) {
+            return res.status(404).json({ success: false, message: 'Recurring template not found' });
+        }
+
+        const current = existing[0];
+        const {
+            templateName = current.templateName,
+            transactionType = current.transactionType,
+            frequency = current.frequency,
+            startDate = current.startDate,
+            endDate = current.endDate,
+            totalAmount = current.totalAmount,
+            templateData = {}
+        } = req.body;
+
+        const trimmedName = (templateName || current.templateName).trim();
+        const newStartDate = new Date(startDate);
+        const newEndDate = endDate ? new Date(endDate) : null;
+
+        // Recalculate nextRunDate if startDate was changed or if template hasn't executed yet
+        let nextRunDate = new Date(current.nextRunDate);
+        const oldStartIso = new Date(current.startDate).toISOString().split('T')[0];
+        const newStartIso = newStartDate.toISOString().split('T')[0];
+
+        if (oldStartIso !== newStartIso || current.executionCount === 0) {
+            nextRunDate = newStartDate;
+        } else if (newEndDate && nextRunDate > newEndDate) {
+            nextRunDate = newEndDate;
+        }
+
+        let newStatus = current.status;
+        if (newEndDate && nextRunDate > newEndDate) {
+            newStatus = 'COMPLETED';
+        } else if (newStatus === 'COMPLETED' && (!newEndDate || nextRunDate <= newEndDate)) {
+            newStatus = 'ACTIVE';
+        }
+
+        await prisma.$executeRawUnsafe(`
+            UPDATE recurring_template
+            SET templateName = ?,
+                transactionType = ?,
+                frequency = ?,
+                startDate = ?,
+                endDate = ?,
+                nextRunDate = ?,
+                totalAmount = ?,
+                status = ?,
+                templateData = ?
+            WHERE id = ? AND companyId = ?
+        `,
+            trimmedName,
+            transactionType,
+            frequency,
+            newStartDate,
+            newEndDate,
+            nextRunDate,
+            parseFloat(totalAmount) || 0,
+            newStatus,
+            JSON.stringify(templateData),
+            templateId,
+            companyId
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: `Recurring template "${trimmedName}" updated successfully!`
+        });
+    } catch (error) {
+        console.error('Update Recurring Template Error:', error);
         return res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -1163,53 +1306,97 @@ const executeSingleTemplate = async (t, companyId) => {
     let generated = null;
 
     if (t.transactionType === 'INVOICE') {
-        const invoiceNumber = `REC-INV-${Date.now().toString().slice(-5)}`;
+        const invoiceNumber = `REC-INV-${Date.now().toString().slice(-6)}`;
         const customerId = data.customerId ? parseInt(data.customerId) : null;
 
         if (customerId) {
-            await prisma.invoice.create({
-                data: {
-                    invoiceNumber,
-                    date: now,
-                    dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
-                    customerId,
-                    subtotal: t.totalAmount,
-                    taxAmount: 0,
-                    totalAmount: t.totalAmount,
-                    balanceAmount: t.totalAmount,
-                    currency: data.currency || 'EUR',
-                    notes: `Auto-generated from recurring template: ${t.templateName}`,
-                    status: 'UNPAID',
-                    companyId
-                }
+            const customer = await prisma.customer.findUnique({
+                where: { id: customerId }
             });
-            generated = { templateId: t.id, type: 'INVOICE', refNumber: invoiceNumber, amount: t.totalAmount };
+
+            if (customer) {
+                const inv = await prisma.invoice.create({
+                    data: {
+                        invoiceNumber,
+                        date: now,
+                        dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+                        customerId,
+                        subtotal: t.totalAmount,
+                        taxAmount: 0,
+                        totalAmount: t.totalAmount,
+                        balanceAmount: t.totalAmount,
+                        currency: data.currency || customer.currency || 'USD',
+                        billingName: customer.billingName || customer.name,
+                        billingAddress: customer.billingAddress || customer.companyLocation || '',
+                        billingCity: customer.billingCity || '',
+                        billingState: customer.billingState || '',
+                        billingCountry: customer.billingCountry || '',
+                        billingZipCode: customer.billingZipCode || '',
+                        notes: data.notes || data.narration || `Auto-generated from recurring template: ${t.templateName}`,
+                        status: 'UNPAID',
+                        companyId,
+                        invoiceitem: {
+                            create: [
+                                {
+                                    description: t.templateName || 'Recurring Service / Subscription',
+                                    quantity: 1,
+                                    rate: t.totalAmount,
+                                    amount: t.totalAmount,
+                                    taxRate: 0,
+                                    discount: 0
+                                }
+                            ]
+                        }
+                    }
+                });
+                generated = { templateId: t.id, type: 'INVOICE', refNumber: invoiceNumber, amount: t.totalAmount, id: inv.id };
+            }
         }
     } else if (t.transactionType === 'PURCHASE_BILL') {
-        const billNumber = `REC-BILL-${Date.now().toString().slice(-5)}`;
+        const billNumber = `REC-BILL-${Date.now().toString().slice(-6)}`;
         const vendorId = data.vendorId ? parseInt(data.vendorId) : null;
 
         if (vendorId) {
-            await prisma.purchasebill.create({
-                data: {
-                    billNumber,
-                    date: now,
-                    dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
-                    vendorId,
-                    subtotal: t.totalAmount,
-                    taxAmount: 0,
-                    totalAmount: t.totalAmount,
-                    balanceAmount: t.totalAmount,
-                    currency: data.currency || 'EUR',
-                    notes: `Auto-generated from recurring template: ${t.templateName}`,
-                    status: 'UNPAID',
-                    companyId
-                }
+            const vendor = await prisma.vendor.findUnique({
+                where: { id: vendorId }
             });
-            generated = { templateId: t.id, type: 'PURCHASE_BILL', refNumber: billNumber, amount: t.totalAmount };
+
+            if (vendor) {
+                const bill = await prisma.purchasebill.create({
+                    data: {
+                        billNumber,
+                        date: now,
+                        dueDate: new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000),
+                        vendorId,
+                        subtotal: t.totalAmount,
+                        taxAmount: 0,
+                        totalAmount: t.totalAmount,
+                        balanceAmount: t.totalAmount,
+                        currency: data.currency || vendor.currency || 'USD',
+                        billingName: vendor.name,
+                        billingAddress: vendor.address || '',
+                        notes: data.notes || data.narration || `Auto-generated from recurring template: ${t.templateName}`,
+                        status: 'UNPAID',
+                        companyId,
+                        purchasebillitem: {
+                            create: [
+                                {
+                                    description: t.templateName || 'Recurring Vendor Expense / Bill',
+                                    quantity: 1,
+                                    rate: t.totalAmount,
+                                    amount: t.totalAmount,
+                                    taxRate: 0,
+                                    discount: 0
+                                }
+                            ]
+                        }
+                    }
+                });
+                generated = { templateId: t.id, type: 'PURCHASE_BILL', refNumber: billNumber, amount: t.totalAmount, id: bill.id };
+            }
         }
     } else if (t.transactionType === 'JOURNAL') {
-        const voucherNumber = `REC-JV-${Date.now().toString().slice(-5)}`;
+        const voucherNumber = `REC-JV-${Date.now().toString().slice(-6)}`;
         const debitLedgerId = data.debitLedgerId ? parseInt(data.debitLedgerId) : null;
         const creditLedgerId = data.creditLedgerId ? parseInt(data.creditLedgerId) : null;
 
@@ -1217,69 +1404,66 @@ const executeSingleTemplate = async (t, companyId) => {
             const debitLedger = await prisma.ledger.findUnique({ where: { id: debitLedgerId } });
             const creditLedger = await prisma.ledger.findUnique({ where: { id: creditLedgerId } });
 
-            await prisma.voucher.create({
-                data: {
-                    voucherNumber,
-                    voucherType: 'JOURNAL',
-                    date: now,
-                    totalAmount: t.totalAmount,
-                    notes: data.narration || `Auto-generated from recurring template: ${t.templateName}`,
-                    companyId,
-                    voucheritem: {
-                        create: [
-                            {
-                                ledgerId: debitLedgerId,
-                                ledgerName: debitLedger?.name || 'Debit Account',
-                                debit: t.totalAmount,
-                                credit: 0,
-                                amount: t.totalAmount,
-                                narration: data.narration || `Recurring Journal: ${t.templateName}`
-                            },
-                            {
-                                ledgerId: creditLedgerId,
-                                ledgerName: creditLedger?.name || 'Credit Account',
-                                debit: 0,
-                                credit: t.totalAmount,
-                                amount: t.totalAmount,
-                                narration: data.narration || `Recurring Journal: ${t.templateName}`
-                            }
-                        ]
+            if (debitLedger && creditLedger) {
+                const v = await prisma.voucher.create({
+                    data: {
+                        voucherNumber,
+                        voucherType: 'JOURNAL',
+                        date: now,
+                        totalAmount: t.totalAmount,
+                        notes: data.narration || data.notes || `Auto-generated from recurring template: ${t.templateName}`,
+                        companyId,
+                        voucheritem: {
+                            create: [
+                                {
+                                    ledgerId: debitLedgerId,
+                                    ledgerName: debitLedger?.name || 'Debit Account',
+                                    debit: t.totalAmount,
+                                    credit: 0,
+                                    amount: t.totalAmount,
+                                    narration: data.narration || `Recurring Journal: ${t.templateName}`
+                                },
+                                {
+                                    ledgerId: creditLedgerId,
+                                    ledgerName: creditLedger?.name || 'Credit Account',
+                                    debit: 0,
+                                    credit: t.totalAmount,
+                                    amount: t.totalAmount,
+                                    narration: data.narration || `Recurring Journal: ${t.templateName}`
+                                }
+                            ]
+                        }
                     }
-                }
-            });
+                });
 
-            await prisma.transaction.create({
-                data: {
-                    date: now,
-                    debitLedgerId,
-                    creditLedgerId,
-                    amount: t.totalAmount,
-                    voucherType: 'JOURNAL',
-                    voucherNumber,
-                    narration: data.narration || `Recurring Journal: ${t.templateName}`,
-                    companyId
-                }
-            });
+                await prisma.transaction.create({
+                    data: {
+                        date: now,
+                        debitLedgerId,
+                        creditLedgerId,
+                        amount: t.totalAmount,
+                        voucherType: 'JOURNAL',
+                        voucherNumber,
+                        narration: data.narration || `Recurring Journal: ${t.templateName}`,
+                        companyId
+                    }
+                });
 
-            await prisma.ledger.update({
-                where: { id: debitLedgerId },
-                data: { currentBalance: { increment: t.totalAmount } }
-            });
-            await prisma.ledger.update({
-                where: { id: creditLedgerId },
-                data: { currentBalance: { decrement: t.totalAmount } }
-            });
+                await prisma.ledger.update({
+                    where: { id: debitLedgerId },
+                    data: { currentBalance: { increment: t.totalAmount } }
+                });
+                await prisma.ledger.update({
+                    where: { id: creditLedgerId },
+                    data: { currentBalance: { decrement: t.totalAmount } }
+                });
 
-            generated = { templateId: t.id, type: 'JOURNAL', refNumber: voucherNumber, amount: t.totalAmount };
+                generated = { templateId: t.id, type: 'JOURNAL', refNumber: voucherNumber, amount: t.totalAmount, id: v.id };
+            }
         }
     }
 
-    let nextDate = new Date(t.nextRunDate);
-    if (t.frequency === 'WEEKLY') nextDate.setDate(nextDate.getDate() + 7);
-    else if (t.frequency === 'BIWEEKLY') nextDate.setDate(nextDate.getDate() + 14);
-    else if (t.frequency === 'MONTHLY') nextDate.setMonth(nextDate.getMonth() + 1);
-    else if (t.frequency === 'QUARTERLY') nextDate.setMonth(nextDate.getMonth() + 3);
-    else if (t.frequency === 'ANNUALLY') nextDate.setFullYear(nextDate.getFullYear() + 1);
+    const nextDate = calculateNextRunDate(t.nextRunDate || now, t.frequency);
 
     let newStatus = t.status;
     if (t.endDate && nextDate > new Date(t.endDate)) {
@@ -1295,22 +1479,39 @@ const executeSingleTemplate = async (t, companyId) => {
     return generated;
 };
 
-const runPendingRecurringTransactions = async (req, res) => {
-    try {
-        await ensureTablesExist();
-        const companyId = req.user?.companyId || parseInt(req.body.companyId);
-        if (!companyId) return res.status(400).json({ success: false, message: 'Company ID required' });
-
-        const templates = await prisma.$queryRawUnsafe(`
+const runPendingRecurringHelper = async (companyId = null) => {
+    await ensureTablesExist();
+    let templates = [];
+    if (companyId) {
+        templates = await prisma.$queryRawUnsafe(`
             SELECT * FROM recurring_template 
             WHERE companyId = ? AND status = 'ACTIVE' AND nextRunDate <= NOW()
         `, companyId);
+    } else {
+        templates = await prisma.$queryRawUnsafe(`
+            SELECT * FROM recurring_template 
+            WHERE status = 'ACTIVE' AND nextRunDate <= NOW()
+        `);
+    }
 
-        const generated = [];
-        for (const t of templates) {
-            const resItem = await executeSingleTemplate(t, companyId);
+    const generated = [];
+    for (const t of templates) {
+        try {
+            const resItem = await executeSingleTemplate(t, t.companyId);
             if (resItem) generated.push(resItem);
+        } catch (err) {
+            console.error(`Error executing recurring template ${t.id} ("${t.templateName}"):`, err.message);
         }
+    }
+    return generated;
+};
+
+const runPendingRecurringTransactions = async (req, res) => {
+    try {
+        const companyId = req.user?.companyId || parseInt(req.body.companyId);
+        if (!companyId) return res.status(400).json({ success: false, message: 'Company ID required' });
+
+        const generated = await runPendingRecurringHelper(companyId);
 
         return res.status(200).json({
             success: true,
@@ -1495,7 +1696,10 @@ module.exports = {
     // 5. Recurring Transactions
     getRecurringTemplates,
     createRecurringTemplate,
+    updateRecurringTemplate,
     runPendingRecurringTransactions,
+    runPendingRecurringHelper,
+    executeSingleTemplate,
     runSingleRecurringTransaction,
     toggleRecurringTemplateStatus,
     deleteRecurringTemplate

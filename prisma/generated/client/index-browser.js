@@ -423,6 +423,7 @@ exports.Prisma.InvoiceScalarFieldEnum = {
   id: 'id',
   invoiceNumber: 'invoiceNumber',
   manualReference: 'manualReference',
+  poNumber: 'poNumber',
   date: 'date',
   dueDate: 'dueDate',
   customerId: 'customerId',

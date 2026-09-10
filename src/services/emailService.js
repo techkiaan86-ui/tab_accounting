@@ -27,6 +27,23 @@ try {
 }
 
 /**
+ * Helper to wrap any async SMTP operation with a hard timeout guarantee
+ */
+const executeWithTimeout = (promise, ms, opName = 'SMTP operation') => {
+    let timer;
+    const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const err = new Error(`${opName} timed out after ${ms / 1000}s`);
+            err.code = 'ETIMEDOUT';
+            reject(err);
+        }, ms);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        clearTimeout(timer);
+    });
+};
+
+/**
  * Configure Nodemailer Transporter using Company's SMTP Credentials
  * @param {Object} smtpConfig
  * @param {string} smtpConfig.host
@@ -56,9 +73,9 @@ const createCompanyTransporter = (smtpConfig) => {
             rejectUnauthorized: false,
             servername: smtpConfig.host
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 6000
     };
 
     // If a custom Server IP is provided, use it for localAddress
@@ -75,8 +92,12 @@ const createCompanyTransporter = (smtpConfig) => {
  */
 const verifySmtpConnection = async (smtpConfig) => {
     const transporter = createCompanyTransporter(smtpConfig);
-    await transporter.verify();
-    return { success: true, message: 'SMTP connection established successfully!' };
+    try {
+        await executeWithTimeout(transporter.verify(), 6500, 'Verifying SMTP connection');
+        return { success: true, message: 'SMTP connection established successfully!' };
+    } finally {
+        try { transporter.close(); } catch (e) {}
+    }
 };
 
 /**
@@ -92,11 +113,12 @@ const sendSmtpTestEmail = async ({ smtpConfig, toEmail, companyName }) => {
     }
 
     const transporter = createCompanyTransporter(smtpConfig);
-    const compName = companyName || smtpConfig.fromName || 'Tab Accounts';
-    const fromEmail = smtpConfig.fromEmail || smtpConfig.username;
-    const fromAddress = `"${compName}" <${fromEmail}>`;
+    try {
+        const compName = companyName || smtpConfig.fromName || 'Tab Accounts';
+        const fromEmail = smtpConfig.fromEmail || smtpConfig.username;
+        const fromAddress = `"${compName}" <${fromEmail}>`;
 
-    const htmlContent = `
+        const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -156,19 +178,22 @@ const sendSmtpTestEmail = async ({ smtpConfig, toEmail, companyName }) => {
 </html>
     `;
 
-    const info = await transporter.sendMail({
-        from: fromAddress,
-        to: toEmail,
-        subject: `Test Email from ${compName} - SMTP Configuration Verified`,
-        html: htmlContent,
-        text: `Test email from ${compName}. Your SMTP settings (${smtpConfig.host}:${smtpConfig.port}) are working correctly.`
-    });
+        const info = await executeWithTimeout(transporter.sendMail({
+            from: fromAddress,
+            to: toEmail,
+            subject: `Test Email from ${compName} - SMTP Configuration Verified`,
+            html: htmlContent,
+            text: `Test email from ${compName}. Your SMTP settings (${smtpConfig.host}:${smtpConfig.port}) are working correctly.`
+        }), 7500, 'Sending test email');
 
-    return {
-        success: true,
-        messageId: info.messageId,
-        message: `Test email sent successfully to ${toEmail}`
-    };
+        return {
+            success: true,
+            messageId: info.messageId,
+            message: `Test email sent successfully to ${toEmail}`
+        };
+    } finally {
+        try { transporter.close(); } catch (e) {}
+    }
 };
 
 /**
@@ -353,69 +378,73 @@ const sendInvoiceEmail = async ({
         ip: smtpSettings.ip
     });
 
-    const companyName = company?.name || smtpSettings.fromName || 'Tab Accounts';
-    const senderEmail = smtpSettings.fromEmail || smtpSettings.username;
-    const fromAddress = `"${smtpSettings.fromName || companyName}" <${senderEmail}>`;
+    try {
+        const companyName = company?.name || smtpSettings.fromName || 'Tab Accounts';
+        const senderEmail = smtpSettings.fromEmail || smtpSettings.username;
+        const fromAddress = `"${smtpSettings.fromName || companyName}" <${senderEmail}>`;
 
-    const invoiceNumber = invoice?.invoiceNumber || `INV-${invoice?.id}`;
-    const mailSubject = subject || `Invoice #${invoiceNumber} from ${companyName}`;
+        const invoiceNumber = invoice?.invoiceNumber || `INV-${invoice?.id}`;
+        const mailSubject = subject || `Invoice #${invoiceNumber} from ${companyName}`;
 
-    const htmlContent = generateInvoiceEmailHtml({
-        invoice,
-        company,
-        customMessage,
-        publicUrl
-    });
+        const htmlContent = generateInvoiceEmailHtml({
+            invoice,
+            company,
+            customMessage,
+            publicUrl
+        });
 
-    const mailOptions = {
-        from: fromAddress,
-        to: recipientEmail,
-        subject: mailSubject,
-        html: htmlContent,
-        text: `Invoice #${invoiceNumber} from ${companyName}\nTotal Amount: ${invoice?.currency || 'EUR'} ${invoice?.totalAmount}\nDue Date: ${invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon receipt'}\n\nView invoice online: ${publicUrl || ''}`
-    };
+        const mailOptions = {
+            from: fromAddress,
+            to: recipientEmail,
+            subject: mailSubject,
+            html: htmlContent,
+            text: `Invoice #${invoiceNumber} from ${companyName}\nTotal Amount: ${invoice?.currency || 'EUR'} ${invoice?.totalAmount}\nDue Date: ${invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon receipt'}\n\nView invoice online: ${publicUrl || ''}`
+        };
 
-    if (bccEmail) {
-        mailOptions.bcc = bccEmail;
-    }
-
-    // Attach PDF if requested
-    if (attachPdf) {
-        let finalBuffer = pdfBuffer;
-
-        if (!finalBuffer && pdfBase64) {
-            const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
-            finalBuffer = Buffer.from(cleanBase64, 'base64');
+        if (bccEmail) {
+            mailOptions.bcc = bccEmail;
         }
 
-        if (!finalBuffer) {
-            try {
-                finalBuffer = await generateInvoicePdfBuffer({ invoice, company });
-            } catch (pdfErr) {
-                console.warn('[EmailService] Failed to generate automatic PDF buffer:', pdfErr.message);
+        // Attach PDF if requested
+        if (attachPdf) {
+            let finalBuffer = pdfBuffer;
+
+            if (!finalBuffer && pdfBase64) {
+                const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
+                finalBuffer = Buffer.from(cleanBase64, 'base64');
+            }
+
+            if (!finalBuffer) {
+                try {
+                    finalBuffer = await generateInvoicePdfBuffer({ invoice, company });
+                } catch (pdfErr) {
+                    console.warn('[EmailService] Failed to generate automatic PDF buffer:', pdfErr.message);
+                }
+            }
+
+            if (finalBuffer) {
+                mailOptions.attachments = [
+                    {
+                        filename: `Invoice_${invoiceNumber}.pdf`,
+                        content: finalBuffer,
+                        contentType: 'application/pdf'
+                    }
+                ];
             }
         }
 
-        if (finalBuffer) {
-            mailOptions.attachments = [
-                {
-                    filename: `Invoice_${invoiceNumber}.pdf`,
-                    content: finalBuffer,
-                    contentType: 'application/pdf'
-                }
-            ];
-        }
+        const info = await executeWithTimeout(transporter.sendMail(mailOptions), 8000, 'Sending invoice email');
+        console.log(`[EmailService] Invoice #${invoiceNumber} sent to ${recipientEmail} via ${smtpSettings.host}. MessageId: ${info.messageId}`);
+
+        return {
+            success: true,
+            messageId: info.messageId,
+            recipient: recipientEmail,
+            isSimulated: false
+        };
+    } finally {
+        try { transporter.close(); } catch (e) {}
     }
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[EmailService] Invoice #${invoiceNumber} sent to ${recipientEmail} via ${smtpSettings.host}. MessageId: ${info.messageId}`);
-
-    return {
-        success: true,
-        messageId: info.messageId,
-        recipient: recipientEmail,
-        isSimulated: false
-    };
 };
 
 module.exports = {

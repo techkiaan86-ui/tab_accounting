@@ -83,7 +83,7 @@ const getSuperAdminDashboardStats = async (req, res) => {
 // Company Dashboard Stats
 const getCompanyDashboardStats = async (req, res) => {
     try {
-        const companyId = req.user.companyId || req.query.companyId || (req.body && req.body.companyId);
+        const companyId = req.query.companyId || req.user.companyId || (req.body && req.body.companyId);
 
         if (!companyId) {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
@@ -149,7 +149,7 @@ const getCompanyDashboardStats = async (req, res) => {
         // 3. Calculate Net Profit
         const netProfit = totalRevenue - totalExpenses;
 
-        // 3.5. General Counts
+        // 3.5. General Counts & Invoiced/Purchased Aggregates
         const customerCount = await prisma.customer.count({ where: { companyId: compId } });
         const vendorCount = await prisma.vendor.count({ where: { companyId: compId } });
         const productCount = await prisma.product.count({ where: { companyId: compId } });
@@ -164,6 +164,28 @@ const getCompanyDashboardStats = async (req, res) => {
         const purchaseBillCount = await prisma.purchasebill.count({
             where: { companyId: compId, NOT: { status: 'CANCELLED' } }
         });
+
+        // Real Total Activities / Transactions count
+        const totalActivitiesCount = await prisma.transaction.count({
+            where: { companyId: compId }
+        });
+
+        // Aggregate gross invoiced sales and gross purchases
+        const invoiceTotals = await prisma.invoice.aggregate({
+            where: { companyId: compId, NOT: { status: 'CANCELLED' } },
+            _sum: { totalAmount: true }
+        });
+        const posTotals = await prisma.posinvoice.aggregate({
+            where: { companyId: compId },
+            _sum: { totalAmount: true }
+        });
+        const totalInvoiced = ((invoiceTotals._sum.totalAmount || 0) + (posTotals._sum.totalAmount || 0)) * rate;
+
+        const purchaseBillTotals = await prisma.purchasebill.aggregate({
+            where: { companyId: compId, NOT: { status: 'CANCELLED' } },
+            _sum: { totalAmount: true }
+        });
+        const totalPurchased = (purchaseBillTotals._sum.totalAmount || 0) * rate;
 
         // 4. Recent Transactions (Limit 5)
         const recentTransactions = await prisma.transaction.findMany({
@@ -185,11 +207,37 @@ const getCompanyDashboardStats = async (req, res) => {
             status: 'Completed'
         }));
 
-        // 5. Monthly Data for Charts (Based on Current Year's Transactions)
+        // 5. Monthly Data for Charts (Based on Current Year's Sales, Purchases, and Transactions)
         const monthsList = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const currentYear = new Date().getFullYear();
         const startOfYear = new Date(currentYear, 0, 1);
         const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+        const yearInvoices = await prisma.invoice.findMany({
+            where: {
+                companyId: compId,
+                NOT: { status: 'CANCELLED' },
+                date: { gte: startOfYear, lte: endOfYear }
+            },
+            select: { date: true, totalAmount: true }
+        });
+
+        const yearPosInvoices = await prisma.posinvoice.findMany({
+            where: {
+                companyId: compId,
+                date: { gte: startOfYear, lte: endOfYear }
+            },
+            select: { date: true, totalAmount: true }
+        });
+
+        const yearPurchaseBills = await prisma.purchasebill.findMany({
+            where: {
+                companyId: compId,
+                NOT: { status: 'CANCELLED' },
+                date: { gte: startOfYear, lte: endOfYear }
+            },
+            select: { date: true, totalAmount: true }
+        });
 
         const yearTransactions = await prisma.transaction.findMany({
             where: {
@@ -198,8 +246,25 @@ const getCompanyDashboardStats = async (req, res) => {
             }
         });
 
+        const monthlySales = Array(12).fill(0);
+        const monthlyPurchases = Array(12).fill(0);
         const monthlyRevenue = Array(12).fill(0);
         const monthlyExpense = Array(12).fill(0);
+
+        yearInvoices.forEach(inv => {
+            const m = new Date(inv.date).getMonth();
+            monthlySales[m] += (inv.totalAmount || 0) * rate;
+        });
+
+        yearPosInvoices.forEach(pos => {
+            const m = new Date(pos.date).getMonth();
+            monthlySales[m] += (pos.totalAmount || 0) * rate;
+        });
+
+        yearPurchaseBills.forEach(pb => {
+            const m = new Date(pb.date).getMonth();
+            monthlyPurchases[m] += (pb.totalAmount || 0) * rate;
+        });
 
         yearTransactions.forEach(txn => {
             const m = new Date(txn.date).getMonth();
@@ -226,6 +291,8 @@ const getCompanyDashboardStats = async (req, res) => {
 
         const chartData = monthsList.map((m, i) => ({
             name: m,
+            sales: Math.max(0, monthlySales[i]),
+            purchases: Math.max(0, monthlyPurchases[i]),
             revenue: Math.max(0, monthlyRevenue[i]),
             expense: Math.max(0, monthlyExpense[i])
         }));
@@ -339,6 +406,8 @@ const getCompanyDashboardStats = async (req, res) => {
             success: true,
             data: {
                 totalRevenue,
+                totalInvoiced,
+                totalPurchased,
                 totalExpenses,
                 netProfit,
                 customerCount,
@@ -346,6 +415,7 @@ const getCompanyDashboardStats = async (req, res) => {
                 productCount,
                 saleInvoiceCount,
                 purchaseBillCount,
+                activityCount: totalActivitiesCount,
                 recentTransactions: formattedTransactions,
                 chartData,
                 topProducts,
