@@ -3839,7 +3839,7 @@ const getDepartmentalPnL = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
         }
 
-        const { startDate, endDate, groupBy = 'department' } = req.query;
+        const { startDate, endDate, groupBy = 'operational' } = req.query;
         const companyCurrency = await getCompanyCurrency(companyId);
 
         const whereDate = {};
@@ -3850,144 +3850,307 @@ const getDepartmentalPnL = async (req, res) => {
             whereDate.lte = end;
         }
 
-        // Fetch income and expense transactions using correct Prisma relation aliases
-        const transactions = await prisma.transaction.findMany({
-            where: {
-                companyId,
-                date: Object.keys(whereDate).length > 0 ? whereDate : undefined
-            },
-            include: {
-                ledger_transaction_debitLedgerIdToledger: {
-                    include: { accountgroup: true }
-                },
-                ledger_transaction_creditLedgerIdToledger: {
-                    include: { accountgroup: true }
-                }
+        // Cache conversion rates for high performance
+        const rateCache = {};
+        const getRate = async (curr) => {
+            const c = curr || companyCurrency || 'EUR';
+            if (c === companyCurrency) return 1.0;
+            if (!rateCache[c]) {
+                rateCache[c] = await getConversionRate(c, companyCurrency);
             }
-        });
-
-        // Default departments
-        const departments = ['Operations & Delivery', 'Sales & Marketing', 'General & Administration', 'Consulting & Projects', 'Client Services'];
-        const pnlByDept = {};
-
-        departments.forEach(dept => {
-            pnlByDept[dept] = {
-                name: dept,
-                revenue: 0,
-                cogs: 0,
-                expenses: 0,
-                grossProfit: 0,
-                netProfit: 0,
-                marginPct: 0,
-                items: []
-            };
-        });
-
-        pnlByDept['General & Corporate'] = {
-            name: 'General & Corporate',
-            revenue: 0,
-            cogs: 0,
-            expenses: 0,
-            grossProfit: 0,
-            netProfit: 0,
-            marginPct: 0,
-            items: []
+            return rateCache[c] || 1.0;
         };
 
-        // Also fetch Invoices & Bills directly to guarantee accurate top-level revenue and costs
-        const [invoices, bills] = await Promise.all([
+        // Fetch Invoices, Purchase Bills, POS Invoices, Transactions, Categories, Warehouses
+        const [invoices, bills, posInvoices, transactions, categories, warehouses] = await Promise.all([
             prisma.invoice.findMany({
                 where: {
                     companyId,
                     date: Object.keys(whereDate).length > 0 ? whereDate : undefined
                 },
-                select: { id: true, invoiceNumber: true, totalAmount: true, subtotal: true, currency: true, date: true }
+                include: {
+                    invoiceitem: {
+                        include: { product: { include: { category: true } }, warehouse: true }
+                    }
+                }
             }),
             prisma.purchasebill.findMany({
                 where: {
                     companyId,
                     date: Object.keys(whereDate).length > 0 ? whereDate : undefined
                 },
-                select: { id: true, billNumber: true, totalAmount: true, subtotal: true, currency: true, date: true }
-            })
+                include: {
+                    purchasebillitem: {
+                        include: { product: { include: { category: true } }, warehouse: true }
+                    }
+                }
+            }),
+            prisma.posinvoice.findMany({
+                where: {
+                    companyId,
+                    date: Object.keys(whereDate).length > 0 ? whereDate : undefined
+                },
+                include: {
+                    posinvoiceitem: {
+                        include: { product: { include: { category: true } } }
+                    }
+                }
+            }),
+            prisma.transaction.findMany({
+                where: {
+                    companyId,
+                    date: Object.keys(whereDate).length > 0 ? whereDate : undefined
+                },
+                include: {
+                    ledger_transaction_debitLedgerIdToledger: {
+                        include: { accountgroup: true, accountsubgroup: true }
+                    },
+                    ledger_transaction_creditLedgerIdToledger: {
+                        include: { accountgroup: true, accountsubgroup: true }
+                    }
+                }
+            }),
+            prisma.category.findMany({ where: { companyId } }),
+            prisma.warehouse.findMany({ where: { companyId } })
         ]);
 
-        // Distribute invoices across departments
-        for (let i = 0; i < invoices.length; i++) {
-            const inv = invoices[i];
-            const rate = await getConversionRate(inv.currency || 'EUR', companyCurrency);
-            const amt = parseFloat(inv.subtotal || inv.totalAmount || 0) * rate;
-            const deptKey = departments[i % (departments.length - 1)]; // Distribute across primary revenue departments
-            if (pnlByDept[deptKey]) {
-                pnlByDept[deptKey].revenue += amt;
-            }
-        }
-
-        // Distribute purchase bills (COGS & direct costs)
-        for (let i = 0; i < bills.length; i++) {
-            const bill = bills[i];
-            const rate = await getConversionRate(bill.currency || 'EUR', companyCurrency);
-            const amt = parseFloat(bill.subtotal || bill.totalAmount || 0) * rate;
-            const deptKey = i % 2 === 0 ? 'Operations & Delivery' : 'General & Administration';
-            if (pnlByDept[deptKey]) {
-                pnlByDept[deptKey].cogs += amt;
-            }
-        }
-
-        // Process other expense/income transactions (vouchers, manual journals)
-        transactions.forEach((tx, idx) => {
-            const amt = parseFloat(tx.amount || 0);
-            if (amt <= 0) return;
-
-            // If it's already an invoice or bill transaction, skip double count if recorded above
-            if (tx.voucherType === 'SALES' || tx.voucherType === 'PURCHASE') return;
-
-            let assignedDept = 'General & Corporate';
-            const narration = (tx.narration || '').toLowerCase();
-            if (narration.includes('sales') || narration.includes('marketing') || narration.includes('ad')) {
-                assignedDept = 'Sales & Marketing';
-            } else if (narration.includes('cogs') || narration.includes('delivery') || narration.includes('freight')) {
-                assignedDept = 'Operations & Delivery';
-            } else if (narration.includes('consult') || narration.includes('project') || narration.includes('service')) {
-                assignedDept = 'Consulting & Projects';
-            } else if (narration.includes('rent') || narration.includes('salary') || narration.includes('office') || narration.includes('depreciation')) {
-                assignedDept = 'General & Administration';
-            }
-
-            const target = pnlByDept[assignedDept] || pnlByDept['General & Corporate'];
-            const debitGroup = tx.ledger_transaction_debitLedgerIdToledger?.accountgroup?.type || '';
-            const creditGroup = tx.ledger_transaction_creditLedgerIdToledger?.accountgroup?.type || '';
-
-            if (creditGroup === 'INCOME') {
-                target.revenue += amt;
-            } else if (debitGroup === 'EXPENSES') {
-                target.expenses += amt;
-            }
-        });
-
-        // Compute Gross & Net Profits
+        let breakdown = [];
         let totalRev = 0;
         let totalCogs = 0;
         let totalExp = 0;
         let totalNet = 0;
 
-        const breakdown = Object.values(pnlByDept).map(d => {
-            d.grossProfit = d.revenue - d.cogs;
-            d.netProfit = d.grossProfit - d.expenses;
-            d.marginPct = d.revenue > 0 ? ((d.netProfit / d.revenue) * 100).toFixed(1) : (d.netProfit < 0 ? '-100.0' : '0.0');
+        if (groupBy === 'category') {
+            // Group by Product Categories
+            const catMap = {};
+            categories.forEach(cat => {
+                catMap[cat.id] = { id: cat.id, name: cat.name, revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+            });
+            catMap['uncategorized'] = { id: 'uncategorized', name: 'Uncategorized / Direct', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
 
-            totalRev += d.revenue;
-            totalCogs += d.cogs;
-            totalExp += d.expenses;
-            totalNet += d.netProfit;
+            for (const inv of invoices) {
+                const rate = await getRate(inv.currency);
+                for (const item of (inv.invoiceitem || [])) {
+                    const catId = item.product?.categoryId || 'uncategorized';
+                    const rev = parseFloat(item.amount || item.total || 0) * rate;
+                    const cost = (parseFloat(item.quantity || 0) * parseFloat(item.product?.purchasePrice || item.product?.initialCost || 0)) * rate;
+                    if (!catMap[catId]) {
+                        catMap[catId] = { id: catId, name: item.product?.category?.name || 'General', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+                    }
+                    catMap[catId].revenue += rev;
+                    catMap[catId].cogs += cost;
+                    catMap[catId].docCount++;
+                }
+            }
 
-            return d;
-        });
+            for (const pos of posInvoices) {
+                for (const item of (pos.posinvoiceitem || [])) {
+                    const catId = item.product?.categoryId || 'uncategorized';
+                    const rev = parseFloat(item.subtotal || item.total || 0);
+                    const cost = (parseFloat(item.quantity || 0) * parseFloat(item.product?.purchasePrice || item.product?.initialCost || 0));
+                    if (!catMap[catId]) {
+                        catMap[catId] = { id: catId, name: item.product?.category?.name || 'General', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+                    }
+                    catMap[catId].revenue += rev;
+                    catMap[catId].cogs += cost;
+                    catMap[catId].docCount++;
+                }
+            }
+
+            breakdown = Object.values(catMap).filter(c => c.revenue > 0 || c.cogs > 0).map(c => {
+                c.grossProfit = c.revenue - c.cogs;
+                c.netProfit = c.grossProfit - c.expenses;
+                c.marginPct = c.revenue > 0 ? ((c.netProfit / c.revenue) * 100).toFixed(1) : (c.netProfit < 0 ? '-100.0' : '0.0');
+                totalRev += c.revenue;
+                totalCogs += c.cogs;
+                totalExp += c.expenses;
+                totalNet += c.netProfit;
+                return c;
+            });
+        } else if (groupBy === 'warehouse') {
+            // Group by Warehouses
+            const whMap = {};
+            warehouses.forEach(wh => {
+                whMap[wh.id] = { id: wh.id, name: wh.name, location: wh.location || '', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+            });
+            whMap['unassigned'] = { id: 'unassigned', name: 'Default / Unassigned', location: '', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+
+            for (const inv of invoices) {
+                const rate = await getRate(inv.currency);
+                for (const item of (inv.invoiceitem || [])) {
+                    const whId = item.warehouseId || 'unassigned';
+                    const rev = parseFloat(item.amount || item.total || 0) * rate;
+                    const cost = (parseFloat(item.quantity || 0) * parseFloat(item.product?.purchasePrice || item.product?.initialCost || 0)) * rate;
+                    if (!whMap[whId]) {
+                        whMap[whId] = { id: whId, name: item.warehouse?.name || 'Warehouse', location: '', revenue: 0, cogs: 0, expenses: 0, docCount: 0 };
+                    }
+                    whMap[whId].revenue += rev;
+                    whMap[whId].cogs += cost;
+                    whMap[whId].docCount++;
+                }
+            }
+
+            for (const bill of bills) {
+                const rate = await getRate(bill.currency);
+                for (const item of (bill.purchasebillitem || [])) {
+                    const whId = item.warehouseId || 'unassigned';
+                    const cost = parseFloat(item.amount || item.total || 0) * rate;
+                    if (whMap[whId]) {
+                        whMap[whId].cogs += cost;
+                    }
+                }
+            }
+
+            breakdown = Object.values(whMap).filter(w => w.revenue > 0 || w.cogs > 0).map(w => {
+                w.grossProfit = w.revenue - w.cogs;
+                w.netProfit = w.grossProfit - w.expenses;
+                w.marginPct = w.revenue > 0 ? ((w.netProfit / w.revenue) * 100).toFixed(1) : (w.netProfit < 0 ? '-100.0' : '0.0');
+                totalRev += w.revenue;
+                totalCogs += w.cogs;
+                totalExp += w.expenses;
+                totalNet += w.netProfit;
+                return w;
+            });
+        } else {
+            // Default: Real Operational Departments / Business Units
+            const operationalDepts = {
+                'Sales & Invoicing': {
+                    name: 'Sales & Invoicing',
+                    code: 'SALES',
+                    description: 'Direct customer & wholesale sales invoices',
+                    revenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    grossProfit: 0,
+                    netProfit: 0,
+                    marginPct: 0,
+                    docCount: 0
+                },
+                'Point of Sale (POS)': {
+                    name: 'Point of Sale (POS)',
+                    code: 'POS',
+                    description: 'Retail cash counters & point-of-sale registers',
+                    revenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    grossProfit: 0,
+                    netProfit: 0,
+                    marginPct: 0,
+                    docCount: 0
+                },
+                'Purchasing & Procurement': {
+                    name: 'Purchasing & Procurement',
+                    code: 'PURCHASE',
+                    description: 'Vendor purchase bills & material acquisitions',
+                    revenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    grossProfit: 0,
+                    netProfit: 0,
+                    marginPct: 0,
+                    docCount: 0
+                },
+                'General & Administration': {
+                    name: 'General & Administration',
+                    code: 'ADMIN',
+                    description: 'Overheads: rent, salaries, utilities & depreciation',
+                    revenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    grossProfit: 0,
+                    netProfit: 0,
+                    marginPct: 0,
+                    docCount: 0
+                },
+                'Finance & Treasury': {
+                    name: 'Finance & Treasury',
+                    code: 'FINANCE',
+                    description: 'Banking fees, interest, and financial operations',
+                    revenue: 0,
+                    cogs: 0,
+                    expenses: 0,
+                    grossProfit: 0,
+                    netProfit: 0,
+                    marginPct: 0,
+                    docCount: 0
+                }
+            };
+
+            // 1. Invoices
+            for (const inv of invoices) {
+                const rate = await getRate(inv.currency);
+                const invRev = parseFloat(inv.subtotal || inv.totalAmount || 0) * rate;
+                operationalDepts['Sales & Invoicing'].revenue += invRev;
+                operationalDepts['Sales & Invoicing'].docCount++;
+
+                for (const item of (inv.invoiceitem || [])) {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const unitCost = parseFloat(item.product?.purchasePrice || item.product?.initialCost || 0);
+                    operationalDepts['Sales & Invoicing'].cogs += (qty * unitCost) * rate;
+                }
+            }
+
+            // 2. POS Invoices
+            for (const pos of posInvoices) {
+                const posRev = parseFloat(pos.subtotal || pos.totalAmount || 0);
+                operationalDepts['Point of Sale (POS)'].revenue += posRev;
+                operationalDepts['Point of Sale (POS)'].docCount++;
+
+                for (const item of (pos.posinvoiceitem || [])) {
+                    const qty = parseFloat(item.quantity) || 0;
+                    const unitCost = parseFloat(item.product?.purchasePrice || item.product?.initialCost || 0);
+                    operationalDepts['Point of Sale (POS)'].cogs += (qty * unitCost);
+                }
+            }
+
+            // 3. Purchase Bills
+            for (const bill of bills) {
+                const rate = await getRate(bill.currency);
+                const billCost = parseFloat(bill.subtotal || bill.totalAmount || 0) * rate;
+                operationalDepts['Purchasing & Procurement'].cogs += billCost;
+                operationalDepts['Purchasing & Procurement'].docCount++;
+            }
+
+            // 4. Ledger Transactions
+            transactions.forEach(tx => {
+                const amt = parseFloat(tx.amount || 0);
+                if (amt <= 0) return;
+                if (tx.voucherType === 'SALES' || tx.voucherType === 'PURCHASE') return;
+
+                const debitGroup = tx.ledger_transaction_debitLedgerIdToledger?.accountgroup?.type || '';
+                const creditGroup = tx.ledger_transaction_creditLedgerIdToledger?.accountgroup?.type || '';
+                const debitName = (tx.ledger_transaction_debitLedgerIdToledger?.name || '').toLowerCase();
+                const narration = (tx.narration || '').toLowerCase();
+
+                const isFinance = debitName.includes('bank') || debitName.includes('interest') || debitName.includes('fee') || debitName.includes('charge') || narration.includes('bank') || narration.includes('interest');
+                const targetDept = isFinance ? 'Finance & Treasury' : 'General & Administration';
+
+                if (creditGroup === 'INCOME') {
+                    operationalDepts[targetDept].revenue += amt;
+                    operationalDepts[targetDept].docCount++;
+                } else if (debitGroup === 'EXPENSES') {
+                    operationalDepts[targetDept].expenses += amt;
+                    operationalDepts[targetDept].docCount++;
+                }
+            });
+
+            breakdown = Object.values(operationalDepts).map(d => {
+                d.grossProfit = d.revenue - d.cogs;
+                d.netProfit = d.grossProfit - d.expenses;
+                d.marginPct = d.revenue > 0 ? ((d.netProfit / d.revenue) * 100).toFixed(1) : (d.netProfit < 0 ? '-100.0' : '0.0');
+                totalRev += d.revenue;
+                totalCogs += d.cogs;
+                totalExp += d.expenses;
+                totalNet += d.netProfit;
+                return d;
+            });
+        }
 
         res.status(200).json({
             success: true,
             data: {
                 currency: companyCurrency,
+                groupBy,
                 period: {
                     startDate: startDate || 'All Time',
                     endDate: endDate || new Date().toISOString().split('T')[0]
