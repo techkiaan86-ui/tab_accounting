@@ -439,8 +439,8 @@ const sendSmtpTestEmail = async (req, res) => {
         } catch (dbErr) {}
 
         let errorMsg = error.message || 'SMTP transmission failure';
-        const targetHost = req.body?.host || 'SMTP server';
-        const targetPort = req.body?.port || 465;
+        const targetHost = host || req.body?.host || 'SMTP server';
+        const targetPort = port || req.body?.port || 465;
 
         if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (targetHost || '').includes('gmail.com')) {
             errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
