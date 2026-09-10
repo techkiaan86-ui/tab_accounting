@@ -62,6 +62,32 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                 doc.fontSize(9).font('Helvetica').fillColor('#475569').text(customerEmail, 45, y + 30);
             }
 
+            // Calculate dynamic status and balance
+            const totalNum = parseFloat(invoice?.totalAmount || 0);
+            let paidNum = parseFloat(invoice?.paidAmount || 0);
+            if (isNaN(paidNum)) paidNum = 0;
+            if (Array.isArray(invoice?.receipt) && invoice.receipt.length > 0) {
+                const receiptSum = invoice.receipt.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+                if (receiptSum > paidNum) paidNum = receiptSum;
+            }
+            const rawBalanceNum = invoice?.balanceAmount !== undefined ? parseFloat(invoice.balanceAmount) : (totalNum - paidNum);
+            const tol = 0.01;
+            const balanceNum = Math.max(0, isNaN(rawBalanceNum) ? Math.max(0, totalNum - paidNum) : rawBalanceNum);
+            const effectiveBalance = balanceNum <= tol ? 0 : balanceNum;
+            const isDuePassed = Boolean(invoice?.dueDate && new Date(invoice.dueDate).setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0));
+            const rawStatus = String(invoice?.status || '').toUpperCase();
+
+            const computedStatus = (() => {
+                if (rawStatus === 'CANCELLED') return 'CANCELLED';
+                if (effectiveBalance <= tol && (totalNum > 0 || paidNum > 0)) return 'PAID';
+                if (effectiveBalance <= tol && totalNum === 0) return 'PAID';
+                if (rawStatus === 'PAID' && effectiveBalance <= tol) return 'PAID';
+                if (effectiveBalance > tol && isDuePassed) return 'OVERDUE';
+                if (paidNum > tol && effectiveBalance > tol) return 'PARTIAL';
+                if (rawStatus && rawStatus !== 'UNPAID' && rawStatus !== 'DUE') return rawStatus;
+                return 'UNPAID';
+            })();
+
             // Right side: Dates & Status
             doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b')
                 .text('Issue Date:', 350, y)
@@ -71,8 +97,8 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             doc.font('Helvetica').fillColor('#0f172a')
                 .text(issueDate, 440, y, { align: 'right', width: 115 })
                 .text(dueDate, 440, y + 15, { align: 'right', width: 115 })
-                .font('Helvetica-Bold').fillColor(invoice?.status === 'PAID' ? '#16a34a' : '#ea580c')
-                .text(invoice?.status || 'UNPAID', 440, y + 30, { align: 'right', width: 115 });
+                .font('Helvetica-Bold').fillColor(computedStatus === 'PAID' ? '#16a34a' : (computedStatus === 'OVERDUE' ? '#dc2626' : '#ea580c'))
+                .text(computedStatus, 440, y + 30, { align: 'right', width: 115 });
 
             // Table Header
             y = 190;
