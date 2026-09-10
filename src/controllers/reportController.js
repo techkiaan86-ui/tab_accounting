@@ -3632,6 +3632,17 @@ const getAgingReport = async (req, res) => {
         const asOfDate = req.query.asOfDate ? new Date(req.query.asOfDate) : new Date();
         const companyCurrency = await getCompanyCurrency(companyId);
 
+        // Cache conversion rates for instant response
+        const rateCache = {};
+        const getRate = async (curr) => {
+            const c = curr || companyCurrency || 'EUR';
+            if (c === companyCurrency) return 1.0;
+            if (!rateCache[c]) {
+                rateCache[c] = await getConversionRate(c, companyCurrency);
+            }
+            return rateCache[c] || 1.0;
+        };
+
         let partiesMap = {};
         let totalCurrent = 0;
         let total1to30 = 0;
@@ -3656,10 +3667,12 @@ const getAgingReport = async (req, res) => {
             });
 
             for (const inv of invoices) {
-                const rawBalance = parseFloat(inv.balanceAmount || inv.totalAmount || 0);
-                if (rawBalance <= 0) continue;
+                const rawBalance = (inv.balanceAmount !== null && inv.balanceAmount !== undefined)
+                    ? parseFloat(inv.balanceAmount)
+                    : parseFloat(inv.totalAmount || 0);
+                if (rawBalance <= 0 || inv.status === 'PAID' || inv.status === 'CANCELLED') continue;
 
-                const rate = await getConversionRate(inv.currency || 'EUR', companyCurrency);
+                const rate = await getRate(inv.currency);
                 const balance = rawBalance * rate;
                 const totalAmt = parseFloat(inv.totalAmount || 0) * rate;
 
@@ -3736,10 +3749,12 @@ const getAgingReport = async (req, res) => {
             });
 
             for (const bill of bills) {
-                const rawBalance = parseFloat(bill.balanceAmount || bill.totalAmount || 0);
-                if (rawBalance <= 0) continue;
+                const rawBalance = (bill.balanceAmount !== null && bill.balanceAmount !== undefined)
+                    ? parseFloat(bill.balanceAmount)
+                    : parseFloat(bill.totalAmount || 0);
+                if (rawBalance <= 0 || bill.status === 'PAID' || bill.status === 'CANCELLED') continue;
 
-                const rate = await getConversionRate(bill.currency || 'EUR', companyCurrency);
+                const rate = await getRate(bill.currency);
                 const balance = rawBalance * rate;
                 const totalAmt = parseFloat(bill.totalAmount || 0) * rate;
 
