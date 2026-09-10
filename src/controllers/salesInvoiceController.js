@@ -2430,6 +2430,16 @@ const deleteInvoice = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Invoice not found' });
         }
 
+        const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
+        const lockCheck = checkPeriodLock(companyId, invoice.date);
+        if (lockCheck.isLocked) {
+            return res.status(403).json({
+                success: false,
+                isPeriodLocked: true,
+                message: `Accounting period is locked up to ${lockCheck.lockedUntilDate} (${lockCheck.reason}). Transactions on or before this date cannot be deleted.`
+            });
+        }
+
         await prisma.$transaction(async (tx) => {
             const { deleteSalesReturnHelper } = require('./salesReturnController');
             const { deleteReceiptHelper } = require('./salesReceiptController');

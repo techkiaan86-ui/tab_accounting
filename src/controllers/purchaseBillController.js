@@ -958,6 +958,16 @@ const deleteBill = async (req, res) => {
 
         if (!bill) return res.status(404).json({ success: false, message: 'Bill not found' });
 
+        const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
+        const lockCheck = checkPeriodLock(companyId, bill.date);
+        if (lockCheck.isLocked) {
+            return res.status(403).json({
+                success: false,
+                isPeriodLocked: true,
+                message: `Accounting period is locked up to ${lockCheck.lockedUntilDate} (${lockCheck.reason}). This bill cannot be deleted.`
+            });
+        }
+
         await prisma.$transaction(async (tx) => {
             const { deletePurchaseReturnHelper } = require('./purchaseReturnController');
             const { deletePaymentHelper } = require('./paymentController');
