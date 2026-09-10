@@ -171,6 +171,8 @@ const createQuotation = async (req, res) => {
         });
 
         await numberingService.incrementNumber(companyId, 'salesquotation', quotationNumber);
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'CREATE', 'SalesQuotation', result.id, `Sales Quotation #${result.quotationNumber} created with total amount ${result.totalAmount}`);
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Create Quotation Error:', error);
@@ -696,6 +698,9 @@ const updateQuotation = async (req, res) => {
             }
         });
 
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'UPDATE', 'SalesQuotation', updated?.id, `Sales Quotation #${updated?.quotationNumber} updated with total amount ${updated?.totalAmount}`);
+
         res.status(200).json({ success: true, data: updated });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -723,6 +728,9 @@ const deleteQuotation = async (req, res) => {
         await prisma.salesquotation.delete({
             where: { id: parseInt(id), companyId: parseInt(companyId) }
         });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'DELETE', 'SalesQuotation', existing.id, `Sales Quotation #${existing.quotationNumber} deleted`);
 
         res.status(200).json({ success: true, message: 'Quotation deleted successfully' });
     } catch (error) {
@@ -825,6 +833,9 @@ const convertToSalesOrder = async (req, res) => {
 
             return salesOrder;
         });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'CONVERT', 'SalesQuotation', parseInt(id), `Sales Quotation #${id} converted to Sales Order #${result.orderNumber}`);
 
         return res.status(200).json({ success: true, message: 'Sales Quotation converted successfully', data: result });
     } catch (error) {

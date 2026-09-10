@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { getConversionRate, getCompanyCurrency } = require('../utils/currencyConverter');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Purchase Return (Stock OUT + Ledger Debit Vendor)
 const createReturn = async (req, res) => {
@@ -219,6 +220,15 @@ const createReturn = async (req, res) => {
         }, { timeout: 90000 });
 
         await numberingService.incrementNumber(companyId, 'purchasereturn', returnNumber);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'PurchaseReturn',
+            result.id,
+            `Purchase Return #${result.returnNumber} created with amount ${result.totalAmount}`
+        );
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Create Purchase Return Error:', error);
@@ -656,6 +666,14 @@ const updateReturn = async (req, res) => {
             return updatedReturn;
         }, { timeout: 90000 });
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'PurchaseReturn',
+            result.id,
+            `Purchase Return #${result.returnNumber} updated with amount ${result.totalAmount}`
+        );
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error('Update Return Error:', error);
@@ -813,6 +831,14 @@ const deleteReturn = async (req, res) => {
             await tx.purchasereturnitem.deleteMany({ where: { purchaseReturnId: purchaseReturn.id } });
             await tx.purchasereturn.delete({ where: { id: purchaseReturn.id } });
         }, { timeout: 90000 });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'PurchaseReturn',
+            purchaseReturn.id,
+            `Purchase Return #${purchaseReturn.returnNumber} deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Purchase return deleted successfully' });
     } catch (error) {

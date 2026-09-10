@@ -1,4 +1,6 @@
 const chartOfAccountsService = require('../services/chartOfAccountsService');
+const { logActivity } = require('../utils/auditLogger');
+const prisma = require('../config/prisma');
 
 // Initialize Chart of Accounts for a Company
 const initializeCOA = async (req, res) => {
@@ -61,6 +63,8 @@ const createAccountGroup = async (req, res) => {
             companyId
         });
 
+        logActivity(req, 'CREATE', 'AccountGroup', group.id, `Account Group '${group.name}' (${group.type}) created`);
+
         res.status(201).json({
             success: true,
             message: 'Account group created successfully',
@@ -93,6 +97,8 @@ const createAccountSubGroup = async (req, res) => {
             groupId: parseInt(groupId),
             companyId
         });
+
+        logActivity(req, 'CREATE', 'AccountSubGroup', subGroup.id, `Account Sub-Group '${subGroup.name}' created`);
 
         res.status(201).json({
             success: true,
@@ -135,6 +141,8 @@ const createLedger = async (req, res) => {
             date,
             companyId
         });
+
+        logActivity(req, 'CREATE', 'Account', ledger.id, `Account '${ledger.name}' created with opening balance ${ledger.openingBalance || 0}`);
 
         res.status(201).json({
             success: true,
@@ -249,6 +257,8 @@ const updateAccountGroup = async (req, res) => {
 
         const group = await chartOfAccountsService.updateAccountGroup(id, companyId, { name, type });
 
+        logActivity(req, 'UPDATE', 'AccountGroup', group.id, `Account Group '${group.name}' (${group.type}) updated`);
+
         res.status(200).json({
             success: true,
             message: 'Account group updated successfully',
@@ -270,6 +280,8 @@ const deleteAccountGroup = async (req, res) => {
         const { id } = req.params;
 
         await chartOfAccountsService.deleteAccountGroup(id, companyId);
+
+        logActivity(req, 'DELETE', 'AccountGroup', parseInt(id), `Account Group ID #${id} deleted`);
 
         res.status(200).json({
             success: true,
@@ -328,6 +340,8 @@ const updateAccountSubGroup = async (req, res) => {
 
         const subGroup = await chartOfAccountsService.updateAccountSubGroup(id, companyId, { name, groupId });
 
+        logActivity(req, 'UPDATE', 'AccountSubGroup', subGroup.id, `Account Sub-Group '${subGroup.name}' updated`);
+
         res.status(200).json({
             success: true,
             message: 'Account sub-group updated successfully',
@@ -349,6 +363,8 @@ const deleteAccountSubGroup = async (req, res) => {
         const { id } = req.params;
 
         await chartOfAccountsService.deleteAccountSubGroup(id, companyId);
+
+        logActivity(req, 'DELETE', 'AccountSubGroup', parseInt(id), `Account Sub-Group ID #${id} deleted`);
 
         res.status(200).json({
             success: true,
@@ -409,6 +425,8 @@ const updateLedger = async (req, res) => {
             date
         });
 
+        logActivity(req, 'UPDATE', 'Account', ledger.id, `Account '${ledger.name}' updated`);
+
         res.status(200).json({
             success: true,
             message: 'Ledger updated successfully',
@@ -435,7 +453,10 @@ const deleteLedger = async (req, res) => {
         const companyId = req.user.companyId;
         const { id } = req.params;
 
+        const existing = await prisma.ledger.findFirst({ where: { id: parseInt(id), companyId: parseInt(companyId) } });
         await chartOfAccountsService.deleteLedger(id, companyId);
+
+        logActivity(req, 'DELETE', 'Account', parseInt(id), `Account '${existing?.name || id}' deleted`);
 
         res.status(200).json({
             success: true,

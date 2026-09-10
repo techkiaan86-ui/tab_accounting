@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { getConversionRate, getCompanyCurrency, getCompanyHistoricalCurrency } = require('../utils/currencyConverter');
+const { logActivity } = require('../utils/auditLogger');
 
 const getAdjustments = async (req, res) => {
     try {
@@ -302,6 +303,15 @@ const createAdjustment = async (req, res) => {
         }, { timeout: 30000 });
 
         await numberingService.incrementNumber(companyId, 'adjustment', resolvedVoucherNo);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'InventoryAdjustment',
+            result.id,
+            `Inventory Adjustment #${result.voucherNo} created with ${items.length} items`
+        );
+
         res.status(201).json({ success: true, message: 'Adjustment saved successfully', data: result });
     } catch (error) {
         console.error('Error creating adjustment:', error);
@@ -420,6 +430,14 @@ const deleteAdjustment = async (req, res) => {
 
             await tx.inventoryadjustment.delete({ where: { id: parseInt(id) } });
         }, { timeout: 30000 });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'InventoryAdjustment',
+            adjustment.id,
+            `Inventory Adjustment #${adjustment.voucherNo} deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Adjustment deleted and stock reversed' });
     } catch (error) {
@@ -679,6 +697,14 @@ const updateAdjustment = async (req, res) => {
 
             return updatedAdj;
         }, { timeout: 30000 });
+
+        await logActivity(
+            req,
+            'UPDATE',
+            'InventoryAdjustment',
+            result.id,
+            `Inventory Adjustment #${result.voucherNo} updated`
+        );
 
         res.status(200).json({ success: true, message: 'Adjustment updated successfully', data: result });
     } catch (error) {

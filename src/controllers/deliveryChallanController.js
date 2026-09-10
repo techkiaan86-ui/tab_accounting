@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { resolveWarehouseId } = require('../services/warehouseService');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Delivery Challan
 const createChallan = async (req, res) => {
@@ -174,6 +175,15 @@ const createChallan = async (req, res) => {
         }, { timeout: 30000 });
 
         await numberingService.incrementNumber(companyId, 'deliverychallan', challanNumber);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'DeliveryChallan',
+            result.id,
+            `Delivery Challan #${result.challanNumber} created with ${challanItems.length} items`
+        );
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Create Challan Error:', error);
@@ -540,6 +550,14 @@ const updateChallan = async (req, res) => {
             }
         }
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'DeliveryChallan',
+            result.id,
+            `Delivery Challan #${result.challanNumber} updated (Status: ${result.status})`
+        );
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error('Update Challan Error:', error);
@@ -630,6 +648,14 @@ const deleteChallan = async (req, res) => {
                 await updateSalesOrderStatus(tx, challan.salesOrderId);
             }
         }, { timeout: 30000 });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'DeliveryChallan',
+            challan.id,
+            `Delivery Challan #${challan.challanNumber} deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Delivery Challan deleted successfully' });
     } catch (error) {

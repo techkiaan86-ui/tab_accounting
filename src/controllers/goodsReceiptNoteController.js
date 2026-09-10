@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { resolveWarehouseId } = require('../services/warehouseService');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create GRN (Linked to PO)
 const createGRN = async (req, res) => {
@@ -80,6 +81,15 @@ const createGRN = async (req, res) => {
         }, { timeout: 30000 });
 
         await numberingService.incrementNumber(companyId, 'goodsreceiptnote', grnNumber);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'GoodsReceiptNote',
+            result.id,
+            `Goods Receipt Note #${result.grnNumber} created for Vendor ID ${result.vendorId || vendorId}`
+        );
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Create GRN Error:', error);
@@ -177,6 +187,14 @@ const deleteGRN = async (req, res) => {
             }
         }, { timeout: 30000 });
 
+        await logActivity(
+            req,
+            'DELETE',
+            'GoodsReceiptNote',
+            grn.id,
+            `Goods Receipt Note #${grn.grnNumber} deleted`
+        );
+
         res.status(200).json({ success: true, message: 'GRN deleted successfully' });
     } catch (error) {
         console.error('Delete GRN Error:', error);
@@ -198,6 +216,13 @@ const updateGRN = async (req, res) => {
                     status: status
                 }
             });
+            await logActivity(
+                req,
+                'UPDATE',
+                'GoodsReceiptNote',
+                updated.id,
+                `Goods Receipt Note #${updated.grnNumber} status updated to ${status}`
+            );
             return res.status(200).json({ success: true, data: updated });
         }
 
@@ -390,6 +415,14 @@ const updateGRN = async (req, res) => {
                 await purchaseBillController.updateBill(fakeReq, fakeRes);
             }
         }
+
+        await logActivity(
+            req,
+            'UPDATE',
+            'GoodsReceiptNote',
+            result.id,
+            `Goods Receipt Note #${result.grnNumber} updated (Status: ${result.status})`
+        );
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {

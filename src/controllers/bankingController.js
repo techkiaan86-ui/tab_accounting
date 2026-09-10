@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 /**
  * Ensures required database tables and columns exist for Banking & Reconciliation
@@ -297,6 +298,14 @@ const createBankAccount = async (req, res) => {
             SELECT * FROM bankaccount WHERE companyId = ? ORDER BY id DESC LIMIT 1
         `, companyId);
 
+        await logActivity(
+            req,
+            'CREATE',
+            'BankAccount',
+            created?.id,
+            `Bank Account '${accountName}' (${bankName} - ${accountNumber}) created with opening balance ${bal}`
+        );
+
         return res.status(201).json({ success: true, message: 'Bank Account created successfully', data: created });
     } catch (error) {
         console.error('createBankAccount error:', error);
@@ -329,6 +338,14 @@ const updateBankAccount = async (req, res) => {
             WHERE id = ? AND companyId = ?
         `, accountName, accountNumber, bankName, branchName, ifscCode, iban, swiftBic, currency, parseFloat(openingBalance) || 0, id, companyId);
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'BankAccount',
+            id,
+            `Bank Account ID ${id} updated (${accountName} - ${accountNumber})`
+        );
+
         return res.status(200).json({ success: true, message: 'Bank Account updated successfully' });
     } catch (error) {
         console.error('updateBankAccount error:', error);
@@ -346,6 +363,14 @@ const deleteBankAccount = async (req, res) => {
         await prisma.$executeRawUnsafe(`DELETE FROM banktransaction WHERE bankAccountId = ? AND companyId = ?`, id, companyId);
         await prisma.$executeRawUnsafe(`DELETE FROM bank_reconciliation WHERE bankAccountId = ? AND companyId = ?`, id, companyId);
         await prisma.$executeRawUnsafe(`DELETE FROM bankaccount WHERE id = ? AND companyId = ?`, id, companyId);
+
+        await logActivity(
+            req,
+            'DELETE',
+            'BankAccount',
+            id,
+            `Bank Account ID ${id} deleted`
+        );
 
         return res.status(200).json({ success: true, message: 'Bank Account deleted successfully' });
     } catch (error) {

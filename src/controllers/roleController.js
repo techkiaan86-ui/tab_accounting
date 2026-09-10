@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Role
 const createRole = async (req, res) => {
@@ -30,6 +31,14 @@ const createRole = async (req, res) => {
                 companyId: parseInt(companyId)
             }
         });
+
+        await logActivity(
+            req,
+            'CREATE',
+            'Role',
+            role.id,
+            `Role '${role.name}' created`
+        );
 
         res.status(201).json({ success: true, message: 'Role created successfully', data: role });
     } catch (error) {
@@ -114,6 +123,14 @@ const updateRole = async (req, res) => {
             }
         });
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'Role',
+            updatedRole.id,
+            `Role '${updatedRole.name}' updated`
+        );
+
         res.status(200).json({ success: true, message: 'Role updated successfully', data: updatedRole });
     } catch (error) {
         console.error('Update Role Error:', error);
@@ -138,6 +155,14 @@ const deleteRole = async (req, res) => {
         await prisma.role.delete({
             where: { id: parseInt(id) }
         });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'Role',
+            role.id,
+            `Role '${role.name}' deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Role deleted successfully' });
     } catch (error) {

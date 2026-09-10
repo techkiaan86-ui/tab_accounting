@@ -267,6 +267,9 @@ const createOrder = async (req, res) => {
         }, { timeout: 30000 });
 
         await numberingService.incrementNumber(companyId, 'salesorder', orderNumber);
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'CREATE', 'SalesOrder', result.id, `Sales Order #${result.orderNumber} created with total amount ${result.totalAmount}`);
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Create Order Error:', error);
@@ -752,6 +755,9 @@ const updateOrder = async (req, res) => {
             }
         });
 
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'UPDATE', 'SalesOrder', updated?.id, `Sales Order #${updated?.orderNumber} updated with total amount ${updated?.totalAmount}`);
+
         res.status(200).json({ success: true, data: updated });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -779,6 +785,9 @@ const deleteOrder = async (req, res) => {
         await prisma.salesorder.delete({
             where: { id: parseInt(id), companyId: parseInt(companyId) }
         });
+
+        const { logActivity } = require('../utils/auditLogger');
+        logActivity(req, 'DELETE', 'SalesOrder', existing.id, `Sales Order #${existing.orderNumber} deleted`);
 
         res.status(200).json({ success: true, message: 'Sales Order deleted successfully' });
     } catch (error) {

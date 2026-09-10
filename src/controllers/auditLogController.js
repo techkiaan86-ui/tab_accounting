@@ -100,10 +100,12 @@ const getAuditLogs = async (req, res) => {
             where.OR = searchConditions;
         }
 
-        const parsedPage = Math.max(1, parseInt(page, 10) || 1);
-        const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
-        const skip = (parsedPage - 1) * parsedLimit;
-        const take = parsedLimit;
+        const isExportAll = req.query.all === 'true' || req.query.limit === 'all' || req.query.limit === '-1';
+
+        const parsedPage = isExportAll ? 1 : Math.max(1, parseInt(page, 10) || 1);
+        const parsedLimit = isExportAll ? undefined : Math.max(1, Math.min(1000, parseInt(limit, 10) || 20));
+        const skip = isExportAll ? undefined : (parsedPage - 1) * parsedLimit;
+        const take = isExportAll ? undefined : parsedLimit;
 
         const [logs, total] = await Promise.all([
             prisma.auditlog.findMany({
@@ -111,8 +113,8 @@ const getAuditLogs = async (req, res) => {
                 orderBy: {
                     createdAt: 'desc'
                 },
-                skip,
-                take,
+                ...(skip !== undefined ? { skip } : {}),
+                ...(take !== undefined ? { take } : {}),
                 include: {
                     user: {
                         select: {
@@ -138,8 +140,8 @@ const getAuditLogs = async (req, res) => {
             pagination: {
                 total,
                 page: parsedPage,
-                limit: parsedLimit,
-                totalPages: Math.ceil(total / parsedLimit) || 1
+                limit: isExportAll ? total : parsedLimit,
+                totalPages: isExportAll ? 1 : (Math.ceil(total / parsedLimit) || 1)
             }
         });
     } catch (err) {

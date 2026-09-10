@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Income Voucher
 const createIncome = async (req, res) => {
@@ -77,6 +78,9 @@ const createIncome = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalIncome = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'CREATE', 'Income', transactions[0]?.id, `Income #${autoReceiptNo} created with total amount ${totalIncome}`);
 
         res.status(201).json({ success: true, message: 'Income voucher created', data: transactions });
 
@@ -237,6 +241,9 @@ const deleteIncome = async (req, res) => {
             where: { voucherNumber, companyId: parseInt(companyId), voucherType: 'INCOME' }
         });
 
+        const totalAmt = transactions.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        logActivity(req, 'DELETE', 'Income', transactions[0]?.id, `Income #${voucherNumber} deleted with amount ${totalAmt}`);
+
         res.status(200).json({ success: true, message: 'Income voucher deleted successfully' });
 
     } catch (error) {
@@ -340,6 +347,9 @@ const updateIncome = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalUpdated = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'UPDATE', 'Income', transactions[0]?.id, `Income #${voucherNumber} updated with total amount ${totalUpdated}`);
 
         res.status(200).json({ success: true, message: 'Income updated successfully', data: transactions });
 

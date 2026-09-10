@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { logActivity } = require('../utils/auditLogger');
 
 // Get All Stock Transfers
 const getStockTransfers = async (req, res) => {
@@ -159,6 +160,15 @@ const createStockTransfer = async (req, res) => {
         }, { timeout: 30000 });
 
         await numberingService.incrementNumber(companyId, 'stocktransfer', resolvedVoucherNo);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'StockTransfer',
+            result.id,
+            `Stock Transfer #${result.voucherNo} created with ${items.length} items`
+        );
+
         res.status(201).json({ success: true, message: 'Stock transfer created successfully', data: result });
     } catch (error) {
         console.error('Error creating stock transfer:', error);
@@ -177,6 +187,7 @@ const deleteStockTransfer = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Company ID is required' });
         }
 
+        let deletedTransfer = null;
         await prisma.$transaction(async (tx) => {
             const transfer = await tx.stocktransfer.findFirst({
                 where: {
@@ -187,6 +198,7 @@ const deleteStockTransfer = async (req, res) => {
             });
 
             if (!transfer) throw new Error('Transfer not found');
+            deletedTransfer = transfer;
 
             // Reverse stock for each item
             for (const item of transfer.stocktransferitem) {
@@ -213,6 +225,16 @@ const deleteStockTransfer = async (req, res) => {
 
             await tx.stocktransfer.delete({ where: { id: parseInt(id) } });
         }, { timeout: 30000 });
+
+        if (deletedTransfer) {
+            await logActivity(
+                req,
+                'DELETE',
+                'StockTransfer',
+                deletedTransfer.id,
+                `Stock Transfer #${deletedTransfer.voucherNo} deleted`
+            );
+        }
 
         res.status(200).json({ success: true, message: 'Stock transfer deleted and stock reversed successfully' });
     } catch (error) {
@@ -341,6 +363,14 @@ const updateStockTransfer = async (req, res) => {
 
             return updatedTransfer;
         }, { timeout: 30000 });
+
+        await logActivity(
+            req,
+            'UPDATE',
+            'StockTransfer',
+            result.id,
+            `Stock Transfer #${result.voucherNo} updated`
+        );
 
         res.status(200).json({ success: true, message: 'Stock transfer updated successfully', data: result });
     } catch (error) {

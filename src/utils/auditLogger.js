@@ -12,15 +12,21 @@ const prisma = require('../config/prisma');
  */
 const logActivity = (req, action, entity, entityId, details) => {
     try {
-        if (!req || !req.user) {
-            return;
+        if (!req) {
+            return Promise.resolve();
         }
 
-        const rawUserId = req.user.userId !== undefined ? req.user.userId : req.user.id;
-        const userId = rawUserId ? parseInt(rawUserId) : null;
-        const companyId = req.user.companyId ? parseInt(req.user.companyId) : (req.companyId ? parseInt(req.companyId) : null);
+        const rawUserId = req.user ? (req.user.userId !== undefined ? req.user.userId : req.user.id) : null;
+        const userId = rawUserId ? parseInt(rawUserId, 10) : null;
 
-        if (!companyId) {
+        const rawCompanyId = req.user?.companyId 
+            || req.companyId 
+            || req.body?.companyId 
+            || req.query?.companyId 
+            || (req.headers && req.headers['x-company-id']);
+        const companyId = rawCompanyId ? parseInt(rawCompanyId, 10) : null;
+
+        if (!companyId || isNaN(companyId)) {
             return Promise.resolve();
         }
 
@@ -29,8 +35,8 @@ const logActivity = (req, action, entity, entityId, details) => {
 
         // Database insertion promise
         const logPromise = (async () => {
-            let userEmail = req.user.email || null;
-            let userName = req.user.name || null;
+            let userEmail = req.user?.email || null;
+            let userName = req.user?.name || (userId ? null : 'System');
 
             // If name or email is not in the token payload, fetch them from the database
             if (userId && (!userEmail || !userName)) {

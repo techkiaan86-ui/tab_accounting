@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Expense Voucher
 const createExpense = async (req, res) => {
@@ -78,6 +79,9 @@ const createExpense = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalExpense = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'CREATE', 'Expense', transactions[0]?.id, `Expense #${autoReceiptNo} created with total amount ${totalExpense}`);
 
         res.status(201).json({ success: true, message: 'Expense voucher created', data: transactions });
 
@@ -242,6 +246,9 @@ const deleteExpense = async (req, res) => {
             where: { voucherNumber, companyId: parseInt(companyId), voucherType: 'EXPENSE' }
         });
 
+        const totalAmt = transactions.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        logActivity(req, 'DELETE', 'Expense', transactions[0]?.id, `Expense #${voucherNumber} deleted with amount ${totalAmt}`);
+
         res.status(200).json({ success: true, message: 'Expense voucher deleted successfully' });
 
     } catch (error) {
@@ -345,6 +352,9 @@ const updateExpense = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalUpdated = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'UPDATE', 'Expense', transactions[0]?.id, `Expense #${voucherNumber} updated with total amount ${totalUpdated}`);
 
         res.status(200).json({ success: true, message: 'Expense updated successfully', data: transactions });
 

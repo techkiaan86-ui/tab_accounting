@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Contra Voucher
 const createContra = async (req, res) => {
@@ -82,6 +83,9 @@ const createContra = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalAmt = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'CREATE', 'Contra', transactions[0]?.id, `Contra Voucher #${autoReceiptNo} created with amount ${totalAmt}`);
 
         res.status(201).json({ success: true, message: 'Contra voucher created', data: transactions });
 
@@ -244,6 +248,9 @@ const deleteContra = async (req, res) => {
             where: { voucherNumber, companyId: parseInt(companyId), voucherType: 'CONTRA' }
         });
 
+        const totalAmt = transactions.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        logActivity(req, 'DELETE', 'Contra', transactions[0]?.id, `Contra Voucher #${voucherNumber} deleted with amount ${totalAmt}`);
+
         res.status(200).json({ success: true, message: 'Contra voucher deleted successfully' });
 
     } catch (error) {
@@ -354,6 +361,9 @@ const updateContra = async (req, res) => {
 
             transactions.push(transaction);
         }
+
+        const totalUpdated = items.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        logActivity(req, 'UPDATE', 'Contra', transactions[0]?.id, `Contra Voucher #${voucherNumber} updated with amount ${totalUpdated}`);
 
         res.status(200).json({ success: true, message: 'Contra updated successfully', data: transactions });
 

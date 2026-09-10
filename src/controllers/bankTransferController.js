@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Bank Transfer (Contra Entry)
 const createTransfer = async (req, res) => {
@@ -74,6 +75,14 @@ const createTransfer = async (req, res) => {
 
         await updateBalance(parseInt(fromAccountId), parseFloat(amount), 'CREDIT');
         await updateBalance(parseInt(toAccountId), parseFloat(amount), 'DEBIT');
+
+        await logActivity(
+            req,
+            'CREATE',
+            'BankTransfer',
+            transaction.id,
+            `Bank Transfer #${transaction.voucherNumber} created for amount ${transaction.amount}`
+        );
 
         res.status(201).json({ success: true, data: transaction, message: 'Transfer created successfully' });
 
@@ -220,6 +229,14 @@ const updateTransfer = async (req, res) => {
         await applyBalance(parseInt(fromAccountId), parseFloat(amount), 'CREDIT');
         await applyBalance(parseInt(toAccountId), parseFloat(amount), 'DEBIT');
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'BankTransfer',
+            updated.id,
+            `Bank Transfer #${updated.voucherNumber} updated for amount ${updated.amount}`
+        );
+
         res.status(200).json({ success: true, data: updated, message: 'Transfer updated successfully' });
 
     } catch (error) {
@@ -261,6 +278,14 @@ const deleteTransfer = async (req, res) => {
 
         // Delete
         await prisma.transaction.delete({ where: { id: parseInt(id) } });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'BankTransfer',
+            existing.id,
+            `Bank Transfer #${existing.voucherNumber} deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Transfer deleted successfully' });
 

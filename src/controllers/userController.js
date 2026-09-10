@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const prisma = require('../config/prisma');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create User (Employee)
 const createUser = async (req, res) => {
@@ -39,6 +40,14 @@ const createUser = async (req, res) => {
 
         // Remove password from response
         const { password: _, ...userWithoutPassword } = user;
+
+        await logActivity(
+            req,
+            'CREATE',
+            'User',
+            user.id,
+            `User '${user.name}' (${user.email}) created with role ${user.role}`
+        );
 
         res.status(201).json({ success: true, message: 'User created successfully', data: userWithoutPassword });
     } catch (error) {
@@ -153,6 +162,14 @@ const updateUser = async (req, res) => {
 
         const { password: _, ...userWithoutPassword } = updatedUser;
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'User',
+            updatedUser.id,
+            `User '${updatedUser.name}' (${updatedUser.email}) updated`
+        );
+
         res.status(200).json({ success: true, message: 'User updated successfully', data: userWithoutPassword });
     } catch (error) {
         console.error('Update User Error:', error);
@@ -182,6 +199,14 @@ const deleteUser = async (req, res) => {
         await prisma.user.delete({
             where: { id: parseInt(id) }
         });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'User',
+            existingUser.id,
+            `User '${existingUser.name}' (${existingUser.email}) deleted`
+        );
 
         res.status(200).json({ success: true, message: 'User deleted successfully' });
     } catch (error) {

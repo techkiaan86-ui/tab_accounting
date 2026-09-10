@@ -171,6 +171,8 @@ const createVoucher = async (req, res) => {
             });
 
             await numberingService.incrementNumber(companyId, 'voucher', resolvedVoucherNumber);
+            const { logActivity } = require('../utils/auditLogger');
+            logActivity(req, 'CREATE', 'Voucher', je.id, `Journal Voucher #${resolvedVoucherNumber} created with total amount ${totalDrAmount}`);
             return res.status(201).json({ success: true, message: 'Journal Voucher created successfully', data: je });
         }
 
@@ -662,6 +664,9 @@ const updateVoucher = async (req, res) => {
                     paidToLedger: true
                 }
             });
+
+            const { logActivity } = require('../utils/auditLogger');
+            logActivity(req, 'UPDATE', 'Voucher', updatedVoucher.id, `Journal Voucher #${updatedVoucher.voucherNumber} updated with total amount ${updatedVoucher.totalAmount}`);
 
             return res.status(200).json({ success: true, data: updatedVoucher });
         } else {

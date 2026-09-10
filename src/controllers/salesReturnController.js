@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
 const { getConversionRate, getCompanyCurrency } = require('../utils/currencyConverter');
 const { isDuePassed } = require('../utils/invoiceSyncHelper');
+const { logActivity } = require('../utils/auditLogger');
 
 // Create Sales Return
 const createReturn = async (req, res) => {
@@ -375,6 +376,15 @@ const createReturn = async (req, res) => {
         }, { timeout: 90000 });
 
         await numberingService.incrementNumber(companyId, 'salesreturn', returnNumber);
+
+        await logActivity(
+            req,
+            'CREATE',
+            'SalesReturn',
+            result.id,
+            `Sales Return #${result.returnNumber} created with amount ${result.totalAmount}`
+        );
+
         res.status(201).json({ success: true, data: result });
     } catch (error) {
         console.error('Sales Return Error:', error);
@@ -1016,6 +1026,14 @@ const updateReturn = async (req, res) => {
             return updated;
         }, { timeout: 90000 });
 
+        await logActivity(
+            req,
+            'UPDATE',
+            'SalesReturn',
+            result.id,
+            `Sales Return #${result.returnNumber} updated with amount ${result.totalAmount}`
+        );
+
         res.status(200).json({ success: true, data: result });
     } catch (error) {
         console.error('Sales Return Update Error:', error);
@@ -1229,6 +1247,14 @@ const deleteReturn = async (req, res) => {
         }, {
             timeout: 90000
         });
+
+        await logActivity(
+            req,
+            'DELETE',
+            'SalesReturn',
+            salesReturn.id,
+            `Sales Return #${salesReturn.returnNumber} deleted`
+        );
 
         res.status(200).json({ success: true, message: 'Sales return deleted successfully' });
     } catch (error) {

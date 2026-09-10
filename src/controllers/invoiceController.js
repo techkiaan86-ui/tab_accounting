@@ -71,6 +71,13 @@ exports.create = async (req, res) => {
             }
         });
 
+        try {
+            const { logInvoiceCreated } = require('../utils/invoiceAuditHelper');
+            await logInvoiceCreated(req, newInvoice, items || []);
+        } catch (auditErr) {
+            console.error('Failed to log invoice creation:', auditErr);
+        }
+
         res.status(201).json({ success: true, data: newInvoice });
     } catch (error) {
         console.error('Error creating invoice:', error);
@@ -271,6 +278,13 @@ exports.update = async (req, res) => {
                 }
             });
         });
+
+        try {
+            const { logInvoiceUpdated } = require('../utils/invoiceAuditHelper');
+            await logInvoiceUpdated(req, existing, updatedInvoice, items || []);
+        } catch (auditErr) {
+            console.error('Failed to log invoice update:', auditErr);
+        }
 
         res.json({ success: true, data: updatedInvoice });
     } catch (error) {
