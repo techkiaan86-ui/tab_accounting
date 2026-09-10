@@ -108,16 +108,20 @@ prisma.$connect()
     });
 
 process.on('uncaughtException', (err) => {
-    console.error('UNCAUGHT EXCEPTION! Shutting down...');
-    console.error(err.name, err.message);
+    console.error('UNCAUGHT EXCEPTION:', err.name, err.message);
+    if (err.code === 'ECONNRESET' || err.code === 'EPIPE' || err.code === 'ETIMEDOUT' || err.code === 'ENOTFOUND') {
+        console.warn('⚠️ Recoverable network error caught; keeping server alive:', err.message);
+        return;
+    }
     console.error(err.stack);
-    process.exit(1);
 });
 
-process.on('unhandledRejection', (err) => {
-    console.error('UNHANDLED REJECTION! Shutting down...');
-    console.error(err.name, err.message);
-    process.exit(1);
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason?.name || reason, reason?.message || reason);
+    if (reason && (reason.code === 'ECONNRESET' || reason.code === 'EPIPE' || reason.code === 'ETIMEDOUT' || reason.code === 'ENOTFOUND')) {
+        console.warn('⚠️ Recoverable network rejection caught; keeping server alive:', reason.message || reason);
+        return;
+    }
 });
 
 // Comprehensive CORS & Preflight Configuration

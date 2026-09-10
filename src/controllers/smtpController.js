@@ -423,11 +423,29 @@ const sendSmtpTestEmail = async (req, res) => {
 
     } catch (error) {
         console.error('Error sending test email:', error);
+
+        // Update DB test status to FAILED
+        try {
+            const cId = resolveCompanyId(req);
+            if (cId) {
+                await prisma.company_smtp_settings.updateMany({
+                    where: { companyId: cId },
+                    data: {
+                        lastTestedAt: new Date(),
+                        lastTestStatus: 'FAILED'
+                    }
+                });
+            }
+        } catch (dbErr) {}
+
         let errorMsg = error.message || 'SMTP transmission failure';
-        if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (bodyHost || '').includes('gmail.com')) {
+        const targetHost = req.body?.host || 'SMTP server';
+        const targetPort = req.body?.port || 465;
+
+        if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (targetHost || '').includes('gmail.com')) {
             errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
         } else if (error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'))) {
-            errorMsg = `Connection timed out connecting to ${bodyHost || 'SMTP server'}:${bodyPort || 587}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. Try switching to Port 587 (TLS), test locally, or request Railway to unblock SMTP.`;
+            errorMsg = `Connection timed out connecting to ${targetHost}:${targetPort}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. To send emails from Railway, please request Railway support to unblock outbound SMTP, or test using your local backend where port 465 is open.`;
         }
         return res.status(400).json({
             success: false,
