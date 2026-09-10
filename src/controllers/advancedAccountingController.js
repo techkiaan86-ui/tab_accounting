@@ -335,7 +335,9 @@ const postCurrencyRevaluationJournal = async (req, res) => {
                 voucherType: 'JOURNAL',
                 voucherNumber: voucherNumber,
                 narration: `FX Revaluation Journal #${voucherNumber}`,
-                companyId
+                company: {
+                    connect: { id: parseInt(companyId) }
+                }
             }
         });
 
@@ -635,9 +637,35 @@ const createFixedAsset = async (req, res) => {
         const usefulYears = parseFloat(usefulLifeYears) || 5;
         const currentBookValue = cost;
 
-        const assetLedger = assetLedgerId ? { id: parseInt(assetLedgerId) } : await getOrCreateSystemLedger(companyId, `${assetName} Account`, 'ASSETS', 'Fixed Assets');
-        const accDepLedger = accumulatedDepLedgerId ? { id: parseInt(accumulatedDepLedgerId) } : await getOrCreateSystemLedger(companyId, `Accumulated Dep. - ${assetName}`, 'ASSETS', 'Fixed Assets');
-        const depExpLedger = depExpenseLedgerId ? { id: parseInt(depExpenseLedgerId) } : await getOrCreateSystemLedger(companyId, 'Depreciation Expense', 'EXPENSES', 'Depreciation');
+        // Validate or resolve asset ledger
+        let assetLedger = null;
+        if (assetLedgerId && !isNaN(parseInt(assetLedgerId))) {
+            const found = await prisma.ledger.findFirst({ where: { id: parseInt(assetLedgerId), companyId } });
+            if (found) assetLedger = found;
+        }
+        if (!assetLedger) {
+            assetLedger = await getOrCreateSystemLedger(companyId, `${assetName} Account`, 'ASSETS', 'Fixed Assets');
+        }
+
+        // Validate or resolve accumulated depreciation ledger
+        let accDepLedger = null;
+        if (accumulatedDepLedgerId && !isNaN(parseInt(accumulatedDepLedgerId))) {
+            const found = await prisma.ledger.findFirst({ where: { id: parseInt(accumulatedDepLedgerId), companyId } });
+            if (found) accDepLedger = found;
+        }
+        if (!accDepLedger) {
+            accDepLedger = await getOrCreateSystemLedger(companyId, `Accumulated Dep. - ${assetName}`, 'ASSETS', 'Fixed Assets');
+        }
+
+        // Validate or resolve depreciation expense ledger
+        let depExpLedger = null;
+        if (depExpenseLedgerId && !isNaN(parseInt(depExpenseLedgerId))) {
+            const found = await prisma.ledger.findFirst({ where: { id: parseInt(depExpenseLedgerId), companyId } });
+            if (found) depExpLedger = found;
+        }
+        if (!depExpLedger) {
+            depExpLedger = await getOrCreateSystemLedger(companyId, 'Depreciation Expense', 'EXPENSES', 'Depreciation');
+        }
 
         await prisma.$executeRawUnsafe(`
             INSERT INTO fixed_asset (
@@ -680,11 +708,11 @@ const runDepreciation = async (req, res) => {
         const depreciationResults = [];
 
         for (const asset of assets) {
-            const cost = asset.purchaseCost;
-            const salvage = asset.salvageValue;
-            const usefulYears = asset.usefulLifeYears;
-            const currentBookValue = asset.currentBookValue;
-            const maxDepreciable = cost - salvage;
+            const cost = parseFloat(asset.purchaseCost) || 0;
+            const salvage = parseFloat(asset.salvageValue) || 0;
+            const usefulYears = parseFloat(asset.usefulLifeYears) || 5;
+            const currentBookValue = parseFloat(asset.currentBookValue) || cost;
+            const maxDepreciable = Math.max(0, cost - salvage);
 
             let monthlyDepreciation = 0;
             if (asset.depreciationMethod === 'STRAIGHT_LINE') {
@@ -702,34 +730,63 @@ const runDepreciation = async (req, res) => {
                 continue;
             }
 
-            const newAccDep = asset.accumulatedDepreciation + actualDepreciation;
-            const newBookValue = cost - newAccDep;
+            const newAccDep = (parseFloat(asset.accumulatedDepreciation) || 0) + actualDepreciation;
+            const newBookValue = Math.max(salvage, cost - newAccDep);
             const newStatus = newBookValue <= salvage ? 'FULLY_DEPRECIATED' : 'ACTIVE';
 
+            // Auto-heal and guarantee valid ledgers exist
+            let expLedgerId = asset.depExpenseLedgerId ? parseInt(asset.depExpenseLedgerId) : null;
+            let accLedgerId = asset.accumulatedDepLedgerId ? parseInt(asset.accumulatedDepLedgerId) : null;
+
+            if (expLedgerId) {
+                const existingExp = await prisma.ledger.findFirst({ where: { id: expLedgerId, companyId } });
+                if (!existingExp) expLedgerId = null;
+            }
+            if (accLedgerId) {
+                const existingAcc = await prisma.ledger.findFirst({ where: { id: accLedgerId, companyId } });
+                if (!existingAcc) accLedgerId = null;
+            }
+
+            if (!expLedgerId) {
+                const depExpLedger = await getOrCreateSystemLedger(companyId, 'Depreciation Expense', 'EXPENSES', 'Depreciation');
+                expLedgerId = depExpLedger.id;
+                await prisma.$executeRawUnsafe(`UPDATE fixed_asset SET depExpenseLedgerId = ? WHERE id = ?`, expLedgerId, asset.id);
+            }
+
+            if (!accLedgerId) {
+                const accDepLedger = await getOrCreateSystemLedger(companyId, `Accumulated Dep. - ${asset.assetName}`, 'ASSETS', 'Fixed Assets');
+                accLedgerId = accDepLedger.id;
+                await prisma.$executeRawUnsafe(`UPDATE fixed_asset SET accumulatedDepLedgerId = ? WHERE id = ?`, accLedgerId, asset.id);
+            }
+
             const voucherNumber = `DEP-${asset.id}-${Date.now().toString().slice(-4)}`;
+            const depAmount = parseFloat(actualDepreciation.toFixed(2));
             
+            // 1. Post double-entry journal voucher
             await prisma.voucher.create({
                 data: {
                     voucherNumber,
                     voucherType: 'JOURNAL',
                     date: new Date(depreciationDate),
-                    totalAmount: parseFloat(actualDepreciation.toFixed(2)),
-                    notes: `Automated Depreciation for Asset: ${asset.assetName} (${asset.assetNumber})`,
-                    companyId,
+                    totalAmount: depAmount,
+                    notes: `Automated Depreciation for Asset: ${asset.assetName} (${asset.assetNumber || 'FA-' + asset.id})`,
+                    company: {
+                        connect: { id: parseInt(companyId) }
+                    },
                     voucheritem: {
                         create: [
                             {
-                                ledgerId: asset.depExpenseLedgerId,
-                                debit: parseFloat(actualDepreciation.toFixed(2)),
+                                ledgerId: expLedgerId,
+                                debit: depAmount,
                                 credit: 0,
-                                amount: parseFloat(actualDepreciation.toFixed(2)),
+                                amount: depAmount,
                                 narration: `Depreciation Expense on ${asset.assetName}`
                             },
                             {
-                                ledgerId: asset.accumulatedDepLedgerId,
+                                ledgerId: accLedgerId,
                                 debit: 0,
-                                credit: parseFloat(actualDepreciation.toFixed(2)),
-                                amount: parseFloat(actualDepreciation.toFixed(2)),
+                                credit: depAmount,
+                                amount: depAmount,
                                 narration: `Accumulated Depreciation for ${asset.assetName}`
                             }
                         ]
@@ -737,19 +794,37 @@ const runDepreciation = async (req, res) => {
                 }
             });
 
+            // 2. Post transaction record
             await prisma.transaction.create({
                 data: {
                     date: new Date(depreciationDate),
-                    debitLedgerId: asset.depExpenseLedgerId,
-                    creditLedgerId: asset.accumulatedDepLedgerId,
-                    amount: parseFloat(actualDepreciation.toFixed(2)),
+                    debitLedgerId: expLedgerId,
+                    creditLedgerId: accLedgerId,
+                    amount: depAmount,
                     voucherType: 'JOURNAL',
                     voucherNumber: voucherNumber,
-                    narration: `Automated Depreciation for Asset: ${asset.assetName} (${asset.assetNumber})`,
-                    companyId
+                    narration: `Automated Depreciation for Asset: ${asset.assetName} (${asset.assetNumber || 'FA-' + asset.id})`,
+                    company: {
+                        connect: { id: parseInt(companyId) }
+                    }
                 }
             });
 
+            // 3. Update ledger balances
+            try {
+                await prisma.ledger.update({
+                    where: { id: expLedgerId },
+                    data: { currentBalance: { increment: depAmount } }
+                });
+                await prisma.ledger.update({
+                    where: { id: accLedgerId },
+                    data: { currentBalance: { increment: depAmount } }
+                });
+            } catch (balErr) {
+                console.warn('Could not update ledger balances for depreciation:', balErr);
+            }
+
+            // 4. Update fixed asset status & book value
             await prisma.$executeRawUnsafe(`
                 UPDATE fixed_asset 
                 SET accumulatedDepreciation = ?, currentBookValue = ?, lastDepreciationDate = ?, status = ?
@@ -759,7 +834,7 @@ const runDepreciation = async (req, res) => {
             depreciationResults.push({
                 assetId: asset.id,
                 assetName: asset.assetName,
-                depreciationAmount: parseFloat(actualDepreciation.toFixed(2)),
+                depreciationAmount: depAmount,
                 newBookValue: parseFloat(newBookValue.toFixed(2)),
                 status: newStatus,
                 voucherNumber
