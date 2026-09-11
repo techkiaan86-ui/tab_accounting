@@ -529,7 +529,7 @@ model invoiceitem {
   invoiceId   Int
   productId   Int?
   serviceId   Int?
-  description String?
+  description String?    @db.Text
   quantity    Float
   rate        Float
   discount    Float      @default(0)
@@ -748,7 +748,7 @@ model posinvoiceitem {
   posInvoiceId Int
   productId    Int?
   warehouseId  Int?
-  description  String?
+  description  String?    @db.Text
   quantity     Float
   rate         Float
   amount       Float
@@ -892,7 +892,7 @@ model purchasebillitem {
   purchaseBillId Int
   productId      Int?
   warehouseId    Int?
-  description    String?
+  description    String?      @db.Text
   quantity       Float
   rate           Float
   discount       Float        @default(0)
@@ -967,7 +967,7 @@ model purchaseorderitem {
   id            Int           @id @default(autoincrement())
   orderId       Int
   productId     Int?
-  description   String?
+  description   String?       @db.Text
   quantity      Float
   rate          Float
   discount      Float         @default(0)
@@ -1022,7 +1022,7 @@ model purchasequotationitem {
   id                Int               @id @default(autoincrement())
   quotationId       Int
   productId         Int?
-  description       String?
+  description       String?           @db.Text
   quantity          Float
   rate              Float
   discount          Float             @default(0)
@@ -1171,7 +1171,7 @@ model salesorderitem {
   orderId     Int
   productId   Int?
   serviceId   Int?
-  description String?
+  description String?    @db.Text
   quantity    Float
   rate        Float
   discount    Float      @default(0)
@@ -1239,7 +1239,7 @@ model salesquotationitem {
   quotationId    Int
   productId      Int?
   serviceId      Int?
-  description    String?
+  description    String?        @db.Text
   quantity       Float
   rate           Float
   discount       Float          @default(0)
