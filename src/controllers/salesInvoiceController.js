@@ -2437,202 +2437,350 @@ const updateInvoice = async (req, res) => {
     }
 };
 
-// Delete Invoice
+// Delete Invoice (Supports both single invoice and combined/bulk invoices)
 const deleteInvoice = async (req, res) => {
     try {
         const { id } = req.params;
-        const companyId = req.user?.companyId || req.query.companyId;
+        const companyId = req.user?.companyId || req.query.companyId || req.body?.companyId;
 
-        const invoiceId = parseInt(id);
-        if (isNaN(invoiceId)) {
-            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
-        }
+        const rawId = String(id || '').trim();
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
 
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: invoiceId },
-            include: {
-                customer: true,
-                invoiceitem: {
-                    include: { product: true }
-                },
-                transaction: true
-            }
-        });
+        let invoicesToDelete = [];
 
-        if (!invoice) {
-            return res.status(404).json({ success: false, message: 'Invoice not found' });
-        }
-
-        const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
-        const lockCheck = checkPeriodLock(companyId, invoice.date);
-        if (lockCheck.isLocked) {
-            return res.status(403).json({
-                success: false,
-                isPeriodLocked: true,
-                message: `Accounting period is locked up to ${lockCheck.lockedUntilDate} (${lockCheck.reason}). Transactions on or before this date cannot be deleted.`
-            });
-        }
-
-        await prisma.$transaction(async (tx) => {
-            const { deleteSalesReturnHelper } = require('./salesReturnController');
-            const { deleteReceiptHelper } = require('./salesReceiptController');
-
-            // Find and delete linked sales returns
-            const linkedReturns = await tx.salesreturn.findMany({
-                where: { invoiceId: invoice.id },
-                include: { salesreturnitem: true }
-            });
-            for (const ret of linkedReturns) {
-                await deleteSalesReturnHelper(tx, ret, companyId);
-            }
-
-            // Find and delete linked receipts
-            const linkedReceipts = await tx.receipt.findMany({
-                where: { invoiceId: invoice.id }
-            });
-            for (const rec of linkedReceipts) {
-                await deleteReceiptHelper(tx, rec, companyId);
-            }
-
-            // Unlink any remaining receipts pointing to this invoice to prevent FK Restrict errors
-            await tx.receipt.updateMany({
-                where: { invoiceId: invoice.id },
-                data: { invoiceId: null }
-            });
-
-            // 1. Revert Ledger Balances
-            for (const t of invoice.transaction) {
-                if (t.voucherNumber && t.voucherNumber.startsWith('COGS-')) {
-                    await tx.ledger.update({
-                        where: { id: t.debitLedgerId },
-                        data: { currentBalance: { decrement: t.amount } }
-                    });
-                    await tx.ledger.update({
-                        where: { id: t.creditLedgerId },
-                        data: { currentBalance: { increment: t.amount } }
-                    });
-                } else {
-                    const dLedger = await tx.ledger.findUnique({ where: { id: t.debitLedgerId }, include: { accountgroup: true } });
-                    const cLedger = await tx.ledger.findUnique({ where: { id: t.creditLedgerId }, include: { accountgroup: true } });
-
-                    const isDrDebitNormal = dLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(dLedger.accountgroup.type) : true;
-                    const isCrDebitNormal = cLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(cLedger.accountgroup.type) : true;
-
-                    await tx.ledger.update({
-                        where: { id: t.debitLedgerId },
-                        data: { currentBalance: isDrDebitNormal ? { decrement: t.amount } : { increment: t.amount } }
-                    });
-                    await tx.ledger.update({
-                        where: { id: t.creditLedgerId },
-                        data: { currentBalance: isCrDebitNormal ? { increment: t.amount } : { decrement: t.amount } }
-                    });
+        if (isCombined) {
+            let custId = req.query.customerId ? parseInt(req.query.customerId) : (req.body?.customerId ? parseInt(req.body.customerId) : null);
+            if (!custId && rawId.includes('CUST-')) {
+                custId = parseInt(rawId.split('CUST-')[1]);
+            } else if (!custId && rawId.toLowerCase().includes('combined-')) {
+                const afterPrefix = rawId.replace(/combined-/i, '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
                 }
             }
 
-            // 2. Revert Stock & Valuation Layers
-            const { convertToBaseQuantity } = require('../services/uomConversionService');
-            const baseItemsForReversal = [];
-
-            for (const item of invoice.invoiceitem) {
-                if (item.productId && item.warehouseId) {
-                    const prod = await tx.product.findUnique({
-                        where: { id: item.productId },
-                        include: { uom: true }
-                    });
-                    const transUom = item.uomId ? await tx.uom.findUnique({ where: { id: item.uomId } }) : null;
-                    const baseQty = convertToBaseQuantity(item.quantity, transUom, prod?.uom);
-
-                    baseItemsForReversal.push({
-                        productId: item.productId,
-                        warehouseId: item.warehouseId,
-                        quantity: baseQty
-                    });
-
-                    await tx.stock.upsert({
-                        where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
-                        create: {
-                            warehouseId: item.warehouseId,
-                            productId: item.productId,
-                            quantity: baseQty,
-                            initialQty: 0,
-                            minOrderQty: 0
+            const passedInvoiceIds = req.body?.invoiceIds || req.query?.invoiceIds;
+            if (passedInvoiceIds) {
+                const idsArray = Array.isArray(passedInvoiceIds) ? passedInvoiceIds : String(passedInvoiceIds).split(',').map(s => s.trim());
+                const parsedIds = idsArray.map(n => parseInt(n)).filter(n => !isNaN(n));
+                if (parsedIds.length > 0) {
+                    invoicesToDelete = await prisma.invoice.findMany({
+                        where: {
+                            id: { in: parsedIds },
+                            companyId: companyId ? parseInt(companyId) : undefined
                         },
-                        update: {
-                            quantity: { increment: baseQty }
+                        include: {
+                            customer: true,
+                            invoiceitem: { include: { product: true } },
+                            transaction: true
                         }
                     });
                 }
             }
 
-            // Call reverseStockOut to restore FIFO batches and update WAC cost
-            await reverseStockOut(tx, {
-                invoiceId: invoice.id,
-                invoiceItems: baseItemsForReversal
-            });
-
-            // Delete original inventory transactions matching this invoice
-            await tx.inventorytransaction.deleteMany({
-                where: {
-                    companyId: invoice.companyId,
-                    reason: { contains: invoice.invoiceNumber }
-                }
-            });
-
-            // 3. Delete Transactions, Journal Entries, and Invoice
-            const journalEntryIds = [...new Set(invoice.transaction.map(t => t.journalEntryId).filter(Boolean))];
-
-            await tx.transaction.deleteMany({ where: { invoiceId: invoice.id } });
-
-            if (journalEntryIds.length > 0) {
-                await tx.journalentry.deleteMany({ where: { id: { in: journalEntryIds } } });
+            if (invoicesToDelete.length === 0 && custId && !isNaN(custId)) {
+                invoicesToDelete = await prisma.invoice.findMany({
+                    where: {
+                        customerId: parseInt(custId),
+                        companyId: companyId ? parseInt(companyId) : undefined
+                    },
+                    include: {
+                        customer: true,
+                        invoiceitem: { include: { product: true } },
+                        transaction: true
+                    }
+                });
             }
 
-            // Also delete any orphaned journal entries with same voucherNumber (permanent delete guarantee)
-            await tx.journalentry.deleteMany({
-                where: {
-                    companyId: invoice.companyId,
-                    voucherNumber: invoice.invoiceNumber,
-                    transaction: { none: {} }
+            if (invoicesToDelete.length === 0) {
+                return res.status(404).json({ success: false, message: 'No invoices found for this combined group' });
+            }
+        } else {
+            const invoiceId = parseInt(id);
+            if (isNaN(invoiceId)) {
+                return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+            }
+
+            const singleInvoice = await prisma.invoice.findUnique({
+                where: { id: invoiceId },
+                include: {
+                    customer: true,
+                    invoiceitem: { include: { product: true } },
+                    transaction: true
                 }
             });
 
-            // Rollback status of linked Delivery Challan and Sales Order
-            if (invoice.deliveryChallanId) {
-                const otherInvoices = await tx.invoice.findMany({
-                    where: { deliveryChallanId: invoice.deliveryChallanId, id: { not: invoice.id } }
+            if (!singleInvoice || (companyId && singleInvoice.companyId !== parseInt(companyId))) {
+                return res.status(404).json({ success: false, message: 'Invoice not found' });
+            }
+
+            invoicesToDelete = [singleInvoice];
+        }
+
+        const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
+        for (const inv of invoicesToDelete) {
+            const lockCheck = checkPeriodLock(companyId || inv.companyId, inv.date);
+            if (lockCheck.isLocked) {
+                return res.status(403).json({
+                    success: false,
+                    isPeriodLocked: true,
+                    message: `Accounting period is locked up to ${lockCheck.lockedUntilDate} (${lockCheck.reason}). Invoice ${inv.invoiceNumber} cannot be deleted.`
                 });
-                if (otherInvoices.length === 0) {
-                    await tx.deliverychallan.update({
-                        where: { id: invoice.deliveryChallanId },
-                        data: { status: 'APPROVED' }
+            }
+        }
+
+        await prisma.$transaction(async (tx) => {
+            const { deleteSalesReturnHelper } = require('./salesReturnController');
+            const { deleteReceiptHelper } = require('./salesReceiptController');
+            const invoiceIds = invoicesToDelete.map(inv => inv.id);
+
+            // 1. Find and delete linked sales returns
+            const linkedReturns = await tx.salesreturn.findMany({
+                where: { invoiceId: { in: invoiceIds } },
+                include: { salesreturnitem: true }
+            });
+            for (const ret of linkedReturns) {
+                await deleteSalesReturnHelper(tx, ret, ret.companyId || companyId);
+            }
+
+            // 2. Handle linked receipts and allocations
+            const directlyLinkedReceipts = await tx.receipt.findMany({
+                where: { invoiceId: { in: invoiceIds } },
+                include: { allocations: true }
+            });
+
+            const allocationsForTheseInvoices = await tx.receiptinvoiceallocation.findMany({
+                where: { invoiceId: { in: invoiceIds } },
+                include: { receipt: { include: { allocations: true } } }
+            });
+
+            const affectedReceiptMap = new Map();
+            for (const r of directlyLinkedReceipts) {
+                affectedReceiptMap.set(r.id, r);
+            }
+            for (const a of allocationsForTheseInvoices) {
+                if (a.receipt && !affectedReceiptMap.has(a.receipt.id)) {
+                    affectedReceiptMap.set(a.receipt.id, a.receipt);
+                }
+            }
+
+            for (const receipt of affectedReceiptMap.values()) {
+                const fullReceipt = await tx.receipt.findUnique({
+                    where: { id: receipt.id },
+                    include: { allocations: true }
+                });
+                if (!fullReceipt) continue;
+
+                // Check if this receipt is only allocated to invoices being deleted
+                const remainingAllocations = (fullReceipt.allocations || []).filter(a => !invoiceIds.includes(a.invoiceId));
+
+                if (remainingAllocations.length === 0) {
+                    // All allocations belong to invoices being deleted -> delete receipt completely
+                    await deleteReceiptHelper(tx, fullReceipt, fullReceipt.companyId || companyId);
+                } else {
+                    // Shared receipt with other active invoices:
+                    // Remove only allocations pointing to the invoices being deleted and restore unallocated advance
+                    const allocsToRemove = (fullReceipt.allocations || []).filter(a => invoiceIds.includes(a.invoiceId));
+                    const freedAmount = allocsToRemove.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+
+                    await tx.receiptinvoiceallocation.deleteMany({
+                        where: {
+                            receiptId: fullReceipt.id,
+                            invoiceId: { in: invoiceIds }
+                        }
+                    });
+
+                    await tx.receipt.update({
+                        where: { id: fullReceipt.id },
+                        data: {
+                            advanceUnallocated: { increment: freedAmount },
+                            invoiceId: fullReceipt.invoiceId && invoiceIds.includes(fullReceipt.invoiceId) ? null : fullReceipt.invoiceId
+                        }
                     });
                 }
             }
 
-            if (invoice.salesOrderId) {
-                const otherInvoices = await tx.invoice.findMany({
-                    where: { salesOrderId: invoice.salesOrderId, id: { not: invoice.id } }
-                });
-                const remainingChallans = await tx.deliverychallan.findMany({
-                    where: { salesOrderId: invoice.salesOrderId, status: { notIn: ['CANCELLED', 'DRAFT'] } }
-                });
-
-                if (otherInvoices.length === 0 && remainingChallans.length === 0) {
-                    await tx.salesorder.update({
-                        where: { id: invoice.salesOrderId },
-                        data: { status: 'CONFIRMED' }
+            // 3. Handle advance adjustments
+            const advanceAdjustments = await tx.advanceadjustment.findMany({
+                where: { invoiceId: { in: invoiceIds } }
+            });
+            for (const adj of advanceAdjustments) {
+                const recExists = await tx.receipt.findUnique({ where: { id: adj.receiptId } });
+                if (recExists) {
+                    await tx.receipt.update({
+                        where: { id: adj.receiptId },
+                        data: { advanceUnallocated: { increment: adj.amount } }
                     });
                 }
             }
+            await tx.advanceadjustment.deleteMany({
+                where: { invoiceId: { in: invoiceIds } }
+            });
 
-            await tx.invoice.delete({ where: { id: invoice.id } });
+            // 4. Unlink any remaining receipts pointing to these invoices to prevent FK Restrict errors
+            await tx.receipt.updateMany({
+                where: { invoiceId: { in: invoiceIds } },
+                data: { invoiceId: null }
+            });
+
+            // 5. Revert Ledger Balances for each invoice
+            for (const inv of invoicesToDelete) {
+                const transactions = await tx.transaction.findMany({
+                    where: { invoiceId: inv.id }
+                });
+
+                for (const t of transactions) {
+                    if (t.voucherNumber && t.voucherNumber.startsWith('COGS-')) {
+                        await tx.ledger.update({
+                            where: { id: t.debitLedgerId },
+                            data: { currentBalance: { decrement: t.amount } }
+                        });
+                        await tx.ledger.update({
+                            where: { id: t.creditLedgerId },
+                            data: { currentBalance: { increment: t.amount } }
+                        });
+                    } else {
+                        const dLedger = await tx.ledger.findUnique({ where: { id: t.debitLedgerId }, include: { accountgroup: true } });
+                        const cLedger = await tx.ledger.findUnique({ where: { id: t.creditLedgerId }, include: { accountgroup: true } });
+
+                        const isDrDebitNormal = dLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(dLedger.accountgroup.type) : true;
+                        const isCrDebitNormal = cLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(cLedger.accountgroup.type) : true;
+
+                        await tx.ledger.update({
+                            where: { id: t.debitLedgerId },
+                            data: { currentBalance: isDrDebitNormal ? { decrement: t.amount } : { increment: t.amount } }
+                        });
+                        await tx.ledger.update({
+                            where: { id: t.creditLedgerId },
+                            data: { currentBalance: isCrDebitNormal ? { increment: t.amount } : { decrement: t.amount } }
+                        });
+                    }
+                }
+            }
+
+            // 6. Revert Stock & Valuation Layers for each invoice
+            const { convertToBaseQuantity } = require('../services/uomConversionService');
+
+            for (const inv of invoicesToDelete) {
+                const invItems = await tx.invoiceitem.findMany({
+                    where: { invoiceId: inv.id }
+                });
+                const baseItemsForReversal = [];
+
+                for (const item of invItems) {
+                    if (item.productId && item.warehouseId) {
+                        const prod = await tx.product.findUnique({
+                            where: { id: item.productId },
+                            include: { uom: true }
+                        });
+                        const transUom = item.uomId ? await tx.uom.findUnique({ where: { id: item.uomId } }) : null;
+                        const baseQty = convertToBaseQuantity(item.quantity, transUom, prod?.uom);
+
+                        baseItemsForReversal.push({
+                            productId: item.productId,
+                            warehouseId: item.warehouseId,
+                            quantity: baseQty
+                        });
+
+                        await tx.stock.upsert({
+                            where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
+                            create: {
+                                warehouseId: item.warehouseId,
+                                productId: item.productId,
+                                quantity: baseQty,
+                                initialQty: 0,
+                                minOrderQty: 0
+                            },
+                            update: {
+                                quantity: { increment: baseQty }
+                            }
+                        });
+                    }
+                }
+
+                if (baseItemsForReversal.length > 0) {
+                    try {
+                        await reverseStockOut(tx, {
+                            invoiceId: inv.id,
+                            invoiceItems: baseItemsForReversal
+                        });
+                    } catch (stockRevErr) {
+                        console.warn(`reverseStockOut warning for invoice ${inv.id}:`, stockRevErr.message);
+                    }
+                }
+
+                await tx.inventorytransaction.deleteMany({
+                    where: {
+                        companyId: inv.companyId,
+                        reason: { contains: inv.invoiceNumber }
+                    }
+                });
+
+                await tx.inventory_consumption.deleteMany({
+                    where: { invoiceId: inv.id }
+                });
+            }
+
+            // 7. Delete Transactions, Journal Entries, Delivery Challans, and Invoices
+            for (const inv of invoicesToDelete) {
+                const transactions = await tx.transaction.findMany({
+                    where: { invoiceId: inv.id }
+                });
+                const journalEntryIds = [...new Set(transactions.map(t => t.journalEntryId).filter(Boolean))];
+
+                await tx.transaction.deleteMany({ where: { invoiceId: inv.id } });
+
+                if (journalEntryIds.length > 0) {
+                    await tx.journalentry.deleteMany({ where: { id: { in: journalEntryIds } } });
+                }
+
+                await tx.journalentry.deleteMany({
+                    where: {
+                        companyId: inv.companyId,
+                        voucherNumber: inv.invoiceNumber,
+                        transaction: { none: {} }
+                    }
+                });
+
+                if (inv.deliveryChallanId) {
+                    const otherInvoices = await tx.invoice.findMany({
+                        where: { deliveryChallanId: inv.deliveryChallanId, id: { notIn: invoiceIds } }
+                    });
+                    if (otherInvoices.length === 0) {
+                        await tx.deliverychallan.update({
+                            where: { id: inv.deliveryChallanId },
+                            data: { status: 'APPROVED' }
+                        });
+                    }
+                }
+
+                if (inv.salesOrderId) {
+                    const otherInvoices = await tx.invoice.findMany({
+                        where: { salesOrderId: inv.salesOrderId, id: { notIn: invoiceIds } }
+                    });
+                    const remainingChallans = await tx.deliverychallan.findMany({
+                        where: { salesOrderId: inv.salesOrderId, status: { notIn: ['CANCELLED', 'DRAFT'] } }
+                    });
+
+                    if (otherInvoices.length === 0 && remainingChallans.length === 0) {
+                        await tx.salesorder.update({
+                            where: { id: inv.salesOrderId },
+                            data: { status: 'CONFIRMED' }
+                        });
+                    }
+                }
+
+                await tx.invoiceitem.deleteMany({ where: { invoiceId: inv.id } });
+                await tx.invoice.delete({ where: { id: inv.id } });
+            }
         }, { timeout: 90000 });
 
-        // Sync customer.accountBalance from ledger after deletion
-        try {
-            if (invoice.customerId) {
+        // 8. Sync customer.accountBalance from ledger after deletion
+        const customerIds = [...new Set(invoicesToDelete.map(inv => inv.customerId).filter(Boolean))];
+        for (const custId of customerIds) {
+            try {
                 const customer = await prisma.customer.findUnique({
-                    where: { id: invoice.customerId },
+                    where: { id: custId },
                     select: { id: true, ledgerId: true }
                 });
                 if (customer && customer.ledgerId) {
@@ -2647,14 +2795,26 @@ const deleteInvoice = async (req, res) => {
                         });
                     }
                 }
+            } catch (syncErr) {
+                console.error('Customer balance sync error after invoice delete:', syncErr);
             }
-        } catch (syncErr) {
-            console.error('Customer balance sync error after invoice delete:', syncErr);
         }
 
+        // 9. Audit logging
         const { logInvoiceDeleted } = require('../utils/invoiceAuditHelper');
-        await logInvoiceDeleted(req, invoice);
-        res.status(200).json({ success: true, message: 'Invoice deleted successfully' });
+        for (const inv of invoicesToDelete) {
+            try {
+                await logInvoiceDeleted(req, inv);
+            } catch (auditErr) {
+                console.warn('Audit log error:', auditErr.message);
+            }
+        }
+
+        const message = isCombined
+            ? `Combined invoice and ${invoicesToDelete.length} associated invoice(s) deleted successfully`
+            : 'Invoice deleted successfully';
+
+        res.status(200).json({ success: true, message, count: invoicesToDelete.length });
     } catch (error) {
         console.error('Invoice Delete Error:', error);
         res.status(500).json({ success: false, message: error.message });
