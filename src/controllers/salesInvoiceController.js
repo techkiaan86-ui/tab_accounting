@@ -291,17 +291,30 @@ const createInvoice = async (req, res) => {
         const custStateStr = (req.body.billingState || customer?.billingState || '').toLowerCase().trim();
         const isInterState = Boolean(compStateStr && custStateStr && compStateStr !== custStateStr);
 
+        // Validate warehouses for this company to prevent foreign key errors
+        const validWarehouses = await prisma.warehouse.findMany({
+            where: { companyId: parseInt(companyId) },
+            select: { id: true }
+        });
+        const validWhIds = new Set(validWarehouses.map(w => w.id));
+        const firstValidWhId = validWarehouses.length > 0 ? validWarehouses[0].id : null;
+
         let defaultWhId = req.body.warehouseId ? parseInt(req.body.warehouseId) : null;
+        if (defaultWhId && !validWhIds.has(defaultWhId)) {
+            defaultWhId = null;
+        }
+
         if (!defaultWhId) {
             let cfg = {};
             try {
                 cfg = typeof companyRec?.inventoryConfig === 'string' ? JSON.parse(companyRec.inventoryConfig) : (companyRec?.inventoryConfig || {});
             } catch (e) { }
-            if (cfg.defaultSalesWarehouseId) defaultWhId = parseInt(cfg.defaultSalesWarehouseId);
+            if (cfg.defaultSalesWarehouseId && validWhIds.has(parseInt(cfg.defaultSalesWarehouseId))) {
+                defaultWhId = parseInt(cfg.defaultSalesWarehouseId);
+            }
         }
         if (!defaultWhId) {
-            const firstWh = await prisma.warehouse.findFirst({ where: { companyId: parseInt(companyId) } });
-            if (firstWh) defaultWhId = firstWh.id;
+            defaultWhId = firstValidWhId;
         }
 
         let subtotal = 0;
@@ -364,6 +377,13 @@ const createInvoice = async (req, res) => {
 
             lineTaxSum += lineTax;
 
+            let itemWhId = item.warehouseId ? parseInt(item.warehouseId) : null;
+            if (itemWhId && !validWhIds.has(itemWhId)) {
+                itemWhId = defaultWhId;
+            } else if (!itemWhId) {
+                itemWhId = defaultWhId;
+            }
+
             return {
                 productId: item.productId ? parseInt(item.productId) : null,
                 serviceId: item.serviceId ? parseInt(item.serviceId) : null,
@@ -379,7 +399,7 @@ const createInvoice = async (req, res) => {
                 cgstAmount,
                 sgstAmount,
                 igstAmount,
-                warehouseId: item.warehouseId ? parseInt(item.warehouseId) : defaultWhId,
+                warehouseId: itemWhId,
                 uomId: item.uomId ? parseInt(item.uomId) : null
             };
         });
@@ -1768,6 +1788,14 @@ const updateInvoice = async (req, res) => {
 
         let invoiceItemsData = undefined;
 
+        // Fetch valid warehouses for company to prevent foreign key errors on update
+        const validWarehousesUpdate = await prisma.warehouse.findMany({
+            where: { companyId: parseInt(companyId) },
+            select: { id: true }
+        });
+        const validWhIdsUpdate = new Set(validWarehousesUpdate.map(w => w.id));
+        const firstValidWhIdUpdate = validWarehousesUpdate.length > 0 ? validWarehousesUpdate[0].id : null;
+
         if (items) {
             let lineDiscountSum = 0;
             subtotal = 0;
@@ -1813,6 +1841,11 @@ const updateInvoice = async (req, res) => {
 
                 lineTaxSum += lineTax;
 
+                let itemWhId = item.warehouseId ? parseInt(item.warehouseId) : null;
+                if (itemWhId && !validWhIdsUpdate.has(itemWhId)) {
+                    itemWhId = firstValidWhIdUpdate;
+                }
+
                 return {
                     productId: item.productId ? parseInt(item.productId) : null,
                     serviceId: item.serviceId ? parseInt(item.serviceId) : null,
@@ -1822,7 +1855,7 @@ const updateInvoice = async (req, res) => {
                     discount: itemDiscount,
                     amount: lineDiscountedAmount,
                     taxRate: itemTaxRate,
-                    warehouseId: item.warehouseId ? parseInt(item.warehouseId) : null
+                    warehouseId: itemWhId
                 };
             });
 
