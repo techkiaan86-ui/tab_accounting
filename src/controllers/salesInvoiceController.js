@@ -2786,30 +2786,38 @@ const deleteInvoice = async (req, res) => {
                 });
 
                 if (inv.deliveryChallanId) {
-                    const otherInvoices = await tx.invoice.findMany({
-                        where: { deliveryChallanId: inv.deliveryChallanId, id: { notIn: invoiceIds } }
-                    });
-                    if (otherInvoices.length === 0) {
-                        await tx.deliverychallan.update({
-                            where: { id: inv.deliveryChallanId },
-                            data: { status: 'APPROVED' }
+                    try {
+                        const otherInvoices = await tx.invoice.findMany({
+                            where: { deliveryChallanId: inv.deliveryChallanId, id: { notIn: invoiceIds } }
                         });
+                        if (otherInvoices.length === 0) {
+                            await tx.deliverychallan.update({
+                                where: { id: inv.deliveryChallanId },
+                                data: { status: 'DELIVERED' }
+                            });
+                        }
+                    } catch (dcErr) {
+                        console.warn(`Could not revert deliverychallan status for DC ${inv.deliveryChallanId}:`, dcErr.message);
                     }
                 }
 
                 if (inv.salesOrderId) {
-                    const otherInvoices = await tx.invoice.findMany({
-                        where: { salesOrderId: inv.salesOrderId, id: { notIn: invoiceIds } }
-                    });
-                    const remainingChallans = await tx.deliverychallan.findMany({
-                        where: { salesOrderId: inv.salesOrderId, status: { notIn: ['CANCELLED', 'DRAFT'] } }
-                    });
-
-                    if (otherInvoices.length === 0 && remainingChallans.length === 0) {
-                        await tx.salesorder.update({
-                            where: { id: inv.salesOrderId },
-                            data: { status: 'CONFIRMED' }
+                    try {
+                        const otherInvoices = await tx.invoice.findMany({
+                            where: { salesOrderId: inv.salesOrderId, id: { notIn: invoiceIds } }
                         });
+                        const remainingChallans = await tx.deliverychallan.findMany({
+                            where: { salesOrderId: inv.salesOrderId, status: { notIn: ['CANCELLED'] } }
+                        });
+
+                        if (otherInvoices.length === 0 && remainingChallans.length === 0) {
+                            await tx.salesorder.update({
+                                where: { id: inv.salesOrderId },
+                                data: { status: 'PENDING' }
+                            });
+                        }
+                    } catch (soErr) {
+                        console.warn(`Could not revert salesorder status for SO ${inv.salesOrderId}:`, soErr.message);
                     }
                 }
 
