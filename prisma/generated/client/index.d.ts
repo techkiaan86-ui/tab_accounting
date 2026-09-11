@@ -14115,6 +14115,7 @@ export namespace Prisma {
     paymentTableHeaders: string | null
     customFieldsConfig: string | null
     documentTitles: string | null
+    invoiceDeletionPassword: string | null
   }
 
   export type CompanyMaxAggregateOutputType = {
@@ -14176,6 +14177,7 @@ export namespace Prisma {
     paymentTableHeaders: string | null
     customFieldsConfig: string | null
     documentTitles: string | null
+    invoiceDeletionPassword: string | null
   }
 
   export type CompanyCountAggregateOutputType = {
@@ -14237,6 +14239,7 @@ export namespace Prisma {
     paymentTableHeaders: number
     customFieldsConfig: number
     documentTitles: number
+    invoiceDeletionPassword: number
     _all: number
   }
 
@@ -14312,6 +14315,7 @@ export namespace Prisma {
     paymentTableHeaders?: true
     customFieldsConfig?: true
     documentTitles?: true
+    invoiceDeletionPassword?: true
   }
 
   export type CompanyMaxAggregateInputType = {
@@ -14373,6 +14377,7 @@ export namespace Prisma {
     paymentTableHeaders?: true
     customFieldsConfig?: true
     documentTitles?: true
+    invoiceDeletionPassword?: true
   }
 
   export type CompanyCountAggregateInputType = {
@@ -14434,6 +14439,7 @@ export namespace Prisma {
     paymentTableHeaders?: true
     customFieldsConfig?: true
     documentTitles?: true
+    invoiceDeletionPassword?: true
     _all?: true
   }
 
@@ -14582,6 +14588,7 @@ export namespace Prisma {
     paymentTableHeaders: string | null
     customFieldsConfig: string | null
     documentTitles: string | null
+    invoiceDeletionPassword: string | null
     _count: CompanyCountAggregateOutputType | null
     _avg: CompanyAvgAggregateOutputType | null
     _sum: CompanySumAggregateOutputType | null
@@ -14662,6 +14669,7 @@ export namespace Prisma {
     paymentTableHeaders?: boolean
     customFieldsConfig?: boolean
     documentTitles?: boolean
+    invoiceDeletionPassword?: boolean
     accountgroup?: boolean | company$accountgroupArgs<ExtArgs>
     accountsubgroup?: boolean | company$accountsubgroupArgs<ExtArgs>
     bankaccount?: boolean | company$bankaccountArgs<ExtArgs>
@@ -14769,6 +14777,7 @@ export namespace Prisma {
     paymentTableHeaders?: boolean
     customFieldsConfig?: boolean
     documentTitles?: boolean
+    invoiceDeletionPassword?: boolean
   }
 
   export type companyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -14926,6 +14935,7 @@ export namespace Prisma {
       paymentTableHeaders: string | null
       customFieldsConfig: string | null
       documentTitles: string | null
+      invoiceDeletionPassword: string | null
     }, ExtArgs["result"]["company"]>
     composites: {}
   }
@@ -15397,6 +15407,7 @@ export namespace Prisma {
     readonly paymentTableHeaders: FieldRef<"company", 'String'>
     readonly customFieldsConfig: FieldRef<"company", 'String'>
     readonly documentTitles: FieldRef<"company", 'String'>
+    readonly invoiceDeletionPassword: FieldRef<"company", 'String'>
   }
     
 
@@ -88258,7 +88269,8 @@ export namespace Prisma {
     paymentLabels: 'paymentLabels',
     paymentTableHeaders: 'paymentTableHeaders',
     customFieldsConfig: 'customFieldsConfig',
-    documentTitles: 'documentTitles'
+    documentTitles: 'documentTitles',
+    invoiceDeletionPassword: 'invoiceDeletionPassword'
   };
 
   export type CompanyScalarFieldEnum = (typeof CompanyScalarFieldEnum)[keyof typeof CompanyScalarFieldEnum]
@@ -90257,6 +90269,7 @@ export namespace Prisma {
     paymentTableHeaders?: StringNullableFilter<"company"> | string | null
     customFieldsConfig?: StringNullableFilter<"company"> | string | null
     documentTitles?: StringNullableFilter<"company"> | string | null
+    invoiceDeletionPassword?: StringNullableFilter<"company"> | string | null
     accountgroup?: AccountgroupListRelationFilter
     accountsubgroup?: AccountsubgroupListRelationFilter
     bankaccount?: BankaccountListRelationFilter
@@ -90362,6 +90375,7 @@ export namespace Prisma {
     paymentTableHeaders?: SortOrderInput | SortOrder
     customFieldsConfig?: SortOrderInput | SortOrder
     documentTitles?: SortOrderInput | SortOrder
+    invoiceDeletionPassword?: SortOrderInput | SortOrder
     accountgroup?: accountgroupOrderByRelationAggregateInput
     accountsubgroup?: accountsubgroupOrderByRelationAggregateInput
     bankaccount?: bankaccountOrderByRelationAggregateInput
@@ -90470,6 +90484,7 @@ export namespace Prisma {
     paymentTableHeaders?: StringNullableFilter<"company"> | string | null
     customFieldsConfig?: StringNullableFilter<"company"> | string | null
     documentTitles?: StringNullableFilter<"company"> | string | null
+    invoiceDeletionPassword?: StringNullableFilter<"company"> | string | null
     accountgroup?: AccountgroupListRelationFilter
     accountsubgroup?: AccountsubgroupListRelationFilter
     bankaccount?: BankaccountListRelationFilter
@@ -90575,6 +90590,7 @@ export namespace Prisma {
     paymentTableHeaders?: SortOrderInput | SortOrder
     customFieldsConfig?: SortOrderInput | SortOrder
     documentTitles?: SortOrderInput | SortOrder
+    invoiceDeletionPassword?: SortOrderInput | SortOrder
     _count?: companyCountOrderByAggregateInput
     _avg?: companyAvgOrderByAggregateInput
     _max?: companyMaxOrderByAggregateInput
@@ -90644,6 +90660,7 @@ export namespace Prisma {
     paymentTableHeaders?: StringNullableWithAggregatesFilter<"company"> | string | null
     customFieldsConfig?: StringNullableWithAggregatesFilter<"company"> | string | null
     documentTitles?: StringNullableWithAggregatesFilter<"company"> | string | null
+    invoiceDeletionPassword?: StringNullableWithAggregatesFilter<"company"> | string | null
   }
 
   export type customerWhereInput = {
@@ -98668,6 +98685,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -98773,6 +98791,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -98875,6 +98894,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -98980,6 +99000,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -99084,6 +99105,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
   }
 
   export type companyUpdateManyMutationInput = {
@@ -99143,6 +99165,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type companyUncheckedUpdateManyInput = {
@@ -99204,6 +99227,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type customerCreateInput = {
@@ -108381,6 +108405,7 @@ export namespace Prisma {
     paymentTableHeaders?: SortOrder
     customFieldsConfig?: SortOrder
     documentTitles?: SortOrder
+    invoiceDeletionPassword?: SortOrder
   }
 
   export type companyAvgOrderByAggregateInput = {
@@ -108448,6 +108473,7 @@ export namespace Prisma {
     paymentTableHeaders?: SortOrder
     customFieldsConfig?: SortOrder
     documentTitles?: SortOrder
+    invoiceDeletionPassword?: SortOrder
   }
 
   export type companyMinOrderByAggregateInput = {
@@ -108509,6 +108535,7 @@ export namespace Prisma {
     paymentTableHeaders?: SortOrder
     customFieldsConfig?: SortOrder
     documentTitles?: SortOrder
+    invoiceDeletionPassword?: SortOrder
   }
 
   export type companySumOrderByAggregateInput = {
@@ -125228,6 +125255,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionCreateNestedManyWithoutCompanyInput
@@ -125332,6 +125360,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionUncheckedCreateNestedManyWithoutCompanyInput
@@ -125541,6 +125570,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUpdateManyWithoutCompanyNestedInput
@@ -125645,6 +125675,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUncheckedUpdateManyWithoutCompanyNestedInput
@@ -125812,6 +125843,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionCreateNestedManyWithoutCompanyInput
@@ -125916,6 +125948,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionUncheckedCreateNestedManyWithoutCompanyInput
@@ -126122,6 +126155,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUpdateManyWithoutCompanyNestedInput
@@ -126226,6 +126260,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUncheckedUpdateManyWithoutCompanyNestedInput
@@ -126373,6 +126408,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionCreateNestedManyWithoutCompanyInput
@@ -126477,6 +126513,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     banktransaction?: banktransactionUncheckedCreateNestedManyWithoutCompanyInput
@@ -126627,6 +126664,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUpdateManyWithoutCompanyNestedInput
@@ -126731,6 +126769,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     banktransaction?: banktransactionUncheckedUpdateManyWithoutCompanyNestedInput
@@ -126896,6 +126935,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -127000,6 +127040,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -127155,6 +127196,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -127259,6 +127301,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -127360,6 +127403,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -127464,6 +127508,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -127680,6 +127725,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -127784,6 +127830,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -131823,6 +131870,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -131927,6 +131975,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -132695,6 +132744,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -132799,6 +132849,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -133129,6 +133180,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -133233,6 +133285,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -133786,6 +133839,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -133890,6 +133944,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -134815,6 +134870,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -134919,6 +134975,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -135036,6 +135093,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -135140,6 +135198,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -135241,6 +135300,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -135345,6 +135405,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -135784,6 +135845,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -135888,6 +135950,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -136649,6 +136712,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -136753,6 +136817,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -136870,6 +136935,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -136974,6 +137040,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -137075,6 +137142,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -137179,6 +137247,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -137399,6 +137468,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -137503,6 +137573,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -138122,6 +138193,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -138226,6 +138298,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -138615,6 +138688,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -138719,6 +138793,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -139138,6 +139213,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -139242,6 +139318,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -139995,6 +140072,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -140099,6 +140177,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -141403,6 +141482,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -141507,6 +141587,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -141677,6 +141758,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -141781,6 +141863,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -141898,6 +141981,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -142002,6 +142086,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -142999,6 +143084,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -143103,6 +143189,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -143731,6 +143818,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -143835,6 +143923,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -143990,6 +144079,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -144094,6 +144184,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -144239,6 +144330,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -144343,6 +144435,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -144901,6 +144994,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -145005,6 +145099,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -145519,6 +145614,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -145622,6 +145718,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -145794,6 +145891,7 @@ export namespace Prisma {
     paymentTableHeaders?: StringNullableFilter<"company"> | string | null
     customFieldsConfig?: StringNullableFilter<"company"> | string | null
     documentTitles?: StringNullableFilter<"company"> | string | null
+    invoiceDeletionPassword?: StringNullableFilter<"company"> | string | null
   }
 
   export type planrequestUpsertWithWhereUniqueWithoutPlanInput = {
@@ -145978,6 +146076,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -146082,6 +146181,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -146395,6 +146495,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -146499,6 +146600,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -147556,6 +147658,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -147660,6 +147763,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -148515,6 +148619,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -148619,6 +148724,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -149358,6 +149464,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -149462,6 +149569,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -150083,6 +150191,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -150187,6 +150296,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -151440,6 +151550,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -151544,6 +151655,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -151890,6 +152002,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -151994,6 +152107,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -152981,6 +153095,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -153085,6 +153200,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -153431,6 +153547,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -153535,6 +153652,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -154330,6 +154448,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -154434,6 +154553,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -154794,6 +154914,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -154898,6 +155019,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -155649,6 +155771,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -155753,6 +155876,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -156317,6 +156441,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -156421,6 +156546,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -157106,6 +157232,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -157210,6 +157337,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -157578,6 +157706,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -157682,6 +157811,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -158771,6 +158901,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -158875,6 +159006,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -159225,6 +159357,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -159329,6 +159462,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -160244,6 +160378,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -160348,6 +160483,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -160714,6 +160850,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -160818,6 +160955,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -161718,6 +161856,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -161822,6 +161961,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -162041,6 +162181,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -162145,6 +162286,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -162646,6 +162788,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -162750,6 +162893,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -162970,6 +163114,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -163074,6 +163219,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -163673,6 +163819,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -163777,6 +163924,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -164410,6 +164558,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -164514,6 +164663,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -165179,6 +165329,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -165283,6 +165434,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -166154,6 +166306,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -166258,6 +166411,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -166636,6 +166790,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -166740,6 +166895,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -166970,6 +167126,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -167074,6 +167231,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -167261,6 +167419,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -167365,6 +167524,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -167526,6 +167686,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -167630,6 +167791,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -167731,6 +167893,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -167835,6 +167998,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -167952,6 +168116,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -168056,6 +168221,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -168705,6 +168871,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -168809,6 +168976,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -169120,6 +169288,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -169224,6 +169393,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -169997,6 +170167,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -170101,6 +170272,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -170543,6 +170715,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -170647,6 +170820,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -170764,6 +170938,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -170868,6 +171043,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -171358,6 +171534,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -171462,6 +171639,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -172363,6 +172541,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -172467,6 +172646,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -172584,6 +172764,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -172688,6 +172869,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -174970,6 +175152,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -175074,6 +175257,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -175191,6 +175375,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -175295,6 +175480,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -175434,6 +175620,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -175538,6 +175725,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -175699,6 +175887,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -175803,6 +175992,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -175904,6 +176094,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -176008,6 +176199,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -176347,6 +176539,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -176451,6 +176644,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -176584,6 +176778,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -176688,6 +176883,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -176805,6 +177001,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -176909,6 +177106,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -177010,6 +177208,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountCreateNestedManyWithoutCompanyInput
@@ -177114,6 +177313,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
     accountgroup?: accountgroupUncheckedCreateNestedManyWithoutCompanyInput
     accountsubgroup?: accountsubgroupUncheckedCreateNestedManyWithoutCompanyInput
     bankaccount?: bankaccountUncheckedCreateNestedManyWithoutCompanyInput
@@ -177551,6 +177751,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -177655,6 +177856,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -184980,6 +185182,7 @@ export namespace Prisma {
     paymentTableHeaders?: string | null
     customFieldsConfig?: string | null
     documentTitles?: string | null
+    invoiceDeletionPassword?: string | null
   }
 
   export type planrequestCreateManyPlanInput = {
@@ -185054,6 +185257,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUpdateManyWithoutCompanyNestedInput
@@ -185157,6 +185361,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
     accountgroup?: accountgroupUncheckedUpdateManyWithoutCompanyNestedInput
     accountsubgroup?: accountsubgroupUncheckedUpdateManyWithoutCompanyNestedInput
     bankaccount?: bankaccountUncheckedUpdateManyWithoutCompanyNestedInput
@@ -185260,6 +185465,7 @@ export namespace Prisma {
     paymentTableHeaders?: NullableStringFieldUpdateOperationsInput | string | null
     customFieldsConfig?: NullableStringFieldUpdateOperationsInput | string | null
     documentTitles?: NullableStringFieldUpdateOperationsInput | string | null
+    invoiceDeletionPassword?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type planrequestUpdateWithoutPlanInput = {

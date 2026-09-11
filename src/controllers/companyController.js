@@ -231,6 +231,8 @@ const getCompanyById = async (req, res) => {
             if (!company.defaultVatRate) {
                 company.defaultVatRate = '23';
             }
+            company.hasInvoiceDeletionPassword = Boolean(company.invoiceDeletionPassword);
+            delete company.invoiceDeletionPassword;
         }
         res.json(company);
     } catch (error) {
@@ -814,6 +816,116 @@ const getUserCompanies = async (req, res) => {
     }
 };
 
+// Get Invoice Deletion Password status
+const getInvoiceDeletionPasswordStatus = async (req, res) => {
+    try {
+        const rawCompanyId = req.params.id || req.user?.companyId || req.query.companyId;
+        const companyId = parseInt(rawCompanyId, 10);
+        if (!companyId || isNaN(companyId)) {
+            return res.status(400).json({ success: false, message: 'Valid company ID is required' });
+        }
+
+        const comp = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { id: true, invoiceDeletionPassword: true }
+        });
+
+        if (!comp) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        return res.status(200).json({
+            success: true,
+            hasPassword: Boolean(comp.invoiceDeletionPassword)
+        });
+    } catch (err) {
+        console.error('Error in getInvoiceDeletionPasswordStatus:', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// Create or update Invoice Deletion Password
+const updateInvoiceDeletionPassword = async (req, res) => {
+    try {
+        const userRole = (req.user?.role || '').toUpperCase();
+        if (!['COMPANY', 'ADMIN', 'SUPERADMIN'].includes(userRole)) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied: Only an Admin or Company manager can configure the invoice deletion password.'
+            });
+        }
+
+        const rawCompanyId = req.params.id || req.user?.companyId || req.query.companyId;
+        const companyId = parseInt(rawCompanyId, 10);
+        if (!companyId || isNaN(companyId)) {
+            return res.status(400).json({ success: false, message: 'Valid company ID is required' });
+        }
+
+        const { password } = req.body;
+
+        const currentCompany = await prisma.company.findUnique({
+            where: { id: companyId },
+            select: { id: true, invoiceDeletionPassword: true }
+        });
+
+        if (!currentCompany) {
+            return res.status(404).json({ success: false, message: 'Company not found' });
+        }
+
+        const { logActivity } = require('../utils/auditLogger');
+
+        // Removing/clearing password
+        if (password === null || password === '' || password === undefined) {
+            await prisma.company.update({
+                where: { id: companyId },
+                data: { invoiceDeletionPassword: null }
+            });
+
+            logActivity(req, 'UPDATE_SECURITY', 'Company', companyId, {
+                summary: 'Invoice deletion password was removed/disabled by Admin',
+                action: 'REMOVE_INVOICE_DELETION_PASSWORD'
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Invoice deletion password removed successfully',
+                hasPassword: false
+            });
+        }
+
+        const trimmedPassword = String(password).trim();
+        if (trimmedPassword.length < 4) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invoice deletion password must be at least 4 characters long'
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(trimmedPassword, 10);
+
+        await prisma.company.update({
+            where: { id: companyId },
+            data: { invoiceDeletionPassword: hashedPassword }
+        });
+
+        logActivity(req, 'UPDATE_SECURITY', 'Company', companyId, {
+            summary: currentCompany.invoiceDeletionPassword
+                ? 'Invoice deletion password was updated by Admin'
+                : 'Invoice deletion password was created by Admin',
+            action: 'UPDATE_INVOICE_DELETION_PASSWORD'
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Invoice deletion password saved successfully',
+            hasPassword: true
+        });
+    } catch (err) {
+        console.error('Error updating invoice deletion password:', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+};
+
 module.exports = {
     createCompany,
     createUserCompany,
@@ -826,6 +938,9 @@ module.exports = {
     updateNumberingSettings,
     getNextNumberEndpoint,
     getPeriodLockSettings,
-    updatePeriodLockSettings
+    updatePeriodLockSettings,
+    getInvoiceDeletionPasswordStatus,
+    updateInvoiceDeletionPassword
 };
+
 

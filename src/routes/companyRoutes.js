@@ -11,7 +11,9 @@ const {
     updateNumberingSettings,
     getNextNumberEndpoint,
     getPeriodLockSettings,
-    updatePeriodLockSettings
+    updatePeriodLockSettings,
+    getInvoiceDeletionPasswordStatus,
+    updateInvoiceDeletionPassword
 } = require('../controllers/companyController');
 const {
     getSmtpSettings,
@@ -91,6 +93,12 @@ router.put('/:id/smtp-settings', authenticateToken, checkCompanyAccess, updateSm
 router.delete('/:id/smtp-settings', authenticateToken, checkCompanyAccess, clearSmtpSettings);
 router.post('/:id/smtp-test-connection', authenticateToken, checkCompanyAccess, testSmtpConnection);
 router.post('/:id/smtp-send-test-email', authenticateToken, checkCompanyAccess, sendSmtpTestEmail);
+
+// Invoice Deletion Password endpoints
+router.get('/invoice-deletion-password-status', authenticateToken, getInvoiceDeletionPasswordStatus);
+router.put('/invoice-deletion-password', authenticateToken, updateInvoiceDeletionPassword);
+router.get('/:id/invoice-deletion-password-status', authenticateToken, checkCompanyAccess, getInvoiceDeletionPasswordStatus);
+router.put('/:id/invoice-deletion-password', authenticateToken, checkCompanyAccess, updateInvoiceDeletionPassword);
 
 // Company by ID endpoints (must be defined AFTER specific sub-routes)
 router.get('/:id', authenticateToken, checkCompanyAccess, getCompanyById);

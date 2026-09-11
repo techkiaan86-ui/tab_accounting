@@ -553,13 +553,39 @@ const getPOSInvoiceById = async (req, res) => {
 const deletePOSInvoice = async (req, res) => {
     try {
         const { id } = req.params;
-        const companyId = req.user?.companyId || req.query.companyId || req.body.companyId;
+        const companyId = req.user?.companyId || req.query.companyId || req.body?.companyId;
 
-        // Implementation of Void/Delete
-        // 1. Reverse Stock
-        // 2. Reverse Ledgers? Or just delete if testing?
-        // User asked for "delete".
-        // Robust way: Delete Transaction entries (reverse ledger balances first), then delete Invoice.
+        // Check invoice deletion password protection if configured
+        if (companyId) {
+            const companyRecord = await prisma.company.findUnique({
+                where: { id: parseInt(companyId) },
+                select: { id: true, invoiceDeletionPassword: true }
+            });
+
+            if (companyRecord?.invoiceDeletionPassword) {
+                const enteredPassword = req.body?.deletionPassword 
+                    || (req.headers && req.headers['x-deletion-password'] ? decodeURIComponent(req.headers['x-deletion-password']) : null)
+                    || req.query?.deletionPassword;
+
+                const bcrypt = require('bcryptjs');
+                const isMatch = enteredPassword ? bcrypt.compareSync(String(enteredPassword), companyRecord.invoiceDeletionPassword) : false;
+
+                if (!isMatch) {
+                    const { logActivity } = require('../utils/auditLogger');
+                    logActivity(req, 'DELETE_FAILED', 'Invoice', id, {
+                        action: 'DELETE_FAILED',
+                        summary: `Failed POS invoice deletion attempt on #${id}: ${enteredPassword ? 'Incorrect deletion password' : 'Missing deletion password'}`,
+                        reason: enteredPassword ? 'Incorrect invoice deletion password' : 'Missing invoice deletion password',
+                        invoiceType: 'POS_INVOICE'
+                    });
+                    return res.status(403).json({
+                        success: false,
+                        isPasswordProtected: true,
+                        message: 'Incorrect invoice deletion password. Deletion cancelled.'
+                    });
+                }
+            }
+        }
 
         let invoiceToDelete = null;
         await prisma.$transaction(async (tx) => {

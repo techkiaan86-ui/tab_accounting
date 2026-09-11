@@ -353,6 +353,7 @@ const logInvoiceDeleted = async (req, invoice) => {
             invoiceId: invoice.id,
             action: 'DELETE',
             summary,
+            deletionPasswordVerified: true,
             customerName,
             customerId: invoice.customerId,
             poNumber: invoice.poNumber || invoice.manualReference || null,
@@ -566,12 +567,45 @@ const logInvoiceStatusChanged = async (req, invoice, oldStatus, newStatus) => {
     }
 };
 
+/**
+ * 8. Log Invoice Deletion Failed (e.g. wrong or missing deletion password)
+ */
+const logInvoiceDeletionFailed = async (req, invoice, reason = 'Incorrect invoice deletion password') => {
+    try {
+        if (!invoice) return;
+
+        const customerName = invoice.customer?.name || (invoice.customerId ? `Customer #${invoice.customerId}` : 'N/A');
+        const summary = `Failed deletion attempt on Invoice #${invoice.invoiceNumber || invoice.id}: ${reason}`;
+
+        const details = {
+            invoiceNumber: invoice.invoiceNumber || String(invoice.id),
+            invoiceId: invoice.id,
+            action: 'DELETE_FAILED',
+            summary,
+            customerName,
+            customerId: invoice.customerId,
+            totalAmount: fmtNum(invoice.totalAmount),
+            date: fmtDate(invoice.date),
+            dueDate: fmtDate(invoice.dueDate),
+            status: invoice.status,
+            reason,
+            attemptedAt: new Date().toISOString()
+        };
+
+        return await logActivity(req, 'DELETE_FAILED', 'Invoice', invoice.id, details);
+    } catch (err) {
+        console.error('[InvoiceAudit Error] Failed to log invoice deletion failure:', err.message);
+    }
+};
+
 module.exports = {
     logInvoiceCreated,
     logInvoiceUpdated,
     logInvoiceDeleted,
+    logInvoiceDeletionFailed,
     logInvoicePaymentAdded,
     logInvoicePaymentUpdated,
     logInvoicePaymentRemoved,
     logInvoiceStatusChanged
 };
+

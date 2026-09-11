@@ -92,108 +92,109 @@ model category {
 }
 
 model company {
-  id                    Int                     @id @default(autoincrement())
-  name                  String
-  email                 String
-  logo                  String?                 @db.LongText
-  startDate             DateTime?
-  endDate               DateTime?
-  invoiceTemplate       String                  @default("Standard VAT (CEA)")
-  invoiceColor          String                  @default("#000000")
-  showQrCode            Boolean                 @default(true)
-  invoiceLogo           String?                 @db.LongText
-  planName              String?
-  planId                Int?
-  planType              String?
-  phone                 String?
-  website               String?
-  address               String?
-  city                  String?
-  state                 String?
-  zip                   String?
-  country               String?
-  currency              String?                 @default("EUR")
-  originalCurrency      String?                 @default("EUR")
-  bankName              String?
-  accountHolder         String?
-  accountName           String?
-  accountNumber         String?
-  iban                  String?
-  bic                   String?
-  sortCode              String?
-  ifsc                  String?
-  vatNumber             String?
-  defaultVatRate        String?                 @default("23")
-  gstNumber             String?
-  defaultVatRateId      Int?
-  isVatRegistered       Boolean                 @default(true)
-  terms                 String?                 @db.Text
-  termsInvoice          String?                 @db.Text
-  termsReceipt          String?                 @db.Text
-  termsPurchase         String?                 @db.Text
-  termsSalesOrder       String?                 @db.Text
-  termsQuotation        String?                 @db.Text
-  termsCreditNote       String?                 @db.Text
-  notes                 String?                 @db.Text
-  createdAt             DateTime                @default(now())
-  updatedAt             DateTime                @default(now()) @updatedAt
-  inventoryConfig       String?                 @db.LongText
-  invoiceTableHeaders   String?                 @db.LongText
-  invoiceLabels         String?                 @db.LongText
-  receiptTemplate       String?                 @default("New York")
-  receiptColor          String?                 @default("#004aad")
-  receiptLabels         String?                 @db.LongText
-  receiptTableHeaders   String?                 @db.LongText
-  paymentTemplate       String?                 @default("New York")
-  paymentColor          String?                 @default("#004aad")
-  paymentLabels         String?                 @db.LongText
-  paymentTableHeaders   String?                 @db.LongText
-  customFieldsConfig    String?                 @db.LongText
-  documentTitles        String?                 @db.LongText
-  accountgroup          accountgroup[]
-  accountsubgroup       accountsubgroup[]
-  bankaccount           bankaccount[]
-  banktransaction       banktransaction[]
-  category              category[]
-  plan                  plan?                   @relation(fields: [planId], references: [id], map: "Company_planId_fkey")
-  customer              customer[]
-  deliverychallan       deliverychallan[]
-  expenseentry          expenseentry[]
-  goodsreceiptnote      goodsreceiptnote[]
-  incomeentry           incomeentry[]
-  inventoryadjustment   inventoryadjustment[]
-  inventorytransaction  inventorytransaction[]
-  invoice               invoice[]
-  journalentry          journalentry[]
-  ledger                ledger[]
-  passwordrequest       passwordrequest[]
-  payment               payment[]
-  posinvoice            posinvoice[]
-  product               product[]
-  purchasebill          purchasebill[]
-  purchaseorder         purchaseorder[]
-  purchasequotation     purchasequotation[]
-  purchasereturn        purchasereturn[]
-  receipt               receipt[]
-  salesorder            salesorder[]
-  salesquotation        salesquotation[]
-  salesreturn           salesreturn[]
-  service               service[]
-  stocktransfer         stocktransfer[]
-  transaction           transaction[]
-  uom                   uom[]
-  user                  user[]
-  vendor                vendor[]
-  warehouse             warehouse[]
-  voucher               voucher[]
-  role                  role[]
-  transaction_numbering transaction_numbering[]
-  auditlog              auditlog[]
-  salesperson           salesperson[]
-  deliveryperson        deliveryperson[]
-  advanceadjustment     advanceadjustment[]
-  company_user          company_user[]
-  company_smtp_settings company_smtp_settings?
+  id                      Int                     @id @default(autoincrement())
+  name                    String
+  email                   String
+  logo                    String?                 @db.LongText
+  startDate               DateTime?
+  endDate                 DateTime?
+  invoiceTemplate         String                  @default("Standard VAT (CEA)")
+  invoiceColor            String                  @default("#000000")
+  showQrCode              Boolean                 @default(true)
+  invoiceLogo             String?                 @db.LongText
+  planName                String?
+  planId                  Int?
+  planType                String?
+  phone                   String?
+  website                 String?
+  address                 String?
+  city                    String?
+  state                   String?
+  zip                     String?
+  country                 String?
+  currency                String?                 @default("EUR")
+  originalCurrency        String?                 @default("EUR")
+  bankName                String?
+  accountHolder           String?
+  accountName             String?
+  accountNumber           String?
+  iban                    String?
+  bic                     String?
+  sortCode                String?
+  ifsc                    String?
+  vatNumber               String?
+  defaultVatRate          String?                 @default("23")
+  gstNumber               String?
+  defaultVatRateId        Int?
+  isVatRegistered         Boolean                 @default(true)
+  terms                   String?                 @db.Text
+  termsInvoice            String?                 @db.Text
+  termsReceipt            String?                 @db.Text
+  termsPurchase           String?                 @db.Text
+  termsSalesOrder         String?                 @db.Text
+  termsQuotation          String?                 @db.Text
+  termsCreditNote         String?                 @db.Text
+  notes                   String?                 @db.Text
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @default(now()) @updatedAt
+  inventoryConfig         String?                 @db.LongText
+  invoiceTableHeaders     String?                 @db.LongText
+  invoiceLabels           String?                 @db.LongText
+  receiptTemplate         String?                 @default("New York")
+  receiptColor            String?                 @default("#004aad")
+  receiptLabels           String?                 @db.LongText
+  receiptTableHeaders     String?                 @db.LongText
+  paymentTemplate         String?                 @default("New York")
+  paymentColor            String?                 @default("#004aad")
+  paymentLabels           String?                 @db.LongText
+  paymentTableHeaders     String?                 @db.LongText
+  customFieldsConfig      String?                 @db.LongText
+  documentTitles          String?                 @db.LongText
+  invoiceDeletionPassword String?                 @db.VarChar(255)
+  accountgroup            accountgroup[]
+  accountsubgroup         accountsubgroup[]
+  bankaccount             bankaccount[]
+  banktransaction         banktransaction[]
+  category                category[]
+  plan                    plan?                   @relation(fields: [planId], references: [id], map: "Company_planId_fkey")
+  customer                customer[]
+  deliverychallan         deliverychallan[]
+  expenseentry            expenseentry[]
+  goodsreceiptnote        goodsreceiptnote[]
+  incomeentry             incomeentry[]
+  inventoryadjustment     inventoryadjustment[]
+  inventorytransaction    inventorytransaction[]
+  invoice                 invoice[]
+  journalentry            journalentry[]
+  ledger                  ledger[]
+  passwordrequest         passwordrequest[]
+  payment                 payment[]
+  posinvoice              posinvoice[]
+  product                 product[]
+  purchasebill            purchasebill[]
+  purchaseorder           purchaseorder[]
+  purchasequotation       purchasequotation[]
+  purchasereturn          purchasereturn[]
+  receipt                 receipt[]
+  salesorder              salesorder[]
+  salesquotation          salesquotation[]
+  salesreturn             salesreturn[]
+  service                 service[]
+  stocktransfer           stocktransfer[]
+  transaction             transaction[]
+  uom                     uom[]
+  user                    user[]
+  vendor                  vendor[]
+  warehouse               warehouse[]
+  voucher                 voucher[]
+  role                    role[]
+  transaction_numbering   transaction_numbering[]
+  auditlog                auditlog[]
+  salesperson             salesperson[]
+  deliveryperson          deliveryperson[]
+  advanceadjustment       advanceadjustment[]
+  company_user            company_user[]
+  company_smtp_settings   company_smtp_settings?
 
   @@index([planId], map: "Company_planId_fkey")
   @@index([email], map: "Company_email_idx")

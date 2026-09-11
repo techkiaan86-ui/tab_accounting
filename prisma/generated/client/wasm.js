@@ -233,7 +233,8 @@ exports.Prisma.CompanyScalarFieldEnum = {
   paymentLabels: 'paymentLabels',
   paymentTableHeaders: 'paymentTableHeaders',
   customFieldsConfig: 'customFieldsConfig',
-  documentTitles: 'documentTitles'
+  documentTitles: 'documentTitles',
+  invoiceDeletionPassword: 'invoiceDeletionPassword'
 };
 
 exports.Prisma.CustomerScalarFieldEnum = {

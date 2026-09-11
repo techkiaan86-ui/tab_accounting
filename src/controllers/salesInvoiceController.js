@@ -2517,6 +2517,49 @@ const deleteInvoice = async (req, res) => {
             invoicesToDelete = [singleInvoice];
         }
 
+        // Invoice Deletion Password Protection
+        const targetCompanyId = companyId || invoicesToDelete[0]?.companyId;
+        if (targetCompanyId) {
+            const companyRecord = await prisma.company.findUnique({
+                where: { id: parseInt(targetCompanyId) },
+                select: { id: true, invoiceDeletionPassword: true }
+            });
+
+            const { logInvoiceDeletionFailed } = require('../utils/invoiceAuditHelper');
+
+            const enteredPassword = req.body?.deletionPassword 
+                || (req.headers && req.headers['x-deletion-password'] ? decodeURIComponent(req.headers['x-deletion-password']) : null)
+                || req.query?.deletionPassword;
+
+            if (!companyRecord?.invoiceDeletionPassword) {
+                // No deletion password configured by Admin yet
+                for (const inv of invoicesToDelete) {
+                    await logInvoiceDeletionFailed(req, inv, 'No invoice deletion password configured in Invoice Settings');
+                }
+                return res.status(403).json({
+                    success: false,
+                    isPasswordProtected: true,
+                    notConfigured: true,
+                    message: 'Invoice deletion password has not been configured. Please set an Invoice Deletion Password under Company Settings > Invoice Settings before deleting invoices.'
+                });
+            }
+
+            // Verify entered password against hashed password
+            const bcrypt = require('bcryptjs');
+            const isMatch = enteredPassword ? bcrypt.compareSync(String(enteredPassword), companyRecord.invoiceDeletionPassword) : false;
+
+            if (!isMatch) {
+                for (const inv of invoicesToDelete) {
+                    await logInvoiceDeletionFailed(req, inv, enteredPassword ? 'Incorrect invoice deletion password' : 'Missing invoice deletion password');
+                }
+                return res.status(403).json({
+                    success: false,
+                    isPasswordProtected: true,
+                    message: 'Incorrect invoice deletion password. Deletion cancelled.'
+                });
+            }
+        }
+
         const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
         for (const inv of invoicesToDelete) {
             const lockCheck = checkPeriodLock(companyId || inv.companyId, inv.date);

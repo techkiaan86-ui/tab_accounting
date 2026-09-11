@@ -150,6 +150,7 @@ model company {
   paymentTableHeaders   String?                 @db.LongText
   customFieldsConfig    String?                 @db.LongText
   documentTitles        String?                 @db.LongText
+  invoiceDeletionPassword String?               @db.VarChar(255)
   accountgroup          accountgroup[]
   accountsubgroup       accountsubgroup[]
   bankaccount           bankaccount[]
