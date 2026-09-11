@@ -2525,39 +2525,30 @@ const deleteInvoice = async (req, res) => {
                 select: { id: true, invoiceDeletionPassword: true }
             });
 
-            const { logInvoiceDeletionFailed } = require('../utils/invoiceAuditHelper');
+            // If an Invoice Deletion Password IS configured on the company, enforce it
+            if (companyRecord?.invoiceDeletionPassword) {
+                const { logInvoiceDeletionFailed } = require('../utils/invoiceAuditHelper');
 
-            const enteredPassword = req.body?.deletionPassword 
-                || (req.headers && req.headers['x-deletion-password'] ? decodeURIComponent(req.headers['x-deletion-password']) : null)
-                || req.query?.deletionPassword;
+                const enteredPassword = req.body?.deletionPassword 
+                    || (req.headers && req.headers['x-deletion-password'] ? decodeURIComponent(req.headers['x-deletion-password']) : null)
+                    || req.query?.deletionPassword;
 
-            if (!companyRecord?.invoiceDeletionPassword) {
-                // No deletion password configured by Admin yet
-                for (const inv of invoicesToDelete) {
-                    await logInvoiceDeletionFailed(req, inv, 'No invoice deletion password configured in Invoice Settings');
+                // Verify entered password against hashed password
+                const bcrypt = require('bcryptjs');
+                const isMatch = enteredPassword ? bcrypt.compareSync(String(enteredPassword), companyRecord.invoiceDeletionPassword) : false;
+
+                if (!isMatch) {
+                    for (const inv of invoicesToDelete) {
+                        await logInvoiceDeletionFailed(req, inv, enteredPassword ? 'Incorrect invoice deletion password' : 'Missing invoice deletion password');
+                    }
+                    return res.status(403).json({
+                        success: false,
+                        isPasswordProtected: true,
+                        message: 'Incorrect invoice deletion password. Deletion cancelled.'
+                    });
                 }
-                return res.status(403).json({
-                    success: false,
-                    isPasswordProtected: true,
-                    notConfigured: true,
-                    message: 'Invoice deletion password has not been configured. Please set an Invoice Deletion Password under Company Settings > Invoice Settings before deleting invoices.'
-                });
             }
-
-            // Verify entered password against hashed password
-            const bcrypt = require('bcryptjs');
-            const isMatch = enteredPassword ? bcrypt.compareSync(String(enteredPassword), companyRecord.invoiceDeletionPassword) : false;
-
-            if (!isMatch) {
-                for (const inv of invoicesToDelete) {
-                    await logInvoiceDeletionFailed(req, inv, enteredPassword ? 'Incorrect invoice deletion password' : 'Missing invoice deletion password');
-                }
-                return res.status(403).json({
-                    success: false,
-                    isPasswordProtected: true,
-                    message: 'Incorrect invoice deletion password. Deletion cancelled.'
-                });
-            }
+            // When no invoiceDeletionPassword is set (or removed by Admin), deletion proceeds normally without password
         }
 
         const { checkPeriodLock } = require('../middlewares/periodLockMiddleware');
