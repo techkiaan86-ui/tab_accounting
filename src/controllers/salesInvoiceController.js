@@ -189,8 +189,65 @@ const adjustInvoiceWithReturns = (invoice) => {
         }
     }
 
+    let cfParsed = {};
+    if (invoice.customFields) {
+        try {
+            cfParsed = typeof invoice.customFields === 'string' ? JSON.parse(invoice.customFields) : invoice.customFields;
+        } catch (e) {
+            cfParsed = {};
+        }
+    }
+    const metaList = Array.isArray(cfParsed?._itemsDiscountMeta) ? cfParsed._itemsDiscountMeta : [];
+
+    const mapItemWithDiscount = (item, idx) => {
+        const meta = metaList[idx] || metaList.find(m => (m.productId && m.productId === item.productId) || (m.serviceId && m.serviceId === item.serviceId));
+        const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : (item.qty || 1)) || 0;
+        const itemRate = parseFloat(item.rate !== undefined ? item.rate : (item.price || 0)) || 0;
+        const lineGross = itemQty * itemRate;
+
+        let discType = meta?.discountType || item.discountType;
+        let discVal = meta?.discount;
+
+        if (discType === undefined || discVal === undefined) {
+            const rawDisc = parseFloat(item.discount || 0) || 0;
+            if (rawDisc > 0) {
+                if (lineGross > 0 && item.amount !== undefined && Math.abs(lineGross - item.amount - rawDisc) < 0.05) {
+                    const pct = (rawDisc / lineGross) * 100;
+                    if (pct <= 100 && Math.abs(pct - Math.round(pct * 100) / 100) < 0.001) {
+                        discType = 'percentage';
+                        discVal = parseFloat(pct.toFixed(2));
+                    } else {
+                        discType = 'fixed';
+                        discVal = rawDisc;
+                    }
+                } else if (rawDisc <= 100) {
+                    discType = 'percentage';
+                    discVal = rawDisc;
+                } else {
+                    discType = 'fixed';
+                    discVal = rawDisc;
+                }
+            } else {
+                discType = 'percentage';
+                discVal = 0;
+            }
+        }
+
+        return {
+            ...item,
+            discountType: discType,
+            discountValue: discVal,
+            discountAmount: item.discount !== undefined ? parseFloat(item.discount) : 0
+        };
+    };
+
+    const enrichedInvoiceItems = invoice.invoiceitem ? invoice.invoiceitem.map(mapItemWithDiscount) : undefined;
+    const enrichedItems = invoice.items ? invoice.items.map(mapItemWithDiscount) : undefined;
+
     return {
         ...invoice,
+        ...(enrichedInvoiceItems ? { invoiceitem: enrichedInvoiceItems } : {}),
+        ...(enrichedItems ? { items: enrichedItems } : {}),
         subtotal: adjustedSubtotal,
         discountAmount: totalDisc,
         overallDiscount: parseFloat(invoice.overallDiscount) || 0,
@@ -319,47 +376,32 @@ const createInvoice = async (req, res) => {
 
         let subtotal = 0;
         let lineDiscountSum = 0;
-
-        // 1. Calculate line gross and line-level discounts
-        items.forEach(item => {
-            const itemQty = parseFloat(item.quantity) || 0;
-            const itemRate = parseFloat(item.rate) || 0;
-            const itemDiscount = parseFloat(item.discount) || 0;
-            const lineGross = itemQty * itemRate;
-
-            subtotal += lineGross;
-            lineDiscountSum += Math.min(lineGross, itemDiscount);
-        });
-
-        const netBeforeOverall = Math.max(0, subtotal - lineDiscountSum);
-
-        // 2. Compute overall discount on pre-tax net taxable amount
-        let overallDiscountAmt = 0;
-        const ovVal = parseFloat(overallDiscount) || 0;
-        if (overallDiscount && overallDiscountType === 'percentage') {
-            overallDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, ovVal))) / 100;
-        } else if (overallDiscount) {
-            overallDiscountAmt = Math.min(netBeforeOverall, Math.max(0, ovVal));
-        }
-
-        const totalDiscount = lineDiscountSum + overallDiscountAmt;
-        const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
-
-        // 3. Proportionately calculate tax on discounted taxable amount per line
-        const overallDiscountRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
         let lineTaxSum = 0;
 
+        // 1. Calculate line gross, line discount, and line tax per item
         const invoiceItems = items.map(item => {
-            const itemQty = parseFloat(item.quantity) || 0;
-            const itemRate = parseFloat(item.rate) || 0;
-            const itemDiscount = parseFloat(item.discount) || 0;
-            const itemTaxRate = parseFloat(item.taxRate) || 0;
-
+            const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : item.qty) || 0;
+            const itemRate = parseFloat(item.rate !== undefined ? item.rate : item.price) || 0;
             const lineGross = itemQty * itemRate;
-            const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
-            const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
-            const lineTax = itemTaxRate > 0 ? (lineDiscountedTaxable * itemTaxRate) / 100 : 0;
-            const lineDiscountedAmount = Number(lineDiscountedTaxable.toFixed(2));
+
+            const discVal = parseFloat(item.discountValue !== undefined ? item.discountValue : (item.discount !== undefined ? item.discount : 0)) || 0;
+            const discType = item.discountType || item.itemDiscountType || 'percentage';
+
+            let itemDiscountAmt = 0;
+            if (discType === 'fixed' || discType === 'amount') {
+                itemDiscountAmt = Math.min(lineGross, Math.max(0, discVal));
+            } else {
+                itemDiscountAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
+            }
+
+            const lineTaxable = Math.max(0, lineGross - itemDiscountAmt);
+            const itemTaxRate = parseFloat(item.taxRate !== undefined ? item.taxRate : (item.tax || 0)) || 0;
+            const lineTax = itemTaxRate > 0 ? (lineTaxable * itemTaxRate) / 100 : 0;
+            const lineDiscountedAmount = Number(lineTaxable.toFixed(2));
+
+            subtotal += lineGross;
+            lineDiscountSum += itemDiscountAmt;
+            lineTaxSum += lineTax;
 
             let cgstRate = 0, sgstRate = 0, igstRate = 0;
             let cgstAmount = 0, sgstAmount = 0, igstAmount = 0;
@@ -375,8 +417,6 @@ const createInvoice = async (req, res) => {
                 }
             }
 
-            lineTaxSum += lineTax;
-
             let itemWhId = item.warehouseId ? parseInt(item.warehouseId) : null;
             if (itemWhId && !validWhIds.has(itemWhId)) {
                 itemWhId = defaultWhId;
@@ -390,7 +430,7 @@ const createInvoice = async (req, res) => {
                 description: item.description || 'Sales Item',
                 quantity: itemQty,
                 rate: itemRate,
-                discount: itemDiscount,
+                discount: Number(itemDiscountAmt.toFixed(2)),
                 amount: lineDiscountedAmount,
                 taxRate: itemTaxRate,
                 cgstRate,
@@ -404,6 +444,8 @@ const createInvoice = async (req, res) => {
             };
         });
 
+        const totalDiscount = lineDiscountSum;
+        const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
         const finalTax = lineTaxSum;
         let totalAmount = discountedTaxableAmount + finalTax;
 
@@ -445,15 +487,59 @@ const createInvoice = async (req, res) => {
 
             if (!salesLedger) throw new Error('Could not resolve or create Sales Income ledger');
 
+            // Prepare customFields with _itemsDiscountMeta
+            let cfObj = {};
+            if (req.body.customFields) {
+                try {
+                    cfObj = typeof req.body.customFields === 'string' ? JSON.parse(req.body.customFields) : { ...req.body.customFields };
+                } catch (e) {
+                    cfObj = {};
+                }
+            }
+            if (!cfObj._itemsDiscountMeta && Array.isArray(items)) {
+                cfObj._itemsDiscountMeta = items.map(item => {
+                    const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : item.qty) || 0;
+                    const itemRate = parseFloat(item.rate !== undefined ? item.rate : item.price) || 0;
+                    const discVal = parseFloat(item.discountValue !== undefined ? item.discountValue : (item.discount !== undefined ? item.discount : 0)) || 0;
+                    const discType = item.discountType || item.itemDiscountType || 'percentage';
+                    const lineGross = itemQty * itemRate;
+                    let itemDiscountAmt = 0;
+                    if (discType === 'fixed' || discType === 'amount') {
+                        itemDiscountAmt = Math.min(lineGross, Math.max(0, discVal));
+                    } else {
+                        itemDiscountAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
+                    }
+                    const lineTaxable = Math.max(0, lineGross - itemDiscountAmt);
+                    const itemTaxRate = parseFloat(item.taxRate !== undefined ? item.taxRate : (item.tax || 0)) || 0;
+                    return {
+                        productId: item.productId ? parseInt(item.productId) : null,
+                        serviceId: item.serviceId ? parseInt(item.serviceId) : null,
+                        itemName: item.name || item.itemName || item.activity || item.description || '',
+                        description: item.description || '',
+                        quantity: itemQty,
+                        rate: itemRate,
+                        discount: discVal,
+                        discountType: discType,
+                        taxRate: itemTaxRate,
+                        amount: Number(lineTaxable.toFixed(2))
+                    };
+                });
+            }
+            const finalCustomFieldsStr = Object.keys(cfObj).length > 0 ? JSON.stringify(cfObj) : (req.body.customFields ? (typeof req.body.customFields === 'string' ? req.body.customFields : JSON.stringify(req.body.customFields)) : null);
+
             // A. Create Invoice
             const invoice = await tx.invoice.create({
                 data: {
-                    customFields: req.body.customFields ? (typeof req.body.customFields === 'string' ? req.body.customFields : JSON.stringify(req.body.customFields)) : null,
+                    customFields: finalCustomFieldsStr,
                     salespersonId: req.body.salespersonId ? parseInt(req.body.salespersonId) : null,
                     carNumber: req.body.carNumber || null,
                     invoiceNumber,
-                    manualReference: manualReference || req.body.poNumber || null,
-                    poNumber: req.body.poNumber || req.body.purchaseOrderNumber || manualReference || null,
+                    manualReference: manualReference || null,
+                    poNumber: (req.body.poNumber && typeof req.body.poNumber === 'string' && req.body.poNumber.trim()) 
+                        ? req.body.poNumber.trim() 
+                        : ((req.body.purchaseOrderNumber && typeof req.body.purchaseOrderNumber === 'string' && req.body.purchaseOrderNumber.trim()) 
+                            ? req.body.purchaseOrderNumber.trim() 
+                            : null),
                     date: new Date(date),
                     dueDate: dueDate ? new Date(dueDate) : null,
                     customerId: parseInt(customerId),
@@ -471,8 +557,8 @@ const createInvoice = async (req, res) => {
                     notes,
                     manualStatus: false,
                     status: 'UNPAID',
-                    overallDiscount: parseFloat(overallDiscount) || 0,
-                    overallDiscountType: overallDiscountType || 'percentage',
+                    overallDiscount: 0,
+                    overallDiscountType: 'percentage',
                     billingName: req.body.billingName,
                     billingAddress: req.body.billingAddress,
                     billingCity: req.body.billingCity,
@@ -818,10 +904,7 @@ const createInvoice = async (req, res) => {
             const ledgerSubtotal = subtotal * docExchangeRate;  // Gross before discount
             const ledgerTax = finalTax * docExchangeRate;
             const currentBaseTotal = (subtotal - totalDiscount) + finalTax;
-            const overallDiscountAmt = overallDiscountType === 'percentage'
-                ? (currentBaseTotal * (parseFloat(overallDiscount) || 0) / 100)
-                : (parseFloat(overallDiscount) || 0);
-            const ledgerDiscountAmount = (totalDiscount + overallDiscountAmt) * docExchangeRate;
+            const ledgerDiscountAmount = totalDiscount * docExchangeRate;
 
             // Resolve customer's actual ledger ID inside the transaction
             // This self-heals orphaned ledgerId (ledger was deleted but customer still references old ID)
@@ -1798,47 +1881,31 @@ const updateInvoice = async (req, res) => {
 
         if (items) {
             let lineDiscountSum = 0;
+            let lineTaxSum = 0;
             subtotal = 0;
 
-            // 1. Line gross & line discounts
-            items.forEach(item => {
-                const itemQty = parseFloat(item.quantity) || 0;
-                const itemRate = parseFloat(item.rate) || 0;
-                const itemDiscount = parseFloat(item.discount) || 0;
+            invoiceItemsData = items.map(item => {
+                const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : item.qty) || 0;
+                const itemRate = parseFloat(item.rate !== undefined ? item.rate : item.price) || 0;
                 const lineGross = itemQty * itemRate;
+
+                const discVal = parseFloat(item.discountValue !== undefined ? item.discountValue : (item.discount !== undefined ? item.discount : 0)) || 0;
+                const discType = item.discountType || item.itemDiscountType || 'percentage';
+
+                let itemDiscountAmt = 0;
+                if (discType === 'fixed' || discType === 'amount') {
+                    itemDiscountAmt = Math.min(lineGross, Math.max(0, discVal));
+                } else {
+                    itemDiscountAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
+                }
+
+                const lineTaxable = Math.max(0, lineGross - itemDiscountAmt);
+                const itemTaxRate = parseFloat(item.taxRate !== undefined ? item.taxRate : (item.tax || 0)) || 0;
+                const lineTax = itemTaxRate > 0 ? (lineTaxable * itemTaxRate) / 100 : 0;
+                const lineDiscountedAmount = Number(lineTaxable.toFixed(2));
 
                 subtotal += lineGross;
-                lineDiscountSum += Math.min(lineGross, itemDiscount);
-            });
-
-            const netBeforeOverall = Math.max(0, subtotal - lineDiscountSum);
-
-            // 2. Overall discount
-            let overallDiscountAmt = 0;
-            const ovVal = parseFloat(overallDiscount) || 0;
-            if (overallDiscount && overallDiscountType === 'percentage') {
-                overallDiscountAmt = (netBeforeOverall * Math.min(100, Math.max(0, ovVal))) / 100;
-            } else if (overallDiscount) {
-                overallDiscountAmt = Math.min(netBeforeOverall, Math.max(0, ovVal));
-            }
-
-            totalDiscount = lineDiscountSum + overallDiscountAmt;
-            const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
-            const overallDiscountRatio = netBeforeOverall > 0 ? (overallDiscountAmt / netBeforeOverall) : 0;
-            let lineTaxSum = 0;
-
-            invoiceItemsData = items.map(item => {
-                const itemQty = parseFloat(item.quantity) || 0;
-                const itemRate = parseFloat(item.rate) || 0;
-                const itemDiscount = parseFloat(item.discount) || 0;
-                const itemTaxRate = parseFloat(item.taxRate) || 0;
-
-                const lineGross = itemQty * itemRate;
-                const lineAfterItemDisc = Math.max(0, lineGross - itemDiscount);
-                const lineDiscountedTaxable = lineAfterItemDisc * (1 - overallDiscountRatio);
-                const lineTax = itemTaxRate > 0 ? (lineDiscountedTaxable * itemTaxRate) / 100 : 0;
-                const lineDiscountedAmount = Number(lineDiscountedTaxable.toFixed(2));
-
+                lineDiscountSum += itemDiscountAmt;
                 lineTaxSum += lineTax;
 
                 let itemWhId = item.warehouseId ? parseInt(item.warehouseId) : null;
@@ -1849,16 +1916,19 @@ const updateInvoice = async (req, res) => {
                 return {
                     productId: item.productId ? parseInt(item.productId) : null,
                     serviceId: item.serviceId ? parseInt(item.serviceId) : null,
-                    description: item.description || 'Sales Item',
+                    description: item.description !== undefined ? item.description : 'Sales Item',
                     quantity: itemQty,
                     rate: itemRate,
-                    discount: itemDiscount,
+                    discount: Number(itemDiscountAmt.toFixed(2)),
                     amount: lineDiscountedAmount,
                     taxRate: itemTaxRate,
-                    warehouseId: itemWhId
+                    warehouseId: itemWhId,
+                    uomId: item.uomId ? parseInt(item.uomId) : null
                 };
             });
 
+            totalDiscount = lineDiscountSum;
+            const discountedTaxableAmount = Math.max(0, subtotal - totalDiscount);
             taxAmount = lineTaxSum;
             totalAmount = discountedTaxableAmount + taxAmount;
         } else {
@@ -2020,15 +2090,64 @@ const updateInvoice = async (req, res) => {
                 }
             }
 
+            let cfObjUpdate = undefined;
+            if (req.body.customFields !== undefined) {
+                try {
+                    cfObjUpdate = typeof req.body.customFields === 'string' ? JSON.parse(req.body.customFields) : { ...req.body.customFields };
+                } catch (e) {
+                    cfObjUpdate = {};
+                }
+            } else if (items) {
+                try {
+                    cfObjUpdate = typeof existingInvoice.customFields === 'string' ? JSON.parse(existingInvoice.customFields) : (existingInvoice.customFields ? { ...existingInvoice.customFields } : {});
+                } catch (e) {
+                    cfObjUpdate = {};
+                }
+            }
+            if (cfObjUpdate && items) {
+                cfObjUpdate._itemsDiscountMeta = items.map(item => {
+                    const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : item.qty) || 0;
+                    const itemRate = parseFloat(item.rate !== undefined ? item.rate : item.price) || 0;
+                    const discVal = parseFloat(item.discountValue !== undefined ? item.discountValue : (item.discount !== undefined ? item.discount : 0)) || 0;
+                    const discType = item.discountType || item.itemDiscountType || 'percentage';
+                    const lineGross = itemQty * itemRate;
+                    let itemDiscountAmt = 0;
+                    if (discType === 'fixed' || discType === 'amount') {
+                        itemDiscountAmt = Math.min(lineGross, Math.max(0, discVal));
+                    } else {
+                        itemDiscountAmt = (lineGross * Math.min(100, Math.max(0, discVal))) / 100;
+                    }
+                    const lineTaxable = Math.max(0, lineGross - itemDiscountAmt);
+                    const itemTaxRate = parseFloat(item.taxRate !== undefined ? item.taxRate : (item.tax || 0)) || 0;
+                    return {
+                        productId: item.productId ? parseInt(item.productId) : null,
+                        serviceId: item.serviceId ? parseInt(item.serviceId) : null,
+                        itemName: item.name || item.itemName || item.activity || item.description || '',
+                        description: item.description || '',
+                        quantity: itemQty,
+                        rate: itemRate,
+                        discount: discVal,
+                        discountType: discType,
+                        taxRate: itemTaxRate,
+                        amount: Number(lineTaxable.toFixed(2))
+                    };
+                });
+            }
+            const finalUpdatedCustomFieldsStr = cfObjUpdate !== undefined ? JSON.stringify(cfObjUpdate) : undefined;
+
             const updatedInvoice = await tx.invoice.update({
                 where: { id: parseInt(id) },
                 data: {
-                    customFields: req.body.customFields !== undefined ? (typeof req.body.customFields === 'string' ? req.body.customFields : JSON.stringify(req.body.customFields)) : undefined,
+                    customFields: finalUpdatedCustomFieldsStr !== undefined ? finalUpdatedCustomFieldsStr : (req.body.customFields !== undefined ? (typeof req.body.customFields === 'string' ? req.body.customFields : JSON.stringify(req.body.customFields)) : undefined),
                     salespersonId: req.body.salespersonId !== undefined ? (req.body.salespersonId ? parseInt(req.body.salespersonId) : null) : undefined,
                     carNumber: req.body.carNumber !== undefined ? req.body.carNumber : undefined,
                     invoiceNumber: data.invoiceNumber,
-                    manualReference: data.manualReference !== undefined ? data.manualReference : (req.body.poNumber !== undefined ? req.body.poNumber : undefined),
-                    poNumber: req.body.poNumber !== undefined ? req.body.poNumber : (req.body.purchaseOrderNumber !== undefined ? req.body.purchaseOrderNumber : (data.manualReference !== undefined ? data.manualReference : undefined)),
+                    manualReference: data.manualReference !== undefined ? data.manualReference : undefined,
+                    poNumber: req.body.poNumber !== undefined 
+                        ? (req.body.poNumber && typeof req.body.poNumber === 'string' && req.body.poNumber.trim() ? req.body.poNumber.trim() : null)
+                        : (req.body.purchaseOrderNumber !== undefined 
+                            ? (req.body.purchaseOrderNumber && typeof req.body.purchaseOrderNumber === 'string' && req.body.purchaseOrderNumber.trim() ? req.body.purchaseOrderNumber.trim() : null) 
+                            : undefined),
                     date: data.date ? new Date(data.date) : undefined,
                     dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
                     customerId: data.customerId ? parseInt(data.customerId) : undefined,
@@ -2158,12 +2277,7 @@ const updateInvoice = async (req, res) => {
                 const ledgerSubtotal = subtotal * docExchangeRate;
                 const ledgerTaxAmount = (parseFloat(taxAmount) || 0) * docExchangeRate;
                 const currentBaseTotal = (subtotal - totalDiscount) + (parseFloat(taxAmount) || 0);
-                const currentOverallDiscount = overallDiscount !== undefined ? overallDiscount : existingInvoice.overallDiscount;
-                const currentOverallDiscountType = overallDiscountType !== undefined ? overallDiscountType : existingInvoice.overallDiscountType;
-                const overallDiscountAmt = currentOverallDiscountType === 'percentage'
-                    ? (currentBaseTotal * (parseFloat(currentOverallDiscount) || 0) / 100)
-                    : (parseFloat(currentOverallDiscount) || 0);
-                const ledgerDiscountAmount = (totalDiscount + overallDiscountAmt) * docExchangeRate;
+                const ledgerDiscountAmount = totalDiscount * docExchangeRate;
                 // Gross = subtotal + tax (before discount)
                 const ledgerGrossCustomer = ledgerSubtotal + ledgerTaxAmount;
 
@@ -3035,10 +3149,10 @@ const getPublicInvoiceById = async (req, res) => {
             }
         }
 
-        const mappedInvoice = {
+        const mappedInvoice = adjustInvoiceWithReturns({
             ...invoice,
             receipt: deduplicatedReceipts
-        };
+        });
 
         res.status(200).json({ success: true, data: mappedInvoice });
     } catch (error) {
@@ -3294,7 +3408,12 @@ const sendInvoiceEmail = async (req, res) => {
                 include: {
                     customer: true,
                     invoiceitem: {
-                        include: { product: true }
+                        include: {
+                            product: true,
+                            service: true,
+                            warehouse: true,
+                            uom: true
+                        }
                     },
                     company: true
                 }
