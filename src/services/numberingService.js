@@ -155,80 +155,81 @@ async function getNextNumber(companyId, transactionType) {
       orderBy: { id: 'desc' }
     });
 
-    const modelsWithManualRef = [
-      'invoice',
-      'salesquotation',
-      'salesorder',
-      'deliverychallan',
-      'purchasequotation',
-      'purchaseorder',
-      'purchasebill',
-      'posinvoice'
-    ];
+    if (modelName.toLowerCase() !== 'invoice') {
+      const modelsWithManualRef = [
+        'salesquotation',
+        'salesorder',
+        'deliverychallan',
+        'purchasequotation',
+        'purchaseorder',
+        'purchasebill',
+        'posinvoice'
+      ];
 
-    let lastManualRecord = null;
+      let lastManualRecord = null;
 
-    if (modelsWithManualRef.includes(modelName.toLowerCase())) {
-      try {
-        lastManualRecord = await prisma[modelName].findFirst({
-          where: {
-            companyId: cid,
-            AND: [
-              { manualReference: { not: null } },
-              { manualReference: { not: '' } }
-            ]
-          },
-          orderBy: { id: 'desc' }
-        });
-      } catch (e) {
-        // Ignore error
-      }
-    } else {
-      try {
-        lastManualRecord = await prisma[modelName].findFirst({
-          where: {
-            companyId: cid,
-            notes: { contains: 'Manual Ref:' }
-          },
-          orderBy: { id: 'desc' }
-        });
-      } catch (err) {
-        // Ignore error
-      }
-    }
-
-    const manualSourceRecord = lastManualRecord || lastRecord;
-
-    if (manualSourceRecord) {
-      let lastManual = manualSourceRecord.manualReference || manualSourceRecord.manualVoucherNo || manualSourceRecord.manualBillNo || manualSourceRecord.manualReceiptNo || '';
-      
-      if (!lastManual && manualSourceRecord.notes) {
-        const match = String(manualSourceRecord.notes).match(/Manual Ref:\s*([^\n\r]+)/i);
-        if (match && match[1]) {
-          lastManual = match[1].trim();
+      if (modelsWithManualRef.includes(modelName.toLowerCase())) {
+        try {
+          lastManualRecord = await prisma[modelName].findFirst({
+            where: {
+              companyId: cid,
+              AND: [
+                { manualReference: { not: null } },
+                { manualReference: { not: '' } }
+              ]
+            },
+            orderBy: { id: 'desc' }
+          });
+        } catch (e) {
+          // Ignore error
+        }
+      } else {
+        try {
+          lastManualRecord = await prisma[modelName].findFirst({
+            where: {
+              companyId: cid,
+              notes: { contains: 'Manual Ref:' }
+            },
+            orderBy: { id: 'desc' }
+          });
+        } catch (err) {
+          // Ignore error
         }
       }
 
-      if (lastManual) {
-        const manualMatch = String(lastManual).trim().match(/^(.*?)(0*(\d+))$/);
-        if (manualMatch) {
-          const mPrefix = manualMatch[1];
-          const mRawDigits = manualMatch[2];
-          const mNumVal = parseInt(manualMatch[3], 10) + 1;
-          if (mRawDigits.startsWith('0') && mRawDigits.length > 1) {
-            nextManualReference = `${mPrefix}${String(mNumVal).padStart(mRawDigits.length, '0')}`;
-          } else {
-            nextManualReference = `${mPrefix}${mNumVal}`;
+      const manualSourceRecord = lastManualRecord || lastRecord;
+
+      if (manualSourceRecord) {
+        let lastManual = manualSourceRecord.manualReference || manualSourceRecord.manualVoucherNo || manualSourceRecord.manualBillNo || manualSourceRecord.manualReceiptNo || '';
+        
+        if (!lastManual && manualSourceRecord.notes) {
+          const match = String(manualSourceRecord.notes).match(/Manual Ref:\s*([^\n\r]+)/i);
+          if (match && match[1]) {
+            lastManual = match[1].trim();
           }
-        } else {
-          nextManualReference = `${lastManual}-1`;
+        }
+
+        if (lastManual) {
+          const manualMatch = String(lastManual).trim().match(/^(.*?)(0*(\d+))$/);
+          if (manualMatch) {
+            const mPrefix = manualMatch[1];
+            const mRawDigits = manualMatch[2];
+            const mNumVal = parseInt(manualMatch[3], 10) + 1;
+            if (mRawDigits.startsWith('0') && mRawDigits.length > 1) {
+              nextManualReference = `${mPrefix}${String(mNumVal).padStart(mRawDigits.length, '0')}`;
+            } else {
+              nextManualReference = `${mPrefix}${mNumVal}`;
+            }
+          } else {
+            nextManualReference = `${lastManual}-1`;
+          }
         }
       }
-    }
 
-    if (!nextManualReference) {
-      const defaultPfx = configInfo.defaultPrefix || 'REF-';
-      nextManualReference = `${defaultPfx}001`;
+      if (!nextManualReference) {
+        const defaultPfx = configInfo.defaultPrefix || 'REF-';
+        nextManualReference = `${defaultPfx}001`;
+      }
     }
 
     if (lastRecord && lastRecord[fieldName]) {

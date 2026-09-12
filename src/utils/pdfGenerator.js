@@ -69,9 +69,9 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const totalNum = parseFloat(invoice?.totalAmount || 0);
             let paidNum = parseFloat(invoice?.paidAmount || 0);
             if (isNaN(paidNum)) paidNum = 0;
-            if (Array.isArray(invoice?.receipt) && invoice.receipt.length > 0) {
-                const receiptSum = invoice.receipt.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
-                if (receiptSum > paidNum) paidNum = receiptSum;
+            if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
+                const allocSum = invoice.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+                if (allocSum > paidNum) paidNum = allocSum;
             }
             const rawBalanceNum = invoice?.balanceAmount !== undefined ? parseFloat(invoice.balanceAmount) : (totalNum - paidNum);
             const tol = 0.01;

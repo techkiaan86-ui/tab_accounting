@@ -135,8 +135,22 @@ const createReceipt = async (req, res) => {
 
         const allocatedSum = normalizedAllocations.reduce((sum, a) => sum + a.amount, 0);
         const parsedDiscount = parseFloat(discountAmount || 0);
-        const totalLimit = parsedAmount + parsedDiscount;
-        const unallocatedAmount = Math.max(0, roundTo(parsedAmount - allocatedSum, 2));
+        const explicitAdvance = req.body.advanceAmount !== undefined ? Math.max(0, parseFloat(req.body.advanceAmount || 0)) : 0;
+
+        let effectiveReceiptAmount = parsedAmount;
+        let unallocatedAmount = 0;
+        if (normalizedAllocations.length > 0) {
+            if (explicitAdvance > 0) {
+                effectiveReceiptAmount = roundTo(allocatedSum + explicitAdvance, 2);
+                unallocatedAmount = explicitAdvance;
+            } else {
+                effectiveReceiptAmount = roundTo(allocatedSum, 2);
+                unallocatedAmount = 0;
+            }
+        } else {
+            effectiveReceiptAmount = parsedAmount;
+            unallocatedAmount = parsedAmount;
+        }
         const isAdvance = unallocatedAmount > 0 || normalizedAllocations.length === 0;
 
         const result = await prisma.$transaction(async (tx) => {
@@ -162,7 +176,7 @@ const createReceipt = async (req, res) => {
                     date: new Date(date),
                     customerId: parseInt(customerId),
                     invoiceId: receiptInvoiceId,
-                    amount: parsedAmount,
+                    amount: effectiveReceiptAmount,
                     paymentMode,
                     referenceNumber,
                     cashBankAccountId: parseInt(cashBankAccountId),

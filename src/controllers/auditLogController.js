@@ -10,6 +10,7 @@ const getAuditLogs = async (req, res) => {
             limit = 20,
             action,
             entity,
+            entityType,
             entityId,
             invoiceId,
             userId,
@@ -44,8 +45,9 @@ const getAuditLogs = async (req, res) => {
             where.action = action.trim();
         }
 
-        if (entity && typeof entity === 'string' && entity.trim()) {
-            where.entity = entity.trim();
+        const targetEntity = entity || entityType || req.query.entityType;
+        if (targetEntity && typeof targetEntity === 'string' && targetEntity.trim()) {
+            where.entity = targetEntity.trim();
         }
 
         const targetEntityId = entityId || invoiceId;

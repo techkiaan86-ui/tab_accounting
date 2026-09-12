@@ -2987,7 +2987,7 @@ const getNextNumber = async (req, res) => {
         res.status(200).json({
             success: true,
             nextNumber: result.formattedNumber,
-            nextManualReference: result.nextManualReference || ''
+            nextManualReference: ''
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
