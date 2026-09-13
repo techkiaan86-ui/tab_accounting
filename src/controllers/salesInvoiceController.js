@@ -378,6 +378,25 @@ const createInvoice = async (req, res) => {
         let lineDiscountSum = 0;
         let lineTaxSum = 0;
 
+        // Validate line item discounts: discount percentage cannot exceed 100%
+        for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            const discVal = parseFloat(it.discountValue !== undefined ? it.discountValue : (it.discount !== undefined ? it.discount : 0)) || 0;
+            const discType = it.discountType || it.itemDiscountType || 'percentage';
+            if ((discType === 'percentage' || !discType) && discVal > 100) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Line item #${i + 1} discount percentage cannot exceed 100%`
+                });
+            }
+            if (discVal < 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Line item #${i + 1} discount cannot be negative`
+                });
+            }
+        }
+
         // 1. Calculate line gross, line discount, and line tax per item
         const invoiceItems = items.map(item => {
             const itemQty = parseFloat(item.quantity !== undefined ? item.quantity : item.qty) || 0;
@@ -1880,6 +1899,25 @@ const updateInvoice = async (req, res) => {
         const firstValidWhIdUpdate = validWarehousesUpdate.length > 0 ? validWarehousesUpdate[0].id : null;
 
         if (items) {
+            // Validate line item discounts: discount percentage cannot exceed 100%
+            for (let i = 0; i < items.length; i++) {
+                const it = items[i];
+                const discVal = parseFloat(it.discountValue !== undefined ? it.discountValue : (it.discount !== undefined ? it.discount : 0)) || 0;
+                const discType = it.discountType || it.itemDiscountType || 'percentage';
+                if ((discType === 'percentage' || !discType) && discVal > 100) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Line item #${i + 1} discount percentage cannot exceed 100%`
+                    });
+                }
+                if (discVal < 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Line item #${i + 1} discount cannot be negative`
+                    });
+                }
+            }
+
             let lineDiscountSum = 0;
             let lineTaxSum = 0;
             subtotal = 0;
