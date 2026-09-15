@@ -28,9 +28,17 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const customerEmail = invoice?.customer?.email || invoice?.customerEmail || '';
             const rawThemeColor = company?.invoiceColor || '#dedede';
             const isLightColor = (color) => {
-                if (!color) return false;
-                const c = color.toLowerCase();
-                return c === '#dedede' || c === '#ffffff' || c === '#f1f5f9' || c === '#e2e8f0';
+                if (!color) return true;
+                const c = color.toLowerCase().trim();
+                if (c === '#dedede' || c === '#ffffff' || c === '#f1f5f9' || c === '#e2e8f0') return true;
+                const hex = c.replace('#', '');
+                if (hex.length !== 6) return false;
+                const r = parseInt(hex.substring(0, 2), 16) / 255;
+                const g = parseInt(hex.substring(2, 4), 16) / 255;
+                const b = parseInt(hex.substring(4, 6), 16) / 255;
+                const toLinear = v => v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+                const lum = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+                return lum > 0.5;
             };
             const isLight = isLightColor(rawThemeColor);
             const themeColor = rawThemeColor;
@@ -38,6 +46,9 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const bannerTitleColor = isLight ? '#1e293b' : '#ffffff';
             const bannerSubColor = isLight ? '#475569' : '#cbd5e1';
             const bannerMetaColor = isLight ? '#475569' : '#e2e8f0';
+            const tableHeaderBg = isLight ? '#dedede' : themeColor;
+            const tableHeaderText = isLight ? '#555555' : '#ffffff';
+            const sectionTitleColor = isLight ? '#1e293b' : themeColor;
             const docTitle = company?.isVatRegistered ? 'VAT INVOICE' : 'INVOICE';
             const poVal = (invoice?.poNumber && typeof invoice.poNumber === 'string' && invoice.poNumber.trim()) ? invoice.poNumber.trim() : null;
 
@@ -140,8 +151,8 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
 
             // Table Header Function
             const drawTableHeader = (headerY) => {
-                doc.rect(40, headerY, 515, 22).fill('#dedede');
-                doc.fillColor('#555555').font('Helvetica-Bold').fontSize(8.5);
+                doc.rect(40, headerY, 515, 22).fill(tableHeaderBg);
+                doc.fillColor(tableHeaderText).font('Helvetica-Bold').fontSize(8.5);
                 doc.text('ACTIVITY', 45, headerY + 6, { width: 85, align: 'left' });
                 doc.text('DESCRIPTION', 135, headerY + 6, { width: 170, align: 'left' });
                 doc.text('QTY', 310, headerY + 6, { width: 30, align: 'right' });
@@ -312,7 +323,7 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             // Balance Due Line
             doc.fillColor('#475569').font('Helvetica-Bold').fontSize(9.5);
             doc.text('BALANCE DUE:', totalsX, y);
-            doc.fillColor(isLight ? '#0f172a' : themeColor).font('Helvetica-Bold').fontSize(10);
+            doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(10);
             doc.text(`${currency} ${balance}`, 440, y, { align: 'right', width: 115 });
             y += 15;
 
@@ -428,11 +439,11 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                     y += 6;
                 }
 
-                doc.fontSize(8.5).font('Helvetica-Bold').fillColor(themeColor).text('PAYMENT HISTORY', 40, y);
+                doc.fontSize(8.5).font('Helvetica-Bold').fillColor(sectionTitleColor).text('PAYMENT HISTORY', 40, y);
                 y += 12;
 
-                doc.rect(40, y, 515, 18).fill('#dedede');
-                doc.fillColor('#555555').font('Helvetica-Bold').fontSize(7.5);
+                doc.rect(40, y, 515, 18).fill(tableHeaderBg);
+                doc.fillColor(tableHeaderText).font('Helvetica-Bold').fontSize(7.5);
                 doc.text('Payment Date', 45, y + 5, { width: 90, align: 'left' });
                 doc.text('Receipt Number', 140, y + 5, { width: 100, align: 'left' });
                 doc.text('Payment Amount', 245, y + 5, { width: 85, align: 'right' });
@@ -444,8 +455,8 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                     if (y + 16 > 750) {
                         doc.addPage();
                         y = 50;
-                        doc.rect(40, y, 515, 18).fill('#dedede');
-                        doc.fillColor('#555555').font('Helvetica-Bold').fontSize(7.5);
+                        doc.rect(40, y, 515, 18).fill(tableHeaderBg);
+                        doc.fillColor(tableHeaderText).font('Helvetica-Bold').fontSize(7.5);
                         doc.text('Payment Date', 45, y + 5, { width: 90, align: 'left' });
                         doc.text('Receipt Number', 140, y + 5, { width: 100, align: 'left' });
                         doc.text('Payment Amount', 245, y + 5, { width: 85, align: 'right' });
@@ -471,7 +482,7 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                     doc.font('Helvetica-Bold').fillColor('#0f172a').text(p.receiptNumber || '-', 140, y + 4, { width: 100, align: 'left' });
                     doc.text(amtStr, 245, y + 4, { width: 85, align: 'right' });
                     doc.font('Helvetica').fillColor('#475569').text((p.paymentMode || 'BANK').toUpperCase(), 335, y + 4, { width: 75, align: 'center' });
-                    doc.font('Helvetica-Bold').fillColor(themeColor).text(balAfterStr, 415, y + 4, { width: 135, align: 'right' });
+                    doc.font('Helvetica-Bold').fillColor('#0f172a').text(balAfterStr, 415, y + 4, { width: 135, align: 'right' });
 
                     doc.moveTo(40, y + 16).lineTo(555, y + 16).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
                     y += 16;
