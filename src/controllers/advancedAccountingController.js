@@ -377,8 +377,9 @@ const getFiscalYearRolloverPreview = async (req, res) => {
 
         if (!companyId) return res.status(400).json({ success: false, message: 'Company ID required' });
 
+        // Fiscal year date range — Jan 1 00:00:00 to Dec 31 23:59:59 UTC
         const startDate = new Date(`${fiscalYear}-01-01T00:00:00.000Z`);
-        const endDate = new Date(`${fiscalYear}-12-31T23:59:59.999Z`);
+        const endDate   = new Date(`${fiscalYear}-12-31T23:59:59.999Z`);
 
         const existingClose = await prisma.$queryRawUnsafe(`
             SELECT * FROM fiscal_year_close_log WHERE companyId = ? AND fiscalYear = ? LIMIT 1
@@ -386,28 +387,95 @@ const getFiscalYearRolloverPreview = async (req, res) => {
 
         const isAlreadyClosed = Array.isArray(existingClose) && existingClose.length > 0;
 
+        // Load all account groups with ledgers
         const groups = await prisma.accountgroup.findMany({
             where: { companyId },
             include: { ledger: true }
         });
 
-        let totalIncome = 0;
+        // Collect nominal (INCOME + EXPENSES) ledger IDs for date-filtered aggregation
+        const nominalLedgerIds = [];
+        for (const group of groups) {
+            if (group.type === 'INCOME' || group.type === 'EXPENSES') {
+                for (const ledger of group.ledger) {
+                    nominalLedgerIds.push(ledger.id);
+                }
+            }
+        }
+
+        // Build per-ledger balance map from TRANSACTIONS within the fiscal year date range.
+        // The `transaction` table records every posting (invoices, bills, receipts,
+        // payments, journals) with a `date`, `debitLedgerId`, `creditLedgerId`, and `amount`.
+        const ledgerBalanceMap = {}; // { [ledgerId]: { debit: number, credit: number } }
+
+        if (nominalLedgerIds.length > 0) {
+            // Credits to INCOME/EXPENSE ledgers in this fiscal year
+            const creditAgg = await prisma.transaction.groupBy({
+                by: ['creditLedgerId'],
+                where: {
+                    companyId,
+                    date: { gte: startDate, lte: endDate },
+                    creditLedgerId: { in: nominalLedgerIds }
+                },
+                _sum: { amount: true }
+            });
+
+            // Debits to INCOME/EXPENSE ledgers in this fiscal year
+            const debitAgg = await prisma.transaction.groupBy({
+                by: ['debitLedgerId'],
+                where: {
+                    companyId,
+                    date: { gte: startDate, lte: endDate },
+                    debitLedgerId: { in: nominalLedgerIds }
+                },
+                _sum: { amount: true }
+            });
+
+            for (const row of creditAgg) {
+                const lid = row.creditLedgerId;
+                if (!ledgerBalanceMap[lid]) ledgerBalanceMap[lid] = { debit: 0, credit: 0 };
+                ledgerBalanceMap[lid].credit += parseFloat(row._sum.amount || 0);
+            }
+            for (const row of debitAgg) {
+                const lid = row.debitLedgerId;
+                if (!ledgerBalanceMap[lid]) ledgerBalanceMap[lid] = { debit: 0, credit: 0 };
+                ledgerBalanceMap[lid].debit += parseFloat(row._sum.amount || 0);
+            }
+        }
+
+        let totalIncome   = 0;
         let totalExpenses = 0;
-        const incomeAccounts = [];
-        const expenseAccounts = [];
+        const incomeAccounts       = [];
+        const expenseAccounts      = [];
         const balanceSheetAccounts = [];
 
         for (const group of groups) {
             for (const ledger of group.ledger) {
-                const balance = Math.abs(ledger.currentBalance || 0);
-
                 if (group.type === 'INCOME') {
-                    totalIncome += balance;
-                    incomeAccounts.push({ id: ledger.id, name: ledger.name, balance, group: group.name });
+                    // Income accounts have a net credit balance: credit - debit
+                    const agg     = ledgerBalanceMap[ledger.id] || { debit: 0, credit: 0 };
+                    const balance = Math.max(0, agg.credit - agg.debit);
+                    totalIncome  += balance;
+                    incomeAccounts.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        balance: parseFloat(balance.toFixed(2)),
+                        group: group.name
+                    });
                 } else if (group.type === 'EXPENSES') {
+                    // Expense accounts have a net debit balance: debit - credit
+                    const agg      = ledgerBalanceMap[ledger.id] || { debit: 0, credit: 0 };
+                    const balance  = Math.max(0, agg.debit - agg.credit);
                     totalExpenses += balance;
-                    expenseAccounts.push({ id: ledger.id, name: ledger.name, balance, group: group.name });
+                    expenseAccounts.push({
+                        id: ledger.id,
+                        name: ledger.name,
+                        balance: parseFloat(balance.toFixed(2)),
+                        group: group.name
+                    });
                 } else {
+                    // Balance sheet accounts (Assets, Liabilities, Equity) are cumulative —
+                    // currentBalance already reflects all historical postings correctly.
                     balanceSheetAccounts.push({
                         id: ledger.id,
                         name: ledger.name,
@@ -430,12 +498,13 @@ const getFiscalYearRolloverPreview = async (req, res) => {
                 startDate,
                 endDate,
                 isAlreadyClosed,
-                totalIncome: parseFloat(totalIncome.toFixed(2)),
+                totalIncome:   parseFloat(totalIncome.toFixed(2)),
                 totalExpenses: parseFloat(totalExpenses.toFixed(2)),
                 netProfitLoss: parseFloat(netProfitLoss.toFixed(2)),
                 netStatus: netProfitLoss >= 0 ? 'NET_PROFIT' : 'NET_LOSS',
-                incomeAccounts,
-                expenseAccounts,
+                // Only surface accounts with actual activity in this fiscal year
+                incomeAccounts:  incomeAccounts.filter(a => a.balance > 0),
+                expenseAccounts: expenseAccounts.filter(a => a.balance > 0),
                 balanceSheetAccounts
             }
         });
@@ -444,6 +513,7 @@ const getFiscalYearRolloverPreview = async (req, res) => {
         return res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 const executeFiscalYearRollover = async (req, res) => {
     try {
