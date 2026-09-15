@@ -868,7 +868,9 @@ exports.Prisma.ReceiptScalarFieldEnum = {
   status: 'status',
   manualStatus: 'manualStatus',
   isAdvance: 'isAdvance',
-  advanceUnallocated: 'advanceUnallocated'
+  advanceUnallocated: 'advanceUnallocated',
+  balanceBeforePayment: 'balanceBeforePayment',
+  balanceAfterPayment: 'balanceAfterPayment'
 };
 
 exports.Prisma.SalesorderScalarFieldEnum = {
@@ -1295,7 +1297,9 @@ exports.Prisma.ReceiptinvoiceallocationScalarFieldEnum = {
   amount: 'amount',
   companyId: 'companyId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  balanceBeforePayment: 'balanceBeforePayment',
+  balanceAfterPayment: 'balanceAfterPayment'
 };
 
 exports.Prisma.PaymentbillallocationScalarFieldEnum = {

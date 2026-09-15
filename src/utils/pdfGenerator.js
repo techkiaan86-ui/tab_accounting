@@ -26,32 +26,43 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const dueDate = invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Due upon receipt';
             const customerName = invoice?.customer?.name || invoice?.customerName || 'Valued Customer';
             const customerEmail = invoice?.customer?.email || invoice?.customerEmail || '';
-            const themeColor = company?.invoiceColor || '#475569';
+            const rawThemeColor = company?.invoiceColor || '#dedede';
+            const isLightColor = (color) => {
+                if (!color) return false;
+                const c = color.toLowerCase();
+                return c === '#dedede' || c === '#ffffff' || c === '#f1f5f9' || c === '#e2e8f0';
+            };
+            const isLight = isLightColor(rawThemeColor);
+            const themeColor = rawThemeColor;
+            const bannerBgColor = isLight ? '#dedede' : themeColor;
+            const bannerTitleColor = isLight ? '#1e293b' : '#ffffff';
+            const bannerSubColor = isLight ? '#475569' : '#cbd5e1';
+            const bannerMetaColor = isLight ? '#475569' : '#e2e8f0';
             const docTitle = company?.isVatRegistered ? 'VAT INVOICE' : 'INVOICE';
             const poVal = (invoice?.poNumber && typeof invoice.poNumber === 'string' && invoice.poNumber.trim()) ? invoice.poNumber.trim() : null;
 
             // Header Background Accent (Light Grey / Company theme)
-            doc.rect(40, 40, 515, 65).fill(themeColor);
+            doc.rect(40, 40, 515, 65).fill(bannerBgColor);
 
             // Company Title
-            doc.fillColor('#ffffff')
+            doc.fillColor(bannerTitleColor)
                 .fontSize(18)
                 .font('Helvetica-Bold')
                 .text(companyName, 55, 52);
 
             doc.fontSize(9)
                 .font('Helvetica')
-                .fillColor('#e2e8f0')
+                .fillColor(bannerMetaColor)
                 .text(`VAT/Tax No: ${company?.vatNumber || company?.gstNumber || 'N/A'}`, 55, 74)
                 .text(`${company?.email || ''} | ${company?.phone || ''}`, 55, 87);
 
             // Invoice Title & Number
-            doc.fillColor('#ffffff')
+            doc.fillColor(bannerTitleColor)
                 .fontSize(20)
                 .font('Helvetica-Bold')
                 .text(docTitle, 380, 52, { align: 'right', width: 160 })
                 .fontSize(11)
-                .fillColor('#cbd5e1')
+                .fillColor(bannerSubColor)
                 .text(`#${String(invoiceNumber).replace(/^#/, '')}`, 380, 75, { align: 'right', width: 160 });
 
             // Billing & Invoice Metadata
@@ -66,13 +77,30 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             }
 
             // Calculate dynamic status and balance
+            const isCombinedInv = Boolean(invoice?.isCombined || (typeof invoice?.id === 'string' && invoice.id.toLowerCase().includes('combined')) || (Array.isArray(invoice?.invoices) && invoice.invoices.length > 0));
+            const currentInvId = !isNaN(parseInt(invoice?.id)) ? parseInt(invoice.id) : null;
             const totalNum = parseFloat(invoice?.totalAmount || 0);
-            let paidNum = parseFloat(invoice?.paidAmount || 0);
-            if (isNaN(paidNum)) paidNum = 0;
-            if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
-                const allocSum = invoice.allocations.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-                if (allocSum > paidNum) paidNum = allocSum;
+            let paidNum = 0;
+            if (isCombinedInv && Array.isArray(invoice?.invoices) && invoice.invoices.length > 0) {
+                invoice.invoices.forEach(ci => {
+                    if (Array.isArray(ci.allocations) && ci.allocations.length > 0) {
+                        ci.allocations.forEach(a => { paidNum += (parseFloat(a.amount) || 0); });
+                    } else if (ci.paidAmount !== undefined && ci.paidAmount !== null) {
+                        paidNum += (parseFloat(ci.paidAmount) || 0);
+                    }
+                });
+            } else if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
+                paidNum = invoice.allocations.reduce((sum, a) => {
+                    if (!isCombinedInv && currentInvId && a.invoiceId && parseInt(a.invoiceId) !== currentInvId) return sum;
+                    return sum + (parseFloat(a.amount) || 0);
+                }, 0);
+            } else if (invoice?.paidAmount !== undefined && invoice?.paidAmount !== null) {
+                paidNum = parseFloat(invoice.paidAmount) || 0;
+            } else if (Array.isArray(invoice?.receipt) && invoice.receipt.length > 0 && invoice.receipt.every(r => r.balanceAfterPayment !== undefined)) {
+                paidNum = invoice.receipt.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
             }
+            if (isNaN(paidNum)) paidNum = 0;
+
             const rawBalanceNum = invoice?.balanceAmount !== undefined ? parseFloat(invoice.balanceAmount) : (totalNum - paidNum);
             const tol = 0.01;
             const balanceNum = Math.max(0, isNaN(rawBalanceNum) ? Math.max(0, totalNum - paidNum) : rawBalanceNum);
@@ -82,12 +110,11 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
 
             const computedStatus = (() => {
                 if (rawStatus === 'CANCELLED') return 'CANCELLED';
-                if (effectiveBalance <= tol && (totalNum > 0 || paidNum > 0)) return 'PAID';
+                if (effectiveBalance <= tol && (totalNum > 0 || paidNum >= totalNum - tol)) return 'PAID';
                 if (effectiveBalance <= tol && totalNum === 0) return 'PAID';
-                if (rawStatus === 'PAID' && effectiveBalance <= tol) return 'PAID';
+                if (paidNum > 0 && effectiveBalance > tol) return 'PARTIALLY PAID';
                 if (effectiveBalance > tol && isDuePassed) return 'OVERDUE';
-                if (paidNum > tol && effectiveBalance > tol) return 'PARTIAL';
-                if (rawStatus && rawStatus !== 'UNPAID' && rawStatus !== 'DUE') return rawStatus;
+                if (rawStatus && rawStatus !== 'UNPAID' && rawStatus !== 'DUE' && rawStatus !== 'PARTIAL') return rawStatus;
                 return 'UNPAID';
             })();
 
@@ -113,8 +140,8 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
 
             // Table Header Function
             const drawTableHeader = (headerY) => {
-                doc.rect(40, headerY, 515, 22).fill('#f1f5f9');
-                doc.fillColor('#334155').font('Helvetica-Bold').fontSize(8.5);
+                doc.rect(40, headerY, 515, 22).fill('#dedede');
+                doc.fillColor('#555555').font('Helvetica-Bold').fontSize(8.5);
                 doc.text('ACTIVITY', 45, headerY + 6, { width: 85, align: 'left' });
                 doc.text('DESCRIPTION', 135, headerY + 6, { width: 170, align: 'left' });
                 doc.text('QTY', 310, headerY + 6, { width: 30, align: 'right' });
@@ -249,8 +276,8 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const taxableVal = Math.max(0, subtotalVal - discountVal);
             const taxVal = parseFloat(invoice?.taxAmount || 0);
             const total = parseFloat(invoice?.totalAmount || (taxableVal + taxVal) || 0).toFixed(2);
-            const paid = parseFloat(invoice?.paidAmount || 0).toFixed(2);
-            const balance = parseFloat(invoice?.balanceAmount !== undefined ? invoice.balanceAmount : (parseFloat(total) - parseFloat(paid))).toFixed(2);
+            const paid = parseFloat(paidNum).toFixed(2);
+            const balance = parseFloat(effectiveBalance).toFixed(2);
 
             const totalsX = 330;
             doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b').text('Subtotal:', totalsX, y);
@@ -275,33 +302,180 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                 y += 16;
             }
 
-            // Total Amount Highlight (themeColor)
-            doc.rect(totalsX - 10, y - 2, 235, 26).fill(themeColor);
-            doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(11);
+            // Total Amount Highlight (themeColor / light gray)
+            doc.rect(totalsX - 10, y - 2, 235, 26).fill(bannerBgColor);
+            doc.fillColor(bannerTitleColor).font('Helvetica-Bold').fontSize(11);
             doc.text('Grand Total:', totalsX, y + 6);
             doc.text(`${currency} ${total}`, 440, y + 6, { align: 'right', width: 115 });
             y += 34;
 
-            if (parseFloat(balance) > 0 && parseFloat(balance) !== parseFloat(total)) {
-                doc.fillColor('#dc2626').font('Helvetica-Bold').fontSize(10);
-                doc.text('BALANCE DUE:', totalsX, y);
-                doc.text(`${currency} ${balance}`, 440, y, { align: 'right', width: 115 });
-                y += 20;
-            }
+            // Balance Due Line
+            doc.fillColor('#475569').font('Helvetica-Bold').fontSize(9.5);
+            doc.text('BALANCE DUE:', totalsX, y);
+            doc.fillColor(isLight ? '#0f172a' : themeColor).font('Helvetica-Bold').fontSize(10);
+            doc.text(`${currency} ${balance}`, 440, y, { align: 'right', width: 115 });
+            y += 15;
+
+            // Clean unboxed status text directly right-aligned under balance
+            const isStatusPaid = computedStatus === 'PAID' || computedStatus === 'COMPLETED';
+            const statusColor = isStatusPaid ? '#16a34a' : (computedStatus === 'OVERDUE' ? '#dc2626' : (computedStatus === 'PARTIALLY PAID' || computedStatus === 'PARTIAL' ? '#ea580c' : '#64748b'));
+            doc.fillColor(statusColor).font('Helvetica-Bold').fontSize(11);
+            doc.text(computedStatus, 440, y, { align: 'right', width: 115 });
+            y += 22;
 
             // Bank details (if available)
             if (company?.iban || company?.accountNumber) {
-                y = Math.max(y, 480);
-                doc.rect(40, y, 515, 60).fill('#f8fafc').strokeColor('#cbd5e1').stroke();
-                doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(9).text('PAYMENT / BANK TRANSFER DETAILS', 50, y + 8);
-                doc.font('Helvetica').fontSize(8).fillColor('#475569');
+                if (y + 55 > 750) {
+                    doc.addPage();
+                    y = 50;
+                }
+                doc.rect(40, y, 515, 50).fill('#f8fafc').strokeColor('#cbd5e1').stroke();
+                doc.fillColor('#0f172a').font('Helvetica-Bold').fontSize(8.5).text('PAYMENT / BANK TRANSFER DETAILS', 50, y + 6);
+                doc.font('Helvetica').fontSize(7.5).fillColor('#475569');
                 let bankInfo = `Bank: ${company?.bankName || 'N/A'}   |   Account Name: ${company?.accountName || companyName}\n`;
                 if (company?.iban) bankInfo += `IBAN: ${company.iban}   |   `;
                 if (company?.bic) bankInfo += `BIC/SWIFT: ${company.bic}   |   `;
                 if (company?.accountNumber) bankInfo += `Account No: ${company.accountNumber}   |   `;
                 if (company?.sortCode) bankInfo += `Sort Code: ${company.sortCode}\n`;
                 bankInfo += `Reference: ${invoiceNumber}`;
-                doc.text(bankInfo, 50, y + 22, { width: 495, lineGap: 3 });
+                doc.text(bankInfo, 50, y + 18, { width: 495, lineGap: 2 });
+                y += 56;
+            }
+
+            // Payment History Section (if allocations/receipts exist)
+            const invTotal = parseFloat(invoice?.totalAmount || 0);
+
+            let rawAllocations = [];
+            if (isCombinedInv && Array.isArray(invoice?.invoices) && invoice.invoices.length > 0) {
+                invoice.invoices.forEach(ci => {
+                    if (Array.isArray(ci.allocations) && ci.allocations.length > 0) {
+                        ci.allocations.forEach(a => rawAllocations.push(a));
+                    } else if (Array.isArray(ci.receipt) && ci.receipt.length > 0) {
+                        ci.receipt.forEach(r => rawAllocations.push({
+                            id: r.id,
+                            receiptId: r.id,
+                            amount: r.amount,
+                            balanceBeforePayment: r.balanceBeforePayment,
+                            balanceAfterPayment: r.balanceAfterPayment,
+                            receipt: r
+                        }));
+                    }
+                });
+            }
+
+            if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
+                const currentInvId = !isNaN(parseInt(invoice.id)) ? parseInt(invoice.id) : null;
+                invoice.allocations.forEach(a => {
+                    if (!isCombinedInv && currentInvId && a.invoiceId && a.invoiceId !== currentInvId) return;
+                    rawAllocations.push(a);
+                });
+            } else if (rawAllocations.length === 0 && Array.isArray(invoice?.receipt) && invoice.receipt.length > 0) {
+                invoice.receipt.forEach(r => {
+                    if (r.balanceAfterPayment !== undefined || (!isCombinedInv && currentInvId && r.invoiceId && parseInt(r.invoiceId) === currentInvId)) {
+                        rawAllocations.push({
+                            id: r.id,
+                            receiptId: r.id,
+                            amount: r.amount,
+                            balanceBeforePayment: r.balanceBeforePayment,
+                            balanceAfterPayment: r.balanceAfterPayment,
+                            receipt: r
+                        });
+                    }
+                });
+            }
+
+            const pmtGroupMap = new Map();
+            rawAllocations.forEach(item => {
+                const r = item.receipt || item;
+                const key = r.receiptNumber && r.receiptNumber !== '-' ? r.receiptNumber : (r.id ? `ID-${r.id}` : `ITEM-${item.id || Math.random()}`);
+                if (!pmtGroupMap.has(key)) {
+                    pmtGroupMap.set(key, {
+                        id: r.id || item.receiptId,
+                        receiptNumber: r.receiptNumber || (item.receiptId ? `RCV-${item.receiptId}` : '-'),
+                        date: r.date || item.createdAt,
+                        amount: 0,
+                        paymentMode: r.paymentMode || item.paymentMode || 'BANK',
+                        balanceAfterPayment: item.balanceAfterPayment
+                    });
+                }
+                const entry = pmtGroupMap.get(key);
+                entry.amount = parseFloat((entry.amount + (parseFloat(item.amount) || 0)).toFixed(2));
+                if (!entry.date && (r.date || item.createdAt)) entry.date = r.date || item.createdAt;
+            });
+
+            const sortedHistory = Array.from(pmtGroupMap.values()).sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+
+            let rPaid = 0;
+            const finalPaymentHistory = sortedHistory.map(p => {
+                rPaid = parseFloat((rPaid + p.amount).toFixed(2));
+                const calcBal = Math.max(0, parseFloat((invTotal - rPaid).toFixed(2)));
+                let balAfter = calcBal;
+                if (!isCombinedInv && p.balanceAfterPayment !== undefined && p.balanceAfterPayment !== null) {
+                    balAfter = p.balanceAfterPayment;
+                }
+                return {
+                    ...p,
+                    balanceAfterPayment: balAfter
+                };
+            });
+
+            if (finalPaymentHistory.length > 0) {
+                const pmtEstHeight = 35 + (finalPaymentHistory.length * 16);
+                if (y + pmtEstHeight > 750) {
+                    doc.addPage();
+                    y = 50;
+                } else {
+                    y += 6;
+                }
+
+                doc.fontSize(8.5).font('Helvetica-Bold').fillColor(themeColor).text('PAYMENT HISTORY', 40, y);
+                y += 12;
+
+                doc.rect(40, y, 515, 18).fill('#dedede');
+                doc.fillColor('#555555').font('Helvetica-Bold').fontSize(7.5);
+                doc.text('Payment Date', 45, y + 5, { width: 90, align: 'left' });
+                doc.text('Receipt Number', 140, y + 5, { width: 100, align: 'left' });
+                doc.text('Payment Amount', 245, y + 5, { width: 85, align: 'right' });
+                doc.text('Payment Method', 335, y + 5, { width: 75, align: 'center' });
+                doc.text('Balance After Payment', 415, y + 5, { width: 135, align: 'right' });
+                y += 18;
+
+                finalPaymentHistory.forEach((p, pIdx) => {
+                    if (y + 16 > 750) {
+                        doc.addPage();
+                        y = 50;
+                        doc.rect(40, y, 515, 18).fill('#dedede');
+                        doc.fillColor('#555555').font('Helvetica-Bold').fontSize(7.5);
+                        doc.text('Payment Date', 45, y + 5, { width: 90, align: 'left' });
+                        doc.text('Receipt Number', 140, y + 5, { width: 100, align: 'left' });
+                        doc.text('Payment Amount', 245, y + 5, { width: 85, align: 'right' });
+                        doc.text('Payment Method', 335, y + 5, { width: 75, align: 'center' });
+                        doc.text('Balance After Payment', 415, y + 5, { width: 135, align: 'right' });
+                        y += 18;
+                    }
+
+                    const pRowBg = pIdx % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    doc.rect(40, y, 515, 16).fill(pRowBg);
+
+                    const d = p.date ? new Date(p.date) : null;
+                    const dateStr = d && !isNaN(d.getTime())
+                        ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
+                        : '-';
+                    const amtStr = `${currency} ${Number(p.amount || 0).toFixed(2)}`;
+                    const balAfterStr = (p.balanceAfterPayment !== undefined && p.balanceAfterPayment !== null)
+                        ? `${currency} ${Number(p.balanceAfterPayment).toFixed(2)}`
+                        : '-';
+
+                    doc.fillColor('#334155').font('Helvetica').fontSize(7.5);
+                    doc.text(dateStr, 45, y + 4, { width: 90, align: 'left' });
+                    doc.font('Helvetica-Bold').fillColor('#0f172a').text(p.receiptNumber || '-', 140, y + 4, { width: 100, align: 'left' });
+                    doc.text(amtStr, 245, y + 4, { width: 85, align: 'right' });
+                    doc.font('Helvetica').fillColor('#475569').text((p.paymentMode || 'BANK').toUpperCase(), 335, y + 4, { width: 75, align: 'center' });
+                    doc.font('Helvetica-Bold').fillColor(themeColor).text(balAfterStr, 415, y + 4, { width: 135, align: 'right' });
+
+                    doc.moveTo(40, y + 16).lineTo(555, y + 16).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
+                    y += 16;
+                });
             }
 
             // Footer

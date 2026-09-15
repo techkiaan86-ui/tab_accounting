@@ -1,7 +1,7 @@
 const prisma = require('../config/prisma');
 const numberingService = require('../services/numberingService');
+const { isDuePassed, syncInvoiceInDb } = require('../utils/invoiceSyncHelper');
 const { logActivity } = require('../utils/auditLogger');
-const { isDuePassed } = require('../utils/invoiceSyncHelper');
 
 // Helper to get currency decimal places (KWD/BHD/OMR etc have 3, others have 2)
 const getDecimalPlaces = (currency) => {
@@ -16,63 +16,8 @@ const roundTo = (val, decimals = 2) => {
 };
 
 // Helper to reliably update invoice balances
-const updateInvoiceBalance = async (tx, invoiceId, type, deltaPaid) => {
-    if (type === 'POS_INVOICE') {
-        const inv = await tx.posinvoice.findUnique({ where: { id: invoiceId } });
-        if (inv) {
-            const decimals = getDecimalPlaces(inv.currency || 'INR');
-            const newPaid = Math.max(0, roundTo((inv.paidAmount || 0) + deltaPaid, decimals));
-            const newBalance = Math.max(0, roundTo((inv.totalAmount || 0) - newPaid, decimals));
-            const tolerance = decimals === 3 ? 0.001 : 0.01;
-            const isOverdue = isDuePassed(inv.dueDate || inv.date);
-            let status;
-            if (newBalance <= tolerance) {
-                status = 'Paid';
-            } else if (isOverdue) {
-                status = 'Overdue';
-            } else if (newPaid > tolerance) {
-                status = 'Partial';
-            } else {
-                status = 'Due';
-            }
-            await tx.posinvoice.update({
-                where: { id: invoiceId },
-                data: {
-                    paidAmount: newPaid,
-                    balanceAmount: newBalance,
-                    status,
-                    updatedAt: new Date()
-                }
-            });
-        }
-    } else {
-        const inv = await tx.invoice.findUnique({ where: { id: invoiceId } });
-        if (inv) {
-            const decimals = getDecimalPlaces(inv.currency || 'INR');
-            const newPaid = Math.max(0, roundTo((inv.paidAmount || 0) + deltaPaid, decimals));
-            const newBalance = Math.max(0, roundTo((inv.totalAmount || 0) - newPaid, decimals));
-            const tolerance = decimals === 3 ? 0.001 : 0.01;
-            const isOverdue = isDuePassed(inv.dueDate);
-            let status;
-            if (newBalance <= tolerance) {
-                status = 'PAID';
-            } else if (isOverdue) {
-                status = 'OVERDUE';
-            } else if (newPaid > tolerance) {
-                status = 'PARTIAL';
-            } else {
-                status = 'UNPAID';
-            }
-            await tx.invoice.update({
-                where: { id: invoiceId },
-                data: {
-                    paidAmount: newPaid,
-                    balanceAmount: newBalance,
-                    status
-                }
-            });
-        }
-    }
+const updateInvoiceBalance = async (tx, invoiceId, type, deltaPaid = null) => {
+    return await syncInvoiceInDb(tx, invoiceId, type, deltaPaid);
 };
 
 // Create Customer Receipt (Payment)
@@ -232,18 +177,38 @@ const createReceipt = async (req, res) => {
                 const alloc = normalizedAllocations[i];
                 const allocDiscount = (i === 0) ? appliedDiscount : 0;
 
-                await updateInvoiceBalance(tx, alloc.invoiceId, alloc.invoiceType, alloc.amount + allocDiscount);
+                let allocBalanceBefore = 0;
+                let allocBalanceAfter = 0;
 
                 if (alloc.invoiceType === 'TAX_INVOICE') {
+                    const inv = await tx.invoice.findUnique({ where: { id: alloc.invoiceId } });
+                    const decimals = getDecimalPlaces(inv?.currency);
+                    allocBalanceBefore = inv ? (inv.balanceAmount !== undefined ? inv.balanceAmount : inv.totalAmount) : 0;
+                    allocBalanceAfter = Math.max(0, roundTo(allocBalanceBefore - (alloc.amount + allocDiscount), decimals));
+
                     await tx.receiptinvoiceallocation.create({
                         data: {
                             receiptId: receipt.id,
                             invoiceId: alloc.invoiceId,
                             amount: alloc.amount,
-                            companyId: parseInt(companyId)
+                            companyId: parseInt(companyId),
+                            balanceBeforePayment: allocBalanceBefore,
+                            balanceAfterPayment: allocBalanceAfter
                         }
                     });
+
+                    if (receiptInvoiceId === alloc.invoiceId || normalizedAllocations.length === 1) {
+                        await tx.receipt.update({
+                            where: { id: receipt.id },
+                            data: {
+                                balanceBeforePayment: allocBalanceBefore,
+                                balanceAfterPayment: allocBalanceAfter
+                            }
+                        });
+                    }
                 }
+
+                await updateInvoiceBalance(tx, alloc.invoiceId, alloc.invoiceType, alloc.amount + allocDiscount);
 
                 let invoiceRate = 1.0;
                 if (alloc.invoiceType === 'TAX_INVOICE') {
@@ -644,18 +609,38 @@ const updateReceipt = async (req, res) => {
                 const alloc = normalizedNewAllocations[i];
                 const allocDiscount = (i === 0) ? finalDiscount : 0;
 
-                await updateInvoiceBalance(tx, alloc.invoiceId, alloc.invoiceType, alloc.amount + allocDiscount);
+                let allocBalanceBefore = 0;
+                let allocBalanceAfter = 0;
 
                 if (alloc.invoiceType === 'TAX_INVOICE') {
+                    const inv = await tx.invoice.findUnique({ where: { id: alloc.invoiceId } });
+                    const decimals = getDecimalPlaces(inv?.currency);
+                    allocBalanceBefore = inv ? (inv.balanceAmount !== undefined ? inv.balanceAmount : inv.totalAmount) : 0;
+                    allocBalanceAfter = Math.max(0, roundTo(allocBalanceBefore - (alloc.amount + allocDiscount), decimals));
+
                     await tx.receiptinvoiceallocation.create({
                         data: {
                             receiptId: updatedReceipt.id,
                             invoiceId: alloc.invoiceId,
                             amount: alloc.amount,
-                            companyId: parseInt(companyId)
+                            companyId: parseInt(companyId),
+                            balanceBeforePayment: allocBalanceBefore,
+                            balanceAfterPayment: allocBalanceAfter
                         }
                     });
+
+                    if (receiptInvoiceId === alloc.invoiceId || normalizedNewAllocations.length === 1) {
+                        await tx.receipt.update({
+                            where: { id: updatedReceipt.id },
+                            data: {
+                                balanceBeforePayment: allocBalanceBefore,
+                                balanceAfterPayment: allocBalanceAfter
+                            }
+                        });
+                    }
                 }
+
+                await updateInvoiceBalance(tx, alloc.invoiceId, alloc.invoiceType, alloc.amount + allocDiscount);
 
                 let invoiceRate = 1.0;
                 if (alloc.invoiceType === 'TAX_INVOICE') {
@@ -869,16 +854,19 @@ const updateReceipt = async (req, res) => {
     }
 };
 
-const deleteReceiptHelper = async (tx, receipt, companyId) => {
+const deleteReceiptHelper = async (tx, receipt, companyId, deletingInvoiceIds = []) => {
     const fullReceipt = await tx.receipt.findUnique({
         where: { id: receipt.id },
         include: { allocations: true, customer: true }
     });
     if (!fullReceipt) return;
 
+    const deletingIdsSet = new Set((deletingInvoiceIds || []).map(id => parseInt(id)).filter(id => !isNaN(id)));
+
     const oldDiscount = fullReceipt.discountAmount || 0;
     for (let i = 0; i < fullReceipt.allocations.length; i++) {
         const oldAlloc = fullReceipt.allocations[i];
+        if (deletingIdsSet.has(parseInt(oldAlloc.invoiceId))) continue;
         const oldAllocDiscount = (i === 0) ? oldDiscount : 0;
         await updateInvoiceBalance(tx, oldAlloc.invoiceId, 'TAX_INVOICE', -(oldAlloc.amount + oldAllocDiscount));
     }
@@ -888,7 +876,7 @@ const deleteReceiptHelper = async (tx, receipt, companyId) => {
     });
 
     for (const t of oldTransactions) {
-        if (t.posInvoiceId) {
+        if (t.posInvoiceId && !deletingIdsSet.has(parseInt(t.posInvoiceId))) {
             await updateInvoiceBalance(tx, t.posInvoiceId, 'POS_INVOICE', -t.amount);
         }
     }
@@ -908,8 +896,17 @@ const deleteReceiptHelper = async (tx, receipt, companyId) => {
         }
     }
 
+    const affectedTaxInvoiceIds = (fullReceipt.allocations || [])
+        .map(a => a.invoiceId)
+        .filter(id => !deletingIdsSet.has(parseInt(id)));
+
     await tx.receiptinvoiceallocation.deleteMany({ where: { receiptId: fullReceipt.id } });
     await tx.transaction.deleteMany({ where: { receiptId: fullReceipt.id } });
+
+    // Sync all affected invoices with remaining allocations (only if not being deleted)
+    for (const invId of affectedTaxInvoiceIds) {
+        await syncInvoiceInDb(tx, invId, 'TAX_INVOICE');
+    }
 
     const oldJournalIds = [...new Set(oldTransactions.map(t => t.journalEntryId).filter(Boolean))];
     if (oldJournalIds.length > 0) {
@@ -1024,7 +1021,10 @@ const getReceipts = async (req, res) => {
         const mapped = receipts.map(r => {
             const standardAllocs = r.allocations.map(a => ({
                 id: a.id, receiptId: a.receiptId, invoiceId: a.invoiceId, invoiceType: 'TAX_INVOICE', amount: a.amount,
-                companyId: a.companyId, createdAt: a.createdAt, updatedAt: a.updatedAt, invoice: a.invoice
+                companyId: a.companyId, createdAt: a.createdAt, updatedAt: a.updatedAt,
+                balanceBeforePayment: a.balanceBeforePayment,
+                balanceAfterPayment: a.balanceAfterPayment,
+                invoice: a.invoice
             }));
 
             const posAllocs = posTransactions.filter(t => t.receiptId === r.id).map(t => ({
@@ -1069,7 +1069,10 @@ const getReceiptById = async (req, res) => {
 
         const standardAllocs = receipt.allocations.map(a => ({
             id: a.id, receiptId: a.receiptId, invoiceId: a.invoiceId, invoiceType: 'TAX_INVOICE', amount: a.amount,
-            companyId: a.companyId, createdAt: a.createdAt, updatedAt: a.updatedAt, invoice: a.invoice
+            companyId: a.companyId, createdAt: a.createdAt, updatedAt: a.updatedAt,
+            balanceBeforePayment: a.balanceBeforePayment,
+            balanceAfterPayment: a.balanceAfterPayment,
+            invoice: a.invoice
         }));
 
         const posAllocs = posTransactions.map(t => ({

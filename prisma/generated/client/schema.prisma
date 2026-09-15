@@ -1088,34 +1088,36 @@ model purchasereturnitem {
 }
 
 model receipt {
-  id                 Int                        @id @default(autoincrement())
-  receiptNumber      String
-  date               DateTime                   @default(now())
-  customerId         Int
-  invoiceId          Int?
-  amount             Float
-  paymentMode        receipt_paymentMode
-  referenceNumber    String?
-  companyId          Int
-  cashBankAccountId  Int?
-  notes              String?                    @db.Text
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @default(now()) @updatedAt
-  company            company                    @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "Receipt_companyId_fkey")
-  customer           customer                   @relation(fields: [customerId], references: [id], map: "Receipt_customerId_fkey")
-  invoice            invoice?                   @relation(fields: [invoiceId], references: [id], map: "Receipt_invoiceId_fkey")
-  cashBankAccount    ledger?                    @relation("Receipt_CashBankAccount", fields: [cashBankAccountId], references: [id], map: "Receipt_cashBankAccountId_fkey")
-  discountAmount     Float                      @default(0)
-  discountLedgerId   Int?
-  customFields       String?                    @db.Text
-  status             String                     @default("CLEARED")
-  manualStatus       Boolean                    @default(false)
-  isAdvance          Boolean                    @default(false)
-  advanceUnallocated Float                      @default(0)
-  discountLedger     ledger?                    @relation("Receipt_DiscountLedger", fields: [discountLedgerId], references: [id], map: "Receipt_discountLedgerId_fkey")
-  transaction        transaction[]
-  allocations        receiptinvoiceallocation[]
-  advanceadjustments advanceadjustment[]
+  id                   Int                        @id @default(autoincrement())
+  receiptNumber        String
+  date                 DateTime                   @default(now())
+  customerId           Int
+  invoiceId            Int?
+  amount               Float
+  paymentMode          receipt_paymentMode
+  referenceNumber      String?
+  companyId            Int
+  cashBankAccountId    Int?
+  notes                String?                    @db.Text
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @default(now()) @updatedAt
+  company              company                    @relation(fields: [companyId], references: [id], onDelete: Cascade, map: "Receipt_companyId_fkey")
+  customer             customer                   @relation(fields: [customerId], references: [id], map: "Receipt_customerId_fkey")
+  invoice              invoice?                   @relation(fields: [invoiceId], references: [id], map: "Receipt_invoiceId_fkey")
+  cashBankAccount      ledger?                    @relation("Receipt_CashBankAccount", fields: [cashBankAccountId], references: [id], map: "Receipt_cashBankAccountId_fkey")
+  discountAmount       Float                      @default(0)
+  discountLedgerId     Int?
+  customFields         String?                    @db.Text
+  status               String                     @default("CLEARED")
+  manualStatus         Boolean                    @default(false)
+  isAdvance            Boolean                    @default(false)
+  advanceUnallocated   Float                      @default(0)
+  discountLedger       ledger?                    @relation("Receipt_DiscountLedger", fields: [discountLedgerId], references: [id], map: "Receipt_discountLedgerId_fkey")
+  transaction          transaction[]
+  allocations          receiptinvoiceallocation[]
+  advanceadjustments   advanceadjustment[]
+  balanceBeforePayment Float?
+  balanceAfterPayment  Float?
 
   @@unique([companyId, receiptNumber], map: "Receipt_companyId_receiptNumber_key")
   @@index([customerId], map: "Receipt_customerId_fkey")
@@ -1938,15 +1940,17 @@ model inventory_consumption {
 }
 
 model receiptinvoiceallocation {
-  id        Int      @id @default(autoincrement())
-  receiptId Int
-  invoiceId Int
-  amount    Float
-  companyId Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  receipt   receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_receiptId_fkey")
-  invoice   invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_invoiceId_fkey")
+  id                   Int      @id @default(autoincrement())
+  receiptId            Int
+  invoiceId            Int
+  amount               Float
+  companyId            Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @default(now()) @updatedAt
+  balanceBeforePayment Float?
+  balanceAfterPayment  Float?
+  receipt              receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_receiptId_fkey")
+  invoice              invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_invoiceId_fkey")
 
   @@index([receiptId], map: "ReceiptInvoiceAllocation_receiptId_fkey")
   @@index([invoiceId], map: "ReceiptInvoiceAllocation_invoiceId_fkey")

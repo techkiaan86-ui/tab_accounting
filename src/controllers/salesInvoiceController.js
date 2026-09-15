@@ -5,7 +5,135 @@ const {
     consumeStock,
     reverseStockOut
 } = require('../services/inventoryValuationService');
-const { isDuePassed } = require('../utils/invoiceSyncHelper');
+const { isDuePassed, syncInvoiceInDb, computeInvoiceStatusAndBalance } = require('../utils/invoiceSyncHelper');
+
+const getDecimalPlaces = (currency) => {
+    const threeDecimalCurrencies = ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'];
+    return threeDecimalCurrencies.includes(currency?.toUpperCase()) ? 3 : 2;
+};
+
+const roundTo = (val, decimals = 2) => {
+    const factor = Math.pow(10, decimals);
+    return Math.round(val * factor) / factor;
+};
+
+// Authoritative helper to map allocations to invoice receipts without inflating advance/whole-receipt amounts
+const getDeduplicatedInvoiceReceipts = (invoice) => {
+    if (!invoice) return [];
+    const seenReceiptIds = new Set();
+    const deduplicatedReceipts = [];
+
+    // 1. Authoritative: Allocations define exactly how much of a receipt is allocated to this invoice
+    for (const alloc of (invoice.allocations || [])) {
+        const r = alloc.receipt;
+        if (!r) continue;
+        seenReceiptIds.add(r.id);
+        const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
+        const baseAllocAmount = r.amount > 0 ? alloc.amount * (baseAmount / r.amount) : alloc.amount;
+        deduplicatedReceipts.push({
+            id: r.id,
+            receiptNumber: r.receiptNumber,
+            date: r.date,
+            amount: alloc.amount, // Authoritative allocated amount to this invoice
+            baseAmount: baseAllocAmount,
+            paymentMode: r.paymentMode,
+            referenceNumber: r.referenceNumber,
+            cashBankAccount: r.cashBankAccount,
+            notes: r.notes,
+            balanceBeforePayment: alloc.balanceBeforePayment !== undefined && alloc.balanceBeforePayment !== null ? alloc.balanceBeforePayment : r.balanceBeforePayment,
+            balanceAfterPayment: alloc.balanceAfterPayment !== undefined && alloc.balanceAfterPayment !== null ? alloc.balanceAfterPayment : r.balanceAfterPayment
+        });
+    }
+
+    // 2. Fallback: Only if a receipt is directly linked to this invoice AND has NO allocation records
+    for (const r of (invoice.receipt || [])) {
+        if (!seenReceiptIds.has(r.id)) {
+            seenReceiptIds.add(r.id);
+            const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
+            deduplicatedReceipts.push({
+                ...r,
+                baseAmount,
+                balanceBeforePayment: r.balanceBeforePayment,
+                balanceAfterPayment: r.balanceAfterPayment
+            });
+        }
+    }
+
+    return deduplicatedReceipts;
+};
+
+// Helper to aggregate allocations and build chronological payment history for combined invoices
+const buildCombinedInvoicePayments = (customerInvoices, combinedTotalAmount) => {
+    const allAllocations = [];
+    customerInvoices.forEach(inv => {
+        (inv.allocations || []).forEach(alloc => {
+            allAllocations.push({
+                ...alloc,
+                invoiceId: inv.id,
+                invoiceNumber: inv.invoiceNumber
+            });
+        });
+    });
+
+    const seenReceiptIdsInAllocs = new Set(allAllocations.map(a => a.receiptId).filter(Boolean));
+    customerInvoices.forEach(inv => {
+        (inv.receipt || []).forEach(r => {
+            if (!seenReceiptIdsInAllocs.has(r.id)) {
+                allAllocations.push({
+                    id: `rec-${r.id}`,
+                    receiptId: r.id,
+                    invoiceId: inv.id,
+                    invoiceNumber: inv.invoiceNumber,
+                    amount: r.amount,
+                    balanceBeforePayment: r.balanceBeforePayment,
+                    balanceAfterPayment: r.balanceAfterPayment,
+                    receipt: r
+                });
+            }
+        });
+    });
+
+    const receiptGroupMap = new Map();
+    allAllocations.forEach(alloc => {
+        const r = alloc.receipt;
+        if (!r) return;
+        const key = r.receiptNumber && r.receiptNumber !== '-' ? r.receiptNumber : (r.id ? `ID-${r.id}` : `ALLOC-${alloc.id}`);
+        if (!receiptGroupMap.has(key)) {
+            receiptGroupMap.set(key, {
+                id: r.id,
+                receiptNumber: r.receiptNumber,
+                date: r.date,
+                amount: 0,
+                paymentMode: r.paymentMode || 'BANK',
+                referenceNumber: r.referenceNumber,
+                cashBankAccount: r.cashBankAccount,
+                notes: r.notes
+            });
+        }
+        const entry = receiptGroupMap.get(key);
+        entry.amount = parseFloat((entry.amount + (parseFloat(alloc.amount) || 0)).toFixed(2));
+        if (!entry.date && r.date) entry.date = r.date;
+        if ((!entry.paymentMode || entry.paymentMode === 'BANK') && r.paymentMode) entry.paymentMode = r.paymentMode;
+    });
+
+    const sortedPayments = Array.from(receiptGroupMap.values()).sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+
+    let runningPaid = 0;
+    const paymentHistory = sortedPayments.map(pmt => {
+        runningPaid = parseFloat((runningPaid + pmt.amount).toFixed(2));
+        const balAfter = Math.max(0, parseFloat((combinedTotalAmount - runningPaid).toFixed(2)));
+        return {
+            ...pmt,
+            balanceAfterPayment: balAfter
+        };
+    });
+
+    return {
+        allAllocations,
+        paymentHistory
+    };
+};
+
 
 // Helper to dynamically adjust Sales Invoice quantities and amounts by associated returns
 const adjustInvoiceWithReturns = (invoice) => {
@@ -159,10 +287,33 @@ const adjustInvoiceWithReturns = (invoice) => {
         adjustedTotal = Math.max(0, invoice.totalAmount - returnedTotal);
     }
 
-    const originalPaidAmount = invoice.paidAmount || 0;
-    // Cap paidAmount to adjustedTotal if there are returns
-    const paidAmount = Math.min(originalPaidAmount, adjustedTotal);
-    const adjustedBalance = Math.max(0, adjustedTotal - paidAmount);
+    const decimals = (invoice.currency && ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'].includes(invoice.currency.toUpperCase())) ? 3 : 2;
+    const tol = decimals === 3 ? 0.001 : 0.01;
+    const factor = Math.pow(10, decimals);
+
+    // Authoritative totalPaid:
+    // 1. If allocations are present, sum of allocations strictly belonging to this invoice is authoritative.
+    // 2. Fallback to invoice.paidAmount.
+    // NOTE: NEVER sum raw invoice.receipt directly, as receipt.amount is the customer's total transaction.
+    let calculatedPaid = 0;
+    const currentInvId = !isNaN(parseInt(invoice.id)) ? parseInt(invoice.id) : null;
+    if (Array.isArray(invoice.allocations) && invoice.allocations.length > 0) {
+        calculatedPaid = invoice.allocations.reduce((sum, a) => {
+            if (currentInvId && a.invoiceId && parseInt(a.invoiceId) !== currentInvId) return sum;
+            return sum + (parseFloat(a.amount) || 0);
+        }, 0);
+    } else if (invoice.paidAmount !== undefined && invoice.paidAmount !== null) {
+        calculatedPaid = parseFloat(invoice.paidAmount) || 0;
+    } else if (Array.isArray(invoice.receipt) && invoice.receipt.length > 0 && invoice.receipt.every(r => r.balanceAfterPayment !== undefined)) {
+        // Only if receipt array was pre-mapped via getDeduplicatedInvoiceReceipts with snapshot balance
+        calculatedPaid = invoice.receipt.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+    }
+    calculatedPaid = Math.round(calculatedPaid * factor) / factor;
+
+    // Do NOT artificially clamp paid amount; preserve actual allocation
+    const paidAmount = calculatedPaid;
+    const adjustedBalance = Math.max(0, Math.round((adjustedTotal - paidAmount) * factor) / factor);
+    const duePassed = isDuePassed(invoice.dueDate || invoice.date);
 
     let adjustedStatus;
     if (invoice.status === 'CANCELLED' || invoice.status === 'Cancelled') {
@@ -174,16 +325,16 @@ const adjustInvoiceWithReturns = (invoice) => {
             adjustedStatus = isPos ? 'Partially Returned' : 'PARTIALLY_RETURNED';
         }
     } else {
-        const decimals = (invoice.currency && ['KWD', 'BHD', 'OMR', 'JOD', 'LYD', 'TND'].includes(invoice.currency.toUpperCase())) ? 3 : 2;
-        const tol = decimals === 3 ? 0.001 : 0.01;
-        if (adjustedBalance <= tol && (adjustedTotal > 0 || paidAmount > 0)) {
+        if (paidAmount > adjustedTotal + tol) {
             adjustedStatus = isPos ? 'Paid' : 'PAID';
-        } else if (adjustedBalance > tol && isDuePassed(invoice.dueDate)) {
-            adjustedStatus = isPos ? 'Overdue' : 'OVERDUE';
+        } else if (adjustedBalance <= tol && (adjustedTotal > 0 || paidAmount >= adjustedTotal - tol)) {
+            adjustedStatus = isPos ? 'Paid' : 'PAID';
         } else if (paidAmount > tol && adjustedBalance > tol) {
-            adjustedStatus = isPos ? 'Partial' : 'PARTIAL';
-        } else if (adjustedBalance <= tol && adjustedTotal === 0) {
+            adjustedStatus = 'PARTIALLY PAID';
+        } else if (adjustedBalance <= tol && adjustedTotal === 0 && paidAmount === 0) {
             adjustedStatus = isPos ? 'Paid' : 'PAID';
+        } else if (adjustedBalance > tol && duePassed) {
+            adjustedStatus = isPos ? 'Overdue' : 'OVERDUE';
         } else {
             adjustedStatus = isPos ? 'Due' : 'UNPAID';
         }
@@ -650,13 +801,19 @@ const createInvoice = async (req, res) => {
                     const adjustAmt = Math.min(parseFloat(adj.amount), availableUnallocated, Math.max(0, totalAmount - totalAdjustedAmount));
 
                     if (adjustAmt > 0) {
+                        const decimals = getDecimalPlaces(currency);
+                        const balBefore = Math.max(0, roundTo(totalAmount - totalAdjustedAmount, decimals));
+                        const balAfter = Math.max(0, roundTo(balBefore - adjustAmt, decimals));
+
                         // Create allocation record
                         await tx.receiptinvoiceallocation.create({
                             data: {
                                 receiptId: receipt.id,
                                 invoiceId: invoice.id,
                                 amount: adjustAmt,
-                                companyId: parseInt(companyId)
+                                companyId: parseInt(companyId),
+                                balanceBeforePayment: balBefore,
+                                balanceAfterPayment: balAfter
                             }
                         });
                         // Create advanceadjustment model record
@@ -688,7 +845,13 @@ const createInvoice = async (req, res) => {
                 const finalBalance = Math.max(0, totalAmount - finalPaid);
                 const finalStatus = (manualStatus === true || manualStatus === 'true') && status
                     ? status
-                    : (finalBalance <= 0.01 ? 'PAID' : (isDuePassed(dueDate) ? 'OVERDUE' : (finalPaid > 0 ? 'PARTIAL' : 'UNPAID')));
+                    : (finalBalance <= 0.01 && (totalAmount > 0 || finalPaid >= totalAmount - 0.01)
+                        ? 'PAID'
+                        : (finalPaid > 0.01 && finalBalance > 0.01
+                            ? 'PARTIAL'
+                            : (finalBalance <= 0.01 && totalAmount === 0 && finalPaid === 0
+                                ? 'PAID'
+                                : 'UNPAID')));
                 await tx.invoice.update({
                     where: { id: invoice.id },
                     data: {
@@ -1336,16 +1499,14 @@ const getInvoices = async (req, res) => {
                     },
                     receipt: {
                         include: {
-                            cashBankAccount: { select: { id: true, name: true } },
-                            transaction: true
+                            cashBankAccount: { select: { id: true, name: true } }
                         }
                     },
                     allocations: {
                         include: {
                             receipt: {
                                 include: {
-                                    cashBankAccount: { select: { id: true, name: true } },
-                                    transaction: true
+                                    cashBankAccount: { select: { id: true, name: true } }
                                 }
                             }
                         }
@@ -1377,42 +1538,7 @@ const getInvoices = async (req, res) => {
         // Merge POS invoices into the unified list
         const unifiedInvoices = [
             ...invoices.map(inv => {
-                // Map allocations to receipt list to maintain compatibility and show correct allocated amount
-                const mappedReceipts = [
-                    ...inv.receipt.map(r => {
-                        const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                        return {
-                            ...r,
-                            baseAmount
-                        };
-                    }),
-                    ...inv.allocations.map(alloc => {
-                        const r = alloc.receipt;
-                        const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                        const baseAllocAmount = r.amount > 0 ? alloc.amount * (baseAmount / r.amount) : alloc.amount;
-                        return {
-                            id: r.id,
-                            receiptNumber: r.receiptNumber,
-                            date: r.date,
-                            amount: alloc.amount, // Only the allocated amount
-                            baseAmount: baseAllocAmount,
-                            paymentMode: r.paymentMode,
-                            referenceNumber: r.referenceNumber,
-                            cashBankAccount: r.cashBankAccount,
-                            notes: r.notes
-                        };
-                    })
-                ];
-
-                const seenIds = new Set();
-                const deduplicatedReceipts = [];
-                for (const r of mappedReceipts) {
-                    if (!seenIds.has(r.id)) {
-                        seenIds.add(r.id);
-                        deduplicatedReceipts.push(r);
-                    }
-                }
-
+                const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(inv);
                 return adjustInvoiceWithReturns({
                     ...inv,
                     type: 'TAX_INVOICE',
@@ -1526,11 +1652,33 @@ const getInvoiceById = async (req, res) => {
                                 warehouse: true,
                                 uom: true
                             }
+                        },
+                        allocations: {
+                            include: {
+                                receipt: {
+                                    include: {
+                                        cashBankAccount: { select: { id: true, name: true } },
+                                        transaction: true
+                                    }
+                                }
+                            }
+                        },
+                        receipt: {
+                            include: {
+                                cashBankAccount: { select: { id: true, name: true } },
+                                transaction: true
+                            }
                         }
                     }
                 });
             }
 
+            const subtotal = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal) || 0), 0);
+            const discountAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.discountAmount) || 0), 0);
+            const taxableAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxableAmount) || 0), 0);
+            const taxAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxAmount) || 0), 0);
+            const otherCharges = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.otherCharges) || 0), 0);
+            const roundOffAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.roundOffAmount) || 0), 0);
             const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
             const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
             const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
@@ -1545,16 +1693,24 @@ const getInvoiceById = async (req, res) => {
                 });
             });
 
-            const allPaid = customerInvoices.length > 0 && customerInvoices.every(i => i.status === 'PAID' || (parseFloat(i.balanceAmount) || 0) <= 0.01);
-            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE' || (isDuePassed(i.dueDate) && (parseFloat(i.balanceAmount) || 0) > 0.01));
-            const hasPartial = customerInvoices.some(i => i.status === 'PARTIAL' || ((parseFloat(i.paidAmount) || 0) > 0.01 && (parseFloat(i.balanceAmount) || 0) > 0.01));
-            const combinedStatus = allPaid ? 'PAID' : (anyOverdue ? 'OVERDUE' : (hasPartial ? 'PARTIAL' : 'UNPAID'));
+            const allPaid = balanceAmount <= 0.01 && (totalAmount > 0 || paidAmount > 0);
+            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE');
+            const hasPartial = (paidAmount > 0.01 && balanceAmount > 0.01) || customerInvoices.some(i => i.status === 'PARTIAL' || i.status === 'PARTIALLY PAID');
+            const combinedStatus = allPaid ? 'PAID' : (hasPartial ? 'PARTIALLY PAID' : (anyOverdue ? 'OVERDUE' : 'UNPAID'));
+
+            const { allAllocations, paymentHistory } = buildCombinedInvoicePayments(customerInvoices, totalAmount);
 
             const combinedInvoice = {
                 id: rawId,
                 invoiceNumber: rawId.toUpperCase(),
                 date: new Date(),
                 dueDate: customerInvoices[0]?.dueDate || null,
+                subtotal,
+                discountAmount,
+                taxableAmount,
+                taxAmount,
+                otherCharges,
+                roundOffAmount,
                 totalAmount,
                 paidAmount,
                 balanceAmount,
@@ -1566,6 +1722,9 @@ const getInvoiceById = async (req, res) => {
                 invoiceitem: combinedItems,
                 items: combinedItems,
                 invoices: customerInvoices,
+                allocations: allAllocations,
+                receipt: paymentHistory,
+                paymentHistory,
                 company
             };
 
@@ -1700,41 +1859,7 @@ const getInvoiceById = async (req, res) => {
 
         if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
-        // Map allocations to receipt list to maintain compatibility and show correct allocated amount
-        const mappedReceipts = [
-            ...(invoice.receipt || []).map(r => {
-                const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                return {
-                    ...r,
-                    baseAmount
-                };
-            }),
-            ...(invoice.allocations || []).map(alloc => {
-                const r = alloc.receipt;
-                const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                const baseAllocAmount = r.amount > 0 ? alloc.amount * (baseAmount / r.amount) : alloc.amount;
-                return {
-                    id: r.id,
-                    receiptNumber: r.receiptNumber,
-                    date: r.date,
-                    amount: alloc.amount, // Only the allocated amount
-                    baseAmount: baseAllocAmount,
-                    paymentMode: r.paymentMode,
-                    referenceNumber: r.referenceNumber,
-                    cashBankAccount: r.cashBankAccount,
-                    notes: r.notes
-                };
-            })
-        ];
-
-        const seenIds = new Set();
-        const deduplicatedReceipts = [];
-        for (const r of mappedReceipts) {
-            if (!seenIds.has(r.id)) {
-                seenIds.add(r.id);
-                deduplicatedReceipts.push(r);
-            }
-        }
+        const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(invoice);
 
         const mappedInvoice = adjustInvoiceWithReturns({
             ...invoice,
@@ -2114,12 +2239,19 @@ const updateInvoice = async (req, res) => {
                         const adjustAmt = Math.min(parseFloat(adj.amount), availableUnallocated);
 
                         if (adjustAmt > 0) {
+                            const inv = await tx.invoice.findUnique({ where: { id: parseInt(id) } });
+                            const decimals = getDecimalPlaces(inv?.currency);
+                            const balBefore = Math.max(0, roundTo(inv?.balanceAmount !== undefined ? inv.balanceAmount : inv?.totalAmount, decimals));
+                            const balAfter = Math.max(0, roundTo(balBefore - adjustAmt, decimals));
+
                             await tx.receiptinvoiceallocation.create({
                                 data: {
                                     receiptId: receipt.id,
                                     invoiceId: parseInt(id),
                                     amount: adjustAmt,
-                                    companyId: parseInt(companyId)
+                                    companyId: parseInt(companyId),
+                                    balanceBeforePayment: balBefore,
+                                    balanceAfterPayment: balAfter
                                 }
                             });
                             totalAdjustedAmount += adjustAmt;
@@ -2198,15 +2330,13 @@ const updateInvoice = async (req, res) => {
                     manualStatus: false,
                     status: (existingInvoice.status === 'CANCELLED' || status === 'CANCELLED')
                         ? 'CANCELLED'
-                        : ((totalAmount - totalAdjustedAmount) <= 0.01 && (totalAmount > 0 || totalAdjustedAmount > 0)
+                        : ((totalAmount - totalAdjustedAmount) <= 0.01 && (totalAmount > 0 || totalAdjustedAmount >= totalAmount - 0.01)
                             ? 'PAID'
-                            : ((totalAmount - totalAdjustedAmount) > 0.01 && isDuePassed(data.dueDate || existingInvoice.dueDate)
-                                ? 'OVERDUE'
-                                : (totalAdjustedAmount > 0.01 && (totalAmount - totalAdjustedAmount) > 0.01
-                                    ? 'PARTIAL'
-                                    : ((totalAmount - totalAdjustedAmount) <= 0.01 && totalAmount === 0
-                                        ? 'PAID'
-                                        : 'UNPAID')))),
+                            : (totalAdjustedAmount > 0.01 && (totalAmount - totalAdjustedAmount) > 0.01
+                                ? 'PARTIAL'
+                                : ((totalAmount - totalAdjustedAmount) <= 0.01 && totalAmount === 0 && totalAdjustedAmount === 0
+                                    ? 'PAID'
+                                    : 'UNPAID'))),
                     currency: currency !== undefined ? currency : undefined,
                     exchangeRate: exchangeRate !== undefined ? parseFloat(exchangeRate) : undefined,
                     overallDiscount: parseFloat(overallDiscount) || 0,
@@ -2761,8 +2891,8 @@ const deleteInvoice = async (req, res) => {
                 const remainingAllocations = (fullReceipt.allocations || []).filter(a => !invoiceIds.includes(a.invoiceId));
 
                 if (remainingAllocations.length === 0) {
-                    // All allocations belong to invoices being deleted -> delete receipt completely
-                    await deleteReceiptHelper(tx, fullReceipt, fullReceipt.companyId || companyId);
+                    // All allocations belong to invoices being deleted -> delete receipt completely (skip redundant syncs)
+                    await deleteReceiptHelper(tx, fullReceipt, fullReceipt.companyId || companyId, invoiceIds);
                 } else {
                     // Shared receipt with other active invoices:
                     // Remove only allocations pointing to the invoices being deleted and restore unallocated advance
@@ -2786,16 +2916,22 @@ const deleteInvoice = async (req, res) => {
                 }
             }
 
-            // 3. Handle advance adjustments
+            // 3. Handle advance adjustments in batch
             const advanceAdjustments = await tx.advanceadjustment.findMany({
                 where: { invoiceId: { in: invoiceIds } }
             });
+            const recAdjDeltas = new Map();
             for (const adj of advanceAdjustments) {
-                const recExists = await tx.receipt.findUnique({ where: { id: adj.receiptId } });
+                if (adj.receiptId) {
+                    recAdjDeltas.set(adj.receiptId, (recAdjDeltas.get(adj.receiptId) || 0) + (parseFloat(adj.amount) || 0));
+                }
+            }
+            for (const [receiptId, delta] of recAdjDeltas.entries()) {
+                const recExists = await tx.receipt.findUnique({ where: { id: receiptId } });
                 if (recExists) {
                     await tx.receipt.update({
-                        where: { id: adj.receiptId },
-                        data: { advanceUnallocated: { increment: adj.amount } }
+                        where: { id: receiptId },
+                        data: { advanceUnallocated: { increment: delta } }
                     });
                 }
             }
@@ -2809,165 +2945,186 @@ const deleteInvoice = async (req, res) => {
                 data: { invoiceId: null }
             });
 
-            // 5. Revert Ledger Balances for each invoice
-            for (const inv of invoicesToDelete) {
-                const transactions = await tx.transaction.findMany({
-                    where: { invoiceId: inv.id }
-                });
+            // 5. Revert Ledger Balances for all invoices in batch
+            const allTransactions = await tx.transaction.findMany({
+                where: { invoiceId: { in: invoiceIds } }
+            });
 
-                for (const t of transactions) {
+            if (allTransactions.length > 0) {
+                const allLedgerIds = [...new Set(allTransactions.flatMap(t => [t.debitLedgerId, t.creditLedgerId]).filter(Boolean))];
+                const ledgers = await tx.ledger.findMany({
+                    where: { id: { in: allLedgerIds } },
+                    include: { accountgroup: true }
+                });
+                const ledgerMap = new Map(ledgers.map(l => [l.id, l]));
+                const ledgerDeltas = new Map();
+
+                for (const t of allTransactions) {
+                    const amt = parseFloat(t.amount) || 0;
                     if (t.voucherNumber && t.voucherNumber.startsWith('COGS-')) {
-                        await tx.ledger.update({
-                            where: { id: t.debitLedgerId },
-                            data: { currentBalance: { decrement: t.amount } }
-                        });
-                        await tx.ledger.update({
-                            where: { id: t.creditLedgerId },
-                            data: { currentBalance: { increment: t.amount } }
-                        });
+                        ledgerDeltas.set(t.debitLedgerId, (ledgerDeltas.get(t.debitLedgerId) || 0) - amt);
+                        ledgerDeltas.set(t.creditLedgerId, (ledgerDeltas.get(t.creditLedgerId) || 0) + amt);
                     } else {
-                        const dLedger = await tx.ledger.findUnique({ where: { id: t.debitLedgerId }, include: { accountgroup: true } });
-                        const cLedger = await tx.ledger.findUnique({ where: { id: t.creditLedgerId }, include: { accountgroup: true } });
+                        const dLedger = ledgerMap.get(t.debitLedgerId);
+                        const cLedger = ledgerMap.get(t.creditLedgerId);
 
                         const isDrDebitNormal = dLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(dLedger.accountgroup.type) : true;
                         const isCrDebitNormal = cLedger?.accountgroup ? ['ASSETS', 'EXPENSES'].includes(cLedger.accountgroup.type) : true;
 
+                        const drDelta = isDrDebitNormal ? -amt : amt;
+                        const crDelta = isCrDebitNormal ? amt : -amt;
+
+                        ledgerDeltas.set(t.debitLedgerId, (ledgerDeltas.get(t.debitLedgerId) || 0) + drDelta);
+                        ledgerDeltas.set(t.creditLedgerId, (ledgerDeltas.get(t.creditLedgerId) || 0) + crDelta);
+                    }
+                }
+
+                for (const [ledgerId, delta] of ledgerDeltas.entries()) {
+                    if (Math.abs(delta) > 0.0001) {
                         await tx.ledger.update({
-                            where: { id: t.debitLedgerId },
-                            data: { currentBalance: isDrDebitNormal ? { decrement: t.amount } : { increment: t.amount } }
-                        });
-                        await tx.ledger.update({
-                            where: { id: t.creditLedgerId },
-                            data: { currentBalance: isCrDebitNormal ? { increment: t.amount } : { decrement: t.amount } }
+                            where: { id: ledgerId },
+                            data: { currentBalance: { increment: delta } }
                         });
                     }
                 }
             }
 
-            // 6. Revert Stock & Valuation Layers for each invoice
+            // 6. Revert Stock & Valuation Layers in batch
             const { convertToBaseQuantity } = require('../services/uomConversionService');
 
-            for (const inv of invoicesToDelete) {
-                const invItems = await tx.invoiceitem.findMany({
-                    where: { invoiceId: inv.id }
-                });
-                const baseItemsForReversal = [];
+            const allInvItems = await tx.invoiceitem.findMany({
+                where: { invoiceId: { in: invoiceIds } },
+                include: { product: { include: { uom: true } }, uom: true }
+            });
 
-                for (const item of invItems) {
-                    if (item.productId && item.warehouseId) {
-                        const prod = await tx.product.findUnique({
-                            where: { id: item.productId },
-                            include: { uom: true }
-                        });
-                        const transUom = item.uomId ? await tx.uom.findUnique({ where: { id: item.uomId } }) : null;
-                        const baseQty = convertToBaseQuantity(item.quantity, transUom, prod?.uom);
+            const stockIncrements = new Map(); // "warehouseId_productId" -> { warehouseId, productId, quantity }
+            const baseItemsByInvoice = new Map(); // invoiceId -> [baseItem]
 
-                        baseItemsForReversal.push({
-                            productId: item.productId,
-                            warehouseId: item.warehouseId,
-                            quantity: baseQty
-                        });
+            for (const item of allInvItems) {
+                if (item.productId && item.warehouseId) {
+                    const prodUom = item.product?.uom;
+                    const transUom = item.uom || null;
+                    const baseQty = convertToBaseQuantity(item.quantity, transUom, prodUom);
 
-                        await tx.stock.upsert({
-                            where: { warehouseId_productId: { warehouseId: item.warehouseId, productId: item.productId } },
-                            create: {
-                                warehouseId: item.warehouseId,
-                                productId: item.productId,
-                                quantity: baseQty,
-                                initialQty: 0,
-                                minOrderQty: 0
-                            },
-                            update: {
-                                quantity: { increment: baseQty }
-                            }
-                        });
+                    const key = `${item.warehouseId}_${item.productId}`;
+                    const current = stockIncrements.get(key) || { warehouseId: item.warehouseId, productId: item.productId, quantity: 0 };
+                    current.quantity += baseQty;
+                    stockIncrements.set(key, current);
+
+                    if (!baseItemsByInvoice.has(item.invoiceId)) {
+                        baseItemsByInvoice.set(item.invoiceId, []);
                     }
+                    baseItemsByInvoice.get(item.invoiceId).push({
+                        productId: item.productId,
+                        warehouseId: item.warehouseId,
+                        quantity: baseQty
+                    });
                 }
+            }
 
-                if (baseItemsForReversal.length > 0) {
-                    try {
-                        await reverseStockOut(tx, {
-                            invoiceId: inv.id,
-                            invoiceItems: baseItemsForReversal
-                        });
-                    } catch (stockRevErr) {
-                        console.warn(`reverseStockOut warning for invoice ${inv.id}:`, stockRevErr.message);
+            for (const stockData of stockIncrements.values()) {
+                await tx.stock.upsert({
+                    where: { warehouseId_productId: { warehouseId: stockData.warehouseId, productId: stockData.productId } },
+                    create: {
+                        warehouseId: stockData.warehouseId,
+                        productId: stockData.productId,
+                        quantity: stockData.quantity,
+                        initialQty: 0,
+                        minOrderQty: 0
+                    },
+                    update: {
+                        quantity: { increment: stockData.quantity }
                     }
-                }
-
-                await tx.inventorytransaction.deleteMany({
-                    where: {
-                        companyId: inv.companyId,
-                        reason: { contains: inv.invoiceNumber }
-                    }
-                });
-
-                await tx.inventory_consumption.deleteMany({
-                    where: { invoiceId: inv.id }
                 });
             }
 
-            // 7. Delete Transactions, Journal Entries, Delivery Challans, and Invoices
-            for (const inv of invoicesToDelete) {
-                const transactions = await tx.transaction.findMany({
-                    where: { invoiceId: inv.id }
-                });
-                const journalEntryIds = [...new Set(transactions.map(t => t.journalEntryId).filter(Boolean))];
-
-                await tx.transaction.deleteMany({ where: { invoiceId: inv.id } });
-
-                if (journalEntryIds.length > 0) {
-                    await tx.journalentry.deleteMany({ where: { id: { in: journalEntryIds } } });
+            for (const [invId, baseItems] of baseItemsByInvoice.entries()) {
+                if (baseItems.length > 0) {
+                    try {
+                        await reverseStockOut(tx, {
+                            invoiceId: invId,
+                            invoiceItems: baseItems
+                        });
+                    } catch (stockRevErr) {
+                        console.warn(`reverseStockOut warning for invoice ${invId}:`, stockRevErr.message);
+                    }
                 }
+            }
 
+            const invoiceNumbers = invoicesToDelete.map(inv => inv.invoiceNumber).filter(Boolean);
+            if (invoiceNumbers.length > 0) {
+                await tx.inventorytransaction.deleteMany({
+                    where: {
+                        companyId: targetCompanyId ? parseInt(targetCompanyId) : undefined,
+                        OR: invoiceNumbers.map(n => ({ reason: { contains: n } }))
+                    }
+                });
+            }
+
+            await tx.inventory_consumption.deleteMany({
+                where: { invoiceId: { in: invoiceIds } }
+            });
+
+            // 7. Delete Transactions, Journal Entries, Delivery Challans, and Invoices in batch
+            const journalEntryIds = [...new Set(allTransactions.map(t => t.journalEntryId).filter(Boolean))];
+
+            await tx.transaction.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
+
+            if (journalEntryIds.length > 0) {
+                await tx.journalentry.deleteMany({ where: { id: { in: journalEntryIds } } });
+            }
+
+            if (invoiceNumbers.length > 0) {
                 await tx.journalentry.deleteMany({
                     where: {
-                        companyId: inv.companyId,
-                        voucherNumber: inv.invoiceNumber,
+                        companyId: targetCompanyId ? parseInt(targetCompanyId) : undefined,
+                        voucherNumber: { in: invoiceNumbers },
                         transaction: { none: {} }
                     }
                 });
-
-                if (inv.deliveryChallanId) {
-                    try {
-                        const otherInvoices = await tx.invoice.findMany({
-                            where: { deliveryChallanId: inv.deliveryChallanId, id: { notIn: invoiceIds } }
-                        });
-                        if (otherInvoices.length === 0) {
-                            await tx.deliverychallan.update({
-                                where: { id: inv.deliveryChallanId },
-                                data: { status: 'DELIVERED' }
-                            });
-                        }
-                    } catch (dcErr) {
-                        console.warn(`Could not revert deliverychallan status for DC ${inv.deliveryChallanId}:`, dcErr.message);
-                    }
-                }
-
-                if (inv.salesOrderId) {
-                    try {
-                        const otherInvoices = await tx.invoice.findMany({
-                            where: { salesOrderId: inv.salesOrderId, id: { notIn: invoiceIds } }
-                        });
-                        const remainingChallans = await tx.deliverychallan.findMany({
-                            where: { salesOrderId: inv.salesOrderId, status: { notIn: ['CANCELLED'] } }
-                        });
-
-                        if (otherInvoices.length === 0 && remainingChallans.length === 0) {
-                            await tx.salesorder.update({
-                                where: { id: inv.salesOrderId },
-                                data: { status: 'PENDING' }
-                            });
-                        }
-                    } catch (soErr) {
-                        console.warn(`Could not revert salesorder status for SO ${inv.salesOrderId}:`, soErr.message);
-                    }
-                }
-
-                await tx.invoiceitem.deleteMany({ where: { invoiceId: inv.id } });
-                await tx.invoice.delete({ where: { id: inv.id } });
             }
-        }, { timeout: 90000 });
+
+            const dcIds = [...new Set(invoicesToDelete.map(i => i.deliveryChallanId).filter(Boolean))];
+            for (const dcId of dcIds) {
+                try {
+                    const otherInvoices = await tx.invoice.findMany({
+                        where: { deliveryChallanId: dcId, id: { notIn: invoiceIds } }
+                    });
+                    if (otherInvoices.length === 0) {
+                        await tx.deliverychallan.update({
+                            where: { id: dcId },
+                            data: { status: 'DELIVERED' }
+                        });
+                    }
+                } catch (dcErr) {
+                    console.warn(`Could not revert deliverychallan status for DC ${dcId}:`, dcErr.message);
+                }
+            }
+
+            const soIds = [...new Set(invoicesToDelete.map(i => i.salesOrderId).filter(Boolean))];
+            for (const soId of soIds) {
+                try {
+                    const otherInvoices = await tx.invoice.findMany({
+                        where: { salesOrderId: soId, id: { notIn: invoiceIds } }
+                    });
+                    const remainingChallans = await tx.deliverychallan.findMany({
+                        where: { salesOrderId: soId, status: { notIn: ['CANCELLED'] } }
+                    });
+
+                    if (otherInvoices.length === 0 && remainingChallans.length === 0) {
+                        await tx.salesorder.update({
+                            where: { id: soId },
+                            data: { status: 'PENDING' }
+                        });
+                    }
+                } catch (soErr) {
+                    console.warn(`Could not revert salesorder status for SO ${soId}:`, soErr.message);
+                }
+            }
+
+            await tx.invoiceitem.deleteMany({ where: { invoiceId: { in: invoiceIds } } });
+            await tx.invoice.deleteMany({ where: { id: { in: invoiceIds } } });
+        }, { maxWait: 30000, timeout: 180000 });
 
         // 8. Sync customer.accountBalance from ledger after deletion
         const customerIds = [...new Set(invoicesToDelete.map(inv => inv.customerId).filter(Boolean))];
@@ -3070,11 +3227,33 @@ const getPublicInvoiceById = async (req, res) => {
                                 uom: true
                             }
                         },
+                        allocations: {
+                            include: {
+                                receipt: {
+                                    include: {
+                                        cashBankAccount: { select: { id: true, name: true } },
+                                        transaction: true
+                                    }
+                                }
+                            }
+                        },
+                        receipt: {
+                            include: {
+                                cashBankAccount: { select: { id: true, name: true } },
+                                transaction: true
+                            }
+                        },
                         company: true
                     }
                 });
             }
 
+            const subtotal = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal) || 0), 0);
+            const discountAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.discountAmount) || 0), 0);
+            const taxableAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxableAmount) || 0), 0);
+            const taxAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxAmount) || 0), 0);
+            const otherCharges = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.otherCharges) || 0), 0);
+            const roundOffAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.roundOffAmount) || 0), 0);
             const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
             const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
             const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
@@ -3089,22 +3268,39 @@ const getPublicInvoiceById = async (req, res) => {
                 });
             });
 
+            const allPaid = balanceAmount <= 0.01 && (totalAmount > 0 || paidAmount > 0);
+            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE');
+            const hasPartial = (paidAmount > 0.01 && balanceAmount > 0.01) || customerInvoices.some(i => i.status === 'PARTIAL' || i.status === 'PARTIALLY PAID');
+            const combinedStatus = allPaid ? 'PAID' : (hasPartial ? 'PARTIALLY PAID' : (anyOverdue ? 'OVERDUE' : 'UNPAID'));
+
             const company = customerInvoices[0]?.company || null;
+            const { allAllocations, paymentHistory } = buildCombinedInvoicePayments(customerInvoices, totalAmount);
 
             const combinedInvoice = {
                 id: rawId,
                 invoiceNumber: rawId.toUpperCase(),
                 date: new Date(),
                 dueDate: null,
+                subtotal,
+                discountAmount,
+                taxableAmount,
+                taxAmount,
+                otherCharges,
+                roundOffAmount,
                 totalAmount,
                 paidAmount,
                 balanceAmount,
+                status: combinedStatus,
+                manualStatus: false,
                 currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
                 customer: customer || { name: customer?.name || 'Customer' },
                 isCombined: true,
                 invoiceitem: combinedItems,
                 items: combinedItems,
                 invoices: customerInvoices,
+                allocations: allAllocations,
+                receipt: paymentHistory,
+                paymentHistory,
                 company
             };
 
@@ -3152,40 +3348,7 @@ const getPublicInvoiceById = async (req, res) => {
 
         if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
 
-        const mappedReceipts = [
-            ...(invoice.receipt || []).map(r => {
-                const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                return {
-                    ...r,
-                    baseAmount
-                };
-            }),
-            ...(invoice.allocations || []).map(alloc => {
-                const r = alloc.receipt;
-                const baseAmount = r.transaction?.filter(t => t.debitLedgerId === r.cashBankAccountId).reduce((sum, t) => sum + t.amount, 0) || r.amount;
-                const baseAllocAmount = r.amount > 0 ? alloc.amount * (baseAmount / r.amount) : alloc.amount;
-                return {
-                    id: r.id,
-                    receiptNumber: r.receiptNumber,
-                    date: r.date,
-                    amount: alloc.amount, // Only the allocated amount
-                    baseAmount: baseAllocAmount,
-                    paymentMode: r.paymentMode,
-                    referenceNumber: r.referenceNumber,
-                    cashBankAccount: r.cashBankAccount,
-                    notes: r.notes
-                };
-            })
-        ];
-
-        const seenIds = new Set();
-        const deduplicatedReceipts = [];
-        for (const r of mappedReceipts) {
-            if (!seenIds.has(r.id)) {
-                seenIds.add(r.id);
-                deduplicatedReceipts.push(r);
-            }
-        }
+        const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(invoice);
 
         const mappedInvoice = adjustInvoiceWithReturns({
             ...invoice,
@@ -3410,26 +3573,67 @@ const sendInvoiceEmail = async (req, res) => {
                         customerId: parseInt(custId),
                         ...(companyId ? { companyId: parseInt(companyId) } : {})
                     },
-                    include: { invoiceitem: true }
+                    include: {
+                        invoiceitem: true,
+                        allocations: {
+                            include: {
+                                receipt: {
+                                    include: {
+                                        cashBankAccount: { select: { id: true, name: true } },
+                                        transaction: true
+                                    }
+                                }
+                            }
+                        },
+                        receipt: {
+                            include: {
+                                cashBankAccount: { select: { id: true, name: true } },
+                                transaction: true
+                            }
+                        }
+                    }
                 });
             }
 
+            const subtotal = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal) || 0), 0);
+            const discountAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.discountAmount) || 0), 0);
+            const taxableAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxableAmount) || 0), 0);
+            const taxAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxAmount) || 0), 0);
+            const otherCharges = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.otherCharges) || 0), 0);
+            const roundOffAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.roundOffAmount) || 0), 0);
             const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
             const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
             const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
+            const allPaid = balanceAmount <= 0.01 && (totalAmount > 0 || paidAmount > 0);
+            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE');
+            const hasPartial = (paidAmount > 0.01 && balanceAmount > 0.01) || customerInvoices.some(i => i.status === 'PARTIAL' || i.status === 'PARTIALLY PAID');
+            const combinedStatus = allPaid ? 'PAID' : (hasPartial ? 'PARTIALLY PAID' : (anyOverdue ? 'OVERDUE' : 'UNPAID'));
+
+            const { allAllocations, paymentHistory } = buildCombinedInvoicePayments(customerInvoices, totalAmount);
 
             invoice = {
                 id: rawId,
                 invoiceNumber: bodyInvoiceNumber || rawId.toUpperCase(),
                 date: new Date(),
                 dueDate: null,
+                subtotal,
+                discountAmount,
+                taxableAmount,
+                taxAmount,
+                otherCharges,
+                roundOffAmount,
                 totalAmount,
                 paidAmount,
                 balanceAmount,
+                status: combinedStatus,
+                manualStatus: false,
                 currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
                 customer: customer || { name: customer?.name || 'Customer', email: recipientEmail },
                 isCombined: true,
-                invoices: customerInvoices
+                invoices: customerInvoices,
+                allocations: allAllocations,
+                receipt: paymentHistory,
+                paymentHistory
             };
 
             if (customerInvoices.length > 0) {
@@ -3590,7 +3794,9 @@ module.exports = {
     getPublicInvoiceById,
     cleanupOrphanedJournals,
     adjustInvoiceWithReturns,
+    getDeduplicatedInvoiceReceipts,
     unpayInvoice,
     sendInvoiceEmail,
-    getInvoiceAuditTrail
+    getInvoiceAuditTrail,
+    buildCombinedInvoicePayments
 };

@@ -52236,6 +52236,8 @@ export namespace Prisma {
     discountAmount: number | null
     discountLedgerId: number | null
     advanceUnallocated: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptSumAggregateOutputType = {
@@ -52248,6 +52250,8 @@ export namespace Prisma {
     discountAmount: number | null
     discountLedgerId: number | null
     advanceUnallocated: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptMinAggregateOutputType = {
@@ -52271,6 +52275,8 @@ export namespace Prisma {
     manualStatus: boolean | null
     isAdvance: boolean | null
     advanceUnallocated: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptMaxAggregateOutputType = {
@@ -52294,6 +52300,8 @@ export namespace Prisma {
     manualStatus: boolean | null
     isAdvance: boolean | null
     advanceUnallocated: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptCountAggregateOutputType = {
@@ -52317,6 +52325,8 @@ export namespace Prisma {
     manualStatus: number
     isAdvance: number
     advanceUnallocated: number
+    balanceBeforePayment: number
+    balanceAfterPayment: number
     _all: number
   }
 
@@ -52331,6 +52341,8 @@ export namespace Prisma {
     discountAmount?: true
     discountLedgerId?: true
     advanceUnallocated?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptSumAggregateInputType = {
@@ -52343,6 +52355,8 @@ export namespace Prisma {
     discountAmount?: true
     discountLedgerId?: true
     advanceUnallocated?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptMinAggregateInputType = {
@@ -52366,6 +52380,8 @@ export namespace Prisma {
     manualStatus?: true
     isAdvance?: true
     advanceUnallocated?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptMaxAggregateInputType = {
@@ -52389,6 +52405,8 @@ export namespace Prisma {
     manualStatus?: true
     isAdvance?: true
     advanceUnallocated?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptCountAggregateInputType = {
@@ -52412,6 +52430,8 @@ export namespace Prisma {
     manualStatus?: true
     isAdvance?: true
     advanceUnallocated?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
     _all?: true
   }
 
@@ -52522,6 +52542,8 @@ export namespace Prisma {
     manualStatus: boolean
     isAdvance: boolean
     advanceUnallocated: number
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
     _count: ReceiptCountAggregateOutputType | null
     _avg: ReceiptAvgAggregateOutputType | null
     _sum: ReceiptSumAggregateOutputType | null
@@ -52564,6 +52586,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: boolean
+    balanceBeforePayment?: boolean
+    balanceAfterPayment?: boolean
     company?: boolean | companyDefaultArgs<ExtArgs>
     customer?: boolean | customerDefaultArgs<ExtArgs>
     invoice?: boolean | receipt$invoiceArgs<ExtArgs>
@@ -52597,6 +52621,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: boolean
+    balanceBeforePayment?: boolean
+    balanceAfterPayment?: boolean
   }
 
   export type receiptInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -52644,6 +52670,8 @@ export namespace Prisma {
       manualStatus: boolean
       isAdvance: boolean
       advanceUnallocated: number
+      balanceBeforePayment: number | null
+      balanceAfterPayment: number | null
     }, ExtArgs["result"]["receipt"]>
     composites: {}
   }
@@ -53041,6 +53069,8 @@ export namespace Prisma {
     readonly manualStatus: FieldRef<"receipt", 'Boolean'>
     readonly isAdvance: FieldRef<"receipt", 'Boolean'>
     readonly advanceUnallocated: FieldRef<"receipt", 'Float'>
+    readonly balanceBeforePayment: FieldRef<"receipt", 'Float'>
+    readonly balanceAfterPayment: FieldRef<"receipt", 'Float'>
   }
     
 
@@ -79463,6 +79493,8 @@ export namespace Prisma {
     invoiceId: number | null
     amount: number | null
     companyId: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptinvoiceallocationSumAggregateOutputType = {
@@ -79471,6 +79503,8 @@ export namespace Prisma {
     invoiceId: number | null
     amount: number | null
     companyId: number | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptinvoiceallocationMinAggregateOutputType = {
@@ -79481,6 +79515,8 @@ export namespace Prisma {
     companyId: number | null
     createdAt: Date | null
     updatedAt: Date | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptinvoiceallocationMaxAggregateOutputType = {
@@ -79491,6 +79527,8 @@ export namespace Prisma {
     companyId: number | null
     createdAt: Date | null
     updatedAt: Date | null
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
   }
 
   export type ReceiptinvoiceallocationCountAggregateOutputType = {
@@ -79501,6 +79539,8 @@ export namespace Prisma {
     companyId: number
     createdAt: number
     updatedAt: number
+    balanceBeforePayment: number
+    balanceAfterPayment: number
     _all: number
   }
 
@@ -79511,6 +79551,8 @@ export namespace Prisma {
     invoiceId?: true
     amount?: true
     companyId?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptinvoiceallocationSumAggregateInputType = {
@@ -79519,6 +79561,8 @@ export namespace Prisma {
     invoiceId?: true
     amount?: true
     companyId?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptinvoiceallocationMinAggregateInputType = {
@@ -79529,6 +79573,8 @@ export namespace Prisma {
     companyId?: true
     createdAt?: true
     updatedAt?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptinvoiceallocationMaxAggregateInputType = {
@@ -79539,6 +79585,8 @@ export namespace Prisma {
     companyId?: true
     createdAt?: true
     updatedAt?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
   }
 
   export type ReceiptinvoiceallocationCountAggregateInputType = {
@@ -79549,6 +79597,8 @@ export namespace Prisma {
     companyId?: true
     createdAt?: true
     updatedAt?: true
+    balanceBeforePayment?: true
+    balanceAfterPayment?: true
     _all?: true
   }
 
@@ -79646,6 +79696,8 @@ export namespace Prisma {
     companyId: number
     createdAt: Date
     updatedAt: Date
+    balanceBeforePayment: number | null
+    balanceAfterPayment: number | null
     _count: ReceiptinvoiceallocationCountAggregateOutputType | null
     _avg: ReceiptinvoiceallocationAvgAggregateOutputType | null
     _sum: ReceiptinvoiceallocationSumAggregateOutputType | null
@@ -79675,6 +79727,8 @@ export namespace Prisma {
     companyId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    balanceBeforePayment?: boolean
+    balanceAfterPayment?: boolean
     receipt?: boolean | receiptDefaultArgs<ExtArgs>
     invoice?: boolean | invoiceDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["receiptinvoiceallocation"]>
@@ -79688,6 +79742,8 @@ export namespace Prisma {
     companyId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    balanceBeforePayment?: boolean
+    balanceAfterPayment?: boolean
   }
 
   export type receiptinvoiceallocationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -79709,6 +79765,8 @@ export namespace Prisma {
       companyId: number
       createdAt: Date
       updatedAt: Date
+      balanceBeforePayment: number | null
+      balanceAfterPayment: number | null
     }, ExtArgs["result"]["receiptinvoiceallocation"]>
     composites: {}
   }
@@ -80087,6 +80145,8 @@ export namespace Prisma {
     readonly companyId: FieldRef<"receiptinvoiceallocation", 'Int'>
     readonly createdAt: FieldRef<"receiptinvoiceallocation", 'DateTime'>
     readonly updatedAt: FieldRef<"receiptinvoiceallocation", 'DateTime'>
+    readonly balanceBeforePayment: FieldRef<"receiptinvoiceallocation", 'Float'>
+    readonly balanceAfterPayment: FieldRef<"receiptinvoiceallocation", 'Float'>
   }
     
 
@@ -89000,7 +89060,9 @@ export namespace Prisma {
     status: 'status',
     manualStatus: 'manualStatus',
     isAdvance: 'isAdvance',
-    advanceUnallocated: 'advanceUnallocated'
+    advanceUnallocated: 'advanceUnallocated',
+    balanceBeforePayment: 'balanceBeforePayment',
+    balanceAfterPayment: 'balanceAfterPayment'
   };
 
   export type ReceiptScalarFieldEnum = (typeof ReceiptScalarFieldEnum)[keyof typeof ReceiptScalarFieldEnum]
@@ -89499,7 +89561,9 @@ export namespace Prisma {
     amount: 'amount',
     companyId: 'companyId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    balanceBeforePayment: 'balanceBeforePayment',
+    balanceAfterPayment: 'balanceAfterPayment'
   };
 
   export type ReceiptinvoiceallocationScalarFieldEnum = (typeof ReceiptinvoiceallocationScalarFieldEnum)[keyof typeof ReceiptinvoiceallocationScalarFieldEnum]
@@ -94674,6 +94738,8 @@ export namespace Prisma {
     manualStatus?: BoolFilter<"receipt"> | boolean
     isAdvance?: BoolFilter<"receipt"> | boolean
     advanceUnallocated?: FloatFilter<"receipt"> | number
+    balanceBeforePayment?: FloatNullableFilter<"receipt"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receipt"> | number | null
     company?: XOR<CompanyRelationFilter, companyWhereInput>
     customer?: XOR<CustomerRelationFilter, customerWhereInput>
     invoice?: XOR<InvoiceNullableRelationFilter, invoiceWhereInput> | null
@@ -94705,6 +94771,8 @@ export namespace Prisma {
     manualStatus?: SortOrder
     isAdvance?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrderInput | SortOrder
+    balanceAfterPayment?: SortOrderInput | SortOrder
     company?: companyOrderByWithRelationInput
     customer?: customerOrderByWithRelationInput
     invoice?: invoiceOrderByWithRelationInput
@@ -94740,6 +94808,8 @@ export namespace Prisma {
     manualStatus?: BoolFilter<"receipt"> | boolean
     isAdvance?: BoolFilter<"receipt"> | boolean
     advanceUnallocated?: FloatFilter<"receipt"> | number
+    balanceBeforePayment?: FloatNullableFilter<"receipt"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receipt"> | number | null
     company?: XOR<CompanyRelationFilter, companyWhereInput>
     customer?: XOR<CustomerRelationFilter, customerWhereInput>
     invoice?: XOR<InvoiceNullableRelationFilter, invoiceWhereInput> | null
@@ -94771,6 +94841,8 @@ export namespace Prisma {
     manualStatus?: SortOrder
     isAdvance?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrderInput | SortOrder
+    balanceAfterPayment?: SortOrderInput | SortOrder
     _count?: receiptCountOrderByAggregateInput
     _avg?: receiptAvgOrderByAggregateInput
     _max?: receiptMaxOrderByAggregateInput
@@ -94802,6 +94874,8 @@ export namespace Prisma {
     manualStatus?: BoolWithAggregatesFilter<"receipt"> | boolean
     isAdvance?: BoolWithAggregatesFilter<"receipt"> | boolean
     advanceUnallocated?: FloatWithAggregatesFilter<"receipt"> | number
+    balanceBeforePayment?: FloatNullableWithAggregatesFilter<"receipt"> | number | null
+    balanceAfterPayment?: FloatNullableWithAggregatesFilter<"receipt"> | number | null
   }
 
   export type salesorderWhereInput = {
@@ -97594,6 +97668,8 @@ export namespace Prisma {
     companyId?: IntFilter<"receiptinvoiceallocation"> | number
     createdAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
     updatedAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
+    balanceBeforePayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
     receipt?: XOR<ReceiptRelationFilter, receiptWhereInput>
     invoice?: XOR<InvoiceRelationFilter, invoiceWhereInput>
   }
@@ -97606,6 +97682,8 @@ export namespace Prisma {
     companyId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    balanceBeforePayment?: SortOrderInput | SortOrder
+    balanceAfterPayment?: SortOrderInput | SortOrder
     receipt?: receiptOrderByWithRelationInput
     invoice?: invoiceOrderByWithRelationInput
   }
@@ -97621,6 +97699,8 @@ export namespace Prisma {
     companyId?: IntFilter<"receiptinvoiceallocation"> | number
     createdAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
     updatedAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
+    balanceBeforePayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
     receipt?: XOR<ReceiptRelationFilter, receiptWhereInput>
     invoice?: XOR<InvoiceRelationFilter, invoiceWhereInput>
   }, "id">
@@ -97633,6 +97713,8 @@ export namespace Prisma {
     companyId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    balanceBeforePayment?: SortOrderInput | SortOrder
+    balanceAfterPayment?: SortOrderInput | SortOrder
     _count?: receiptinvoiceallocationCountOrderByAggregateInput
     _avg?: receiptinvoiceallocationAvgOrderByAggregateInput
     _max?: receiptinvoiceallocationMaxOrderByAggregateInput
@@ -97651,6 +97733,8 @@ export namespace Prisma {
     companyId?: IntWithAggregatesFilter<"receiptinvoiceallocation"> | number
     createdAt?: DateTimeWithAggregatesFilter<"receiptinvoiceallocation"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"receiptinvoiceallocation"> | Date | string
+    balanceBeforePayment?: FloatNullableWithAggregatesFilter<"receiptinvoiceallocation"> | number | null
+    balanceAfterPayment?: FloatNullableWithAggregatesFilter<"receiptinvoiceallocation"> | number | null
   }
 
   export type paymentbillallocationWhereInput = {
@@ -103627,6 +103711,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -103658,6 +103744,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -103678,6 +103766,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -103709,6 +103799,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -103735,6 +103827,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type receiptUpdateManyMutationInput = {
@@ -103752,6 +103846,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type receiptUncheckedUpdateManyInput = {
@@ -103775,6 +103871,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type salesorderCreateInput = {
@@ -106792,6 +106890,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     receipt: receiptCreateNestedOneWithoutAllocationsInput
     invoice: invoiceCreateNestedOneWithoutAllocationsInput
   }
@@ -106804,6 +106904,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type receiptinvoiceallocationUpdateInput = {
@@ -106811,6 +106913,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     receipt?: receiptUpdateOneRequiredWithoutAllocationsNestedInput
     invoice?: invoiceUpdateOneRequiredWithoutAllocationsNestedInput
   }
@@ -106823,6 +106927,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type receiptinvoiceallocationCreateManyInput = {
@@ -106833,6 +106939,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type receiptinvoiceallocationUpdateManyMutationInput = {
@@ -106840,6 +106948,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type receiptinvoiceallocationUncheckedUpdateManyInput = {
@@ -106850,6 +106960,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type paymentbillallocationCreateInput = {
@@ -111776,6 +111888,8 @@ export namespace Prisma {
     manualStatus?: SortOrder
     isAdvance?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptAvgOrderByAggregateInput = {
@@ -111788,6 +111902,8 @@ export namespace Prisma {
     discountAmount?: SortOrder
     discountLedgerId?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptMaxOrderByAggregateInput = {
@@ -111811,6 +111927,8 @@ export namespace Prisma {
     manualStatus?: SortOrder
     isAdvance?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptMinOrderByAggregateInput = {
@@ -111834,6 +111952,8 @@ export namespace Prisma {
     manualStatus?: SortOrder
     isAdvance?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptSumOrderByAggregateInput = {
@@ -111846,6 +111966,8 @@ export namespace Prisma {
     discountAmount?: SortOrder
     discountLedgerId?: SortOrder
     advanceUnallocated?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type Enumreceipt_paymentModeWithAggregatesFilter<$PrismaModel = never> = {
@@ -113759,6 +113881,8 @@ export namespace Prisma {
     companyId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptinvoiceallocationAvgOrderByAggregateInput = {
@@ -113767,6 +113891,8 @@ export namespace Prisma {
     invoiceId?: SortOrder
     amount?: SortOrder
     companyId?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptinvoiceallocationMaxOrderByAggregateInput = {
@@ -113777,6 +113903,8 @@ export namespace Prisma {
     companyId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptinvoiceallocationMinOrderByAggregateInput = {
@@ -113787,6 +113915,8 @@ export namespace Prisma {
     companyId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type receiptinvoiceallocationSumOrderByAggregateInput = {
@@ -113795,6 +113925,8 @@ export namespace Prisma {
     invoiceId?: SortOrder
     amount?: SortOrder
     companyId?: SortOrder
+    balanceBeforePayment?: SortOrder
+    balanceAfterPayment?: SortOrder
   }
 
   export type PaymentRelationFilter = {
@@ -129226,6 +129358,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
     cashBankAccount?: ledgerCreateNestedOneWithoutReceipt_CashBankAccountInput
@@ -129255,6 +129389,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -131102,6 +131238,8 @@ export namespace Prisma {
     manualStatus?: BoolFilter<"receipt"> | boolean
     isAdvance?: BoolFilter<"receipt"> | boolean
     advanceUnallocated?: FloatFilter<"receipt"> | number
+    balanceBeforePayment?: FloatNullableFilter<"receipt"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receipt"> | number | null
   }
 
   export type salesorderUpsertWithWhereUniqueWithoutCompanyInput = {
@@ -132331,6 +132469,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
     cashBankAccount?: ledgerCreateNestedOneWithoutReceipt_CashBankAccountInput
@@ -132360,6 +132500,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -139747,6 +139889,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     cashBankAccount?: ledgerCreateNestedOneWithoutReceipt_CashBankAccountInput
@@ -139776,6 +139920,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -139921,6 +140067,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     receipt: receiptCreateNestedOneWithoutAllocationsInput
   }
 
@@ -139931,6 +140079,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type receiptinvoiceallocationCreateOrConnectWithoutInvoiceInput = {
@@ -140649,6 +140799,8 @@ export namespace Prisma {
     companyId?: IntFilter<"receiptinvoiceallocation"> | number
     createdAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
     updatedAt?: DateTimeFilter<"receiptinvoiceallocation"> | Date | string
+    balanceBeforePayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
+    balanceAfterPayment?: FloatNullableFilter<"receiptinvoiceallocation"> | number | null
   }
 
   export type advanceadjustmentUpsertWithWhereUniqueWithoutInvoiceInput = {
@@ -142752,6 +142904,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -142781,6 +142935,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -142870,6 +143026,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -142899,6 +143057,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
@@ -156318,6 +156478,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     invoice: invoiceCreateNestedOneWithoutAllocationsInput
   }
 
@@ -156328,6 +156490,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type receiptinvoiceallocationCreateOrConnectWithoutReceiptInput = {
@@ -164451,6 +164615,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -164481,6 +164647,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
   }
@@ -165238,6 +165406,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -165268,6 +165438,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
   }
@@ -174446,6 +174618,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -174476,6 +174650,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     advanceadjustments?: advanceadjustmentUncheckedCreateNestedManyWithoutReceiptInput
   }
@@ -174619,6 +174795,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -174649,6 +174827,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
   }
@@ -177378,6 +177558,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     company: companyCreateNestedOneWithoutReceiptInput
     customer: customerCreateNestedOneWithoutReceiptInput
     invoice?: invoiceCreateNestedOneWithoutReceiptInput
@@ -177408,6 +177590,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
     transaction?: transactionUncheckedCreateNestedManyWithoutReceiptInput
     allocations?: receiptinvoiceallocationUncheckedCreateNestedManyWithoutReceiptInput
   }
@@ -177927,6 +178111,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -177957,6 +178143,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
   }
@@ -179115,6 +179303,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type salesorderCreateManyCompanyInput = {
@@ -180895,6 +181085,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
     cashBankAccount?: ledgerUpdateOneWithoutReceipt_CashBankAccountNestedInput
@@ -180924,6 +181116,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -180949,6 +181143,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type salesorderUpdateWithoutCompanyInput = {
@@ -182060,6 +182256,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type salesorderCreateManyCustomerInput = {
@@ -182489,6 +182687,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
     cashBankAccount?: ledgerUpdateOneWithoutReceipt_CashBankAccountNestedInput
@@ -182518,6 +182718,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -182543,6 +182745,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type salesorderUpdateWithoutCustomerInput = {
@@ -183486,6 +183690,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type salesreturnCreateManyInvoiceInput = {
@@ -183543,6 +183749,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type advanceadjustmentCreateManyInvoiceInput = {
@@ -183718,6 +183926,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     cashBankAccount?: ledgerUpdateOneWithoutReceipt_CashBankAccountNestedInput
@@ -183747,6 +183957,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -183772,6 +183984,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type salesreturnUpdateWithoutInvoiceInput = {
@@ -183922,6 +184136,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     receipt?: receiptUpdateOneRequiredWithoutAllocationsNestedInput
   }
 
@@ -183932,6 +184148,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type receiptinvoiceallocationUncheckedUpdateManyWithoutInvoiceInput = {
@@ -183941,6 +184159,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type advanceadjustmentUpdateWithoutInvoiceInput = {
@@ -184193,6 +184413,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type paymentCreateManyBankLedgerInput = {
@@ -184237,6 +184459,8 @@ export namespace Prisma {
     manualStatus?: boolean
     isAdvance?: boolean
     advanceUnallocated?: number
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type paymentCreateManyDiscountLedgerInput = {
@@ -184636,6 +184860,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -184665,6 +184891,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -184690,6 +184918,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type paymentUpdateWithoutBankLedgerInput = {
@@ -184778,6 +185008,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     company?: companyUpdateOneRequiredWithoutReceiptNestedInput
     customer?: customerUpdateOneRequiredWithoutReceiptNestedInput
     invoice?: invoiceUpdateOneWithoutReceiptNestedInput
@@ -184807,6 +185039,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     transaction?: transactionUncheckedUpdateManyWithoutReceiptNestedInput
     allocations?: receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptNestedInput
     advanceadjustments?: advanceadjustmentUncheckedUpdateManyWithoutReceiptNestedInput
@@ -184832,6 +185066,8 @@ export namespace Prisma {
     manualStatus?: BoolFieldUpdateOperationsInput | boolean
     isAdvance?: BoolFieldUpdateOperationsInput | boolean
     advanceUnallocated?: FloatFieldUpdateOperationsInput | number
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type paymentUpdateWithoutDiscountLedgerInput = {
@@ -187551,6 +187787,8 @@ export namespace Prisma {
     companyId: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    balanceBeforePayment?: number | null
+    balanceAfterPayment?: number | null
   }
 
   export type advanceadjustmentCreateManyReceiptInput = {
@@ -187635,6 +187873,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
     invoice?: invoiceUpdateOneRequiredWithoutAllocationsNestedInput
   }
 
@@ -187645,6 +187885,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type receiptinvoiceallocationUncheckedUpdateManyWithoutReceiptInput = {
@@ -187654,6 +187896,8 @@ export namespace Prisma {
     companyId?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    balanceBeforePayment?: NullableFloatFieldUpdateOperationsInput | number | null
+    balanceAfterPayment?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type advanceadjustmentUpdateWithoutReceiptInput = {

@@ -33,11 +33,12 @@ const isDuePassed = (dueDate) => {
 
 /**
  * Computes paid amount, outstanding balance, and status based on authoritative rules:
- * - Outstanding Balance = Invoice Total - Total Payments Received (>= 0)
- * - If balance <= tolerance -> PAID
- * - If balance remains AND due date has passed -> OVERDUE
- * - If balance remains AND partially paid (payments > tolerance) -> PARTIAL
- * - If balance remains AND no payment -> UNPAID
+ * - Outstanding Balance = max(0, Invoice Total - Total Payments Received)
+ * - If balance <= tolerance AND (total > 0 OR paid >= total - tolerance) -> PAID
+ * - If paid > tolerance AND balance > tolerance -> PARTIAL (displayed as PARTIALLY PAID)
+ * - If balance <= tolerance AND total == 0 AND paid == 0 -> PAID
+ * - Otherwise -> UNPAID
+ * - Never mark an invoice PAID while balance > tolerance.
  */
 const computeInvoiceStatusAndBalance = (invoice, paymentsReceived = null, tolerance = null) => {
     if (!invoice) return invoice;
@@ -54,26 +55,40 @@ const computeInvoiceStatusAndBalance = (invoice, paymentsReceived = null, tolera
     const balance = Math.max(0, roundTo(total - paid, decimals));
 
     const isPos = invoice.type === 'POS_INVOICE' || !!invoice.posinvoiceitem;
+    const duePassed = isDuePassed(invoice.dueDate || invoice.date);
 
     let computedStatus;
+    let displayStatus;
+
     if (invoice.status === 'CANCELLED' || invoice.status === 'Cancelled') {
         computedStatus = isPos ? 'Cancelled' : 'CANCELLED';
-    } else if (balance <= tol && (total > 0 || paid > 0)) {
+        displayStatus = computedStatus;
+    } else if (paid > total + tol) {
+        // Genuine overpayment: fully settled, with credit balance
         computedStatus = isPos ? 'Paid' : 'PAID';
-    } else if (balance > tol && isDuePassed(invoice.dueDate)) {
-        computedStatus = isPos ? 'Overdue' : 'OVERDUE';
+        displayStatus = 'OVERPAID';
+    } else if (balance <= tol && (total > 0 || paid >= total - tol)) {
+        computedStatus = isPos ? 'Paid' : 'PAID';
+        displayStatus = computedStatus;
     } else if (paid > tol && balance > tol) {
         computedStatus = isPos ? 'Partial' : 'PARTIAL';
+        displayStatus = isPos ? 'Partially Paid' : 'PARTIALLY PAID';
     } else if (balance <= tol && total === 0 && paid === 0) {
         computedStatus = isPos ? 'Paid' : 'PAID';
+        displayStatus = computedStatus;
+    } else if (balance > tol && duePassed) {
+        computedStatus = isPos ? 'Overdue' : 'OVERDUE';
+        displayStatus = computedStatus;
     } else {
         computedStatus = isPos ? 'Due' : 'UNPAID';
+        displayStatus = computedStatus;
     }
 
     return {
         paidAmount: paid,
         balanceAmount: balance,
-        status: computedStatus
+        status: computedStatus,
+        displayStatus
     };
 };
 
@@ -125,12 +140,14 @@ const syncInvoiceInDb = async (txOrPrisma, invoiceId, type = 'TAX_INVOICE', delt
 
         const decimals = getDecimalPlaces(inv.currency);
         let paidAmount;
-        if (deltaPaid !== null) {
+        if (inv.allocations && inv.allocations.length > 0) {
+            // Authoritative: Calculate directly from active allocations
+            const totalAlloc = inv.allocations.reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
+            paidAmount = roundTo(totalAlloc, decimals);
+        } else if (deltaPaid !== null) {
             paidAmount = Math.max(0, roundTo((inv.paidAmount || 0) + deltaPaid, decimals));
         } else {
-            // Calculate directly from active allocations
-            const totalAlloc = (inv.allocations || []).reduce((sum, a) => sum + parseFloat(a.amount || 0), 0);
-            paidAmount = roundTo(totalAlloc, decimals);
+            paidAmount = roundTo(inv.paidAmount || 0, decimals);
         }
 
         const { balanceAmount, status } = computeInvoiceStatusAndBalance(
@@ -139,12 +156,15 @@ const syncInvoiceInDb = async (txOrPrisma, invoiceId, type = 'TAX_INVOICE', delt
             decimals === 3 ? 0.001 : 0.01
         );
 
+        // Map to valid MySQL DB enum
+        const dbStatus = (status === 'PARTIALLY PAID' || status === 'PARTIAL') ? 'PARTIAL' : status;
+
         return await txOrPrisma.invoice.update({
             where: { id: parseInt(invoiceId) },
             data: {
                 paidAmount,
                 balanceAmount,
-                status,
+                status: dbStatus,
                 manualStatus: false,
                 updatedAt: new Date()
             }

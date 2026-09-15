@@ -98,8 +98,8 @@ model company {
   logo                  String?                 @db.LongText
   startDate             DateTime?
   endDate               DateTime?
-  invoiceTemplate       String                  @default("Standard VAT (CEA)")
-  invoiceColor          String                  @default("#000000")
+  invoiceTemplate       String                  @default("Light Gray")
+  invoiceColor          String                  @default("#dedede")
   showQrCode            Boolean                 @default(true)
   invoiceLogo           String?                 @db.LongText
   planName              String?
@@ -1116,6 +1116,8 @@ model receipt {
   transaction       transaction[]
   allocations       receiptinvoiceallocation[]
   advanceadjustments advanceadjustment[]
+  balanceBeforePayment Float?
+  balanceAfterPayment  Float?
 
   @@unique([companyId, receiptNumber], map: "Receipt_companyId_receiptNumber_key")
   @@index([customerId], map: "Receipt_customerId_fkey")
@@ -1945,6 +1947,8 @@ model receiptinvoiceallocation {
   companyId Int
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  balanceBeforePayment Float?
+  balanceAfterPayment  Float?
   receipt   receipt  @relation(fields: [receiptId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_receiptId_fkey")
   invoice   invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade, map: "ReceiptInvoiceAllocation_invoiceId_fkey")
 
