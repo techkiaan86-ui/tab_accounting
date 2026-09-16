@@ -153,12 +153,12 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             const drawTableHeader = (headerY) => {
                 doc.rect(40, headerY, 515, 22).fill(tableHeaderBg);
                 doc.fillColor(tableHeaderText).font('Helvetica-Bold').fontSize(8.5);
-                doc.text('ACTIVITY', 45, headerY + 6, { width: 85, align: 'left' });
-                doc.text('DESCRIPTION', 135, headerY + 6, { width: 170, align: 'left' });
-                doc.text('QTY', 310, headerY + 6, { width: 30, align: 'right' });
-                doc.text('RATE', 345, headerY + 6, { width: 45, align: 'right' });
-                doc.text('DISCOUNT', 395, headerY + 6, { width: 45, align: 'right' });
-                doc.text('VAT', 445, headerY + 6, { width: 45, align: 'center' });
+                doc.text('ACTIVITY', 45, headerY + 6, { width: 100, align: 'left' });
+                doc.text('DESCRIPTION', 150, headerY + 6, { width: 140, align: 'left' });
+                doc.text('QUANTITY', 295, headerY + 6, { width: 40, align: 'right' });
+                doc.text('RATE', 340, headerY + 6, { width: 45, align: 'right' });
+                doc.text('DISCOUNT', 390, headerY + 6, { width: 50, align: 'center' });
+                doc.text('TAX', 445, headerY + 6, { width: 45, align: 'center' });
                 doc.text('PRICE', 495, headerY + 6, { width: 55, align: 'right' });
             };
 
@@ -207,10 +207,10 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
 
                     // Calculate required height based on wrapped text length
                     doc.font('Helvetica-Bold').fontSize(8.5);
-                    const actHeight = doc.heightOfString(actName || '', { width: 85, lineGap: 0 });
+                    const actHeight = doc.heightOfString(actName || '', { width: 100, lineGap: 0 });
 
                     doc.font('Helvetica').fontSize(8);
-                    const descHeight = descText ? doc.heightOfString(descText, { width: 170, lineGap: 1.5 }) : 0;
+                    const descHeight = descText ? doc.heightOfString(descText, { width: 140, lineGap: 1.5 }) : 0;
 
                     const contentHeight = Math.max(actHeight, descHeight, 14);
                     const rowPadding = 12;
@@ -227,19 +227,19 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                     const rowBg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
                     doc.rect(40, y, 515, rowHeight).fill(rowBg);
 
-                    // Centering calculations for activity, description, and numeric columns
-                    const actY = y + Math.max(6, (rowHeight - actHeight) / 2);
-                    const numY = y + Math.max(6, (rowHeight - 10) / 2);
-                    const descY = y + Math.max(6, (rowHeight - descHeight) / 2);
+                    // Top-aligned content ensuring horizontal row baseline alignment
+                    const actY = y + 6;
+                    const numY = y + 6;
+                    const descY = y + 6;
 
-                    // Activity
+                    // Activity (wrapping inside column width 100)
                     doc.fillColor('#1e293b').font('Helvetica-Bold').fontSize(8.5).lineGap(0);
-                    doc.text(actName, 45, actY, { width: 85, align: 'left', lineGap: 0 });
+                    doc.text(actName, 45, actY, { width: 100, align: 'left', lineGap: 0 });
 
                     // Description (wrapping cleanly without truncation)
                     if (descText) {
                         doc.fillColor('#475569').font('Helvetica').fontSize(8).lineGap(1.5);
-                        doc.text(descText, 135, descY, { width: 170, align: 'left', lineGap: 1.5 });
+                        doc.text(descText, 150, descY, { width: 140, align: 'left', lineGap: 1.5 });
                     }
 
                     const discText = discVal > 0 ? (discType === 'percentage' ? `${discVal}%` : `-${discVal.toFixed(2)}`) : '0%';
@@ -247,9 +247,9 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
 
                     // Numeric columns vertically aligned with row
                     doc.fillColor('#1e293b').font('Helvetica').fontSize(8.5).lineGap(0);
-                    doc.text(qty.toString(), 310, numY, { width: 30, align: 'right', lineGap: 0 });
-                    doc.text(rate.toFixed(2), 345, numY, { width: 45, align: 'right', lineGap: 0 });
-                    doc.text(discText, 395, numY, { width: 45, align: 'right', lineGap: 0 });
+                    doc.text(qty.toString(), 295, numY, { width: 40, align: 'right', lineGap: 0 });
+                    doc.text(rate.toFixed(2), 340, numY, { width: 45, align: 'right', lineGap: 0 });
+                    doc.text(discText, 390, numY, { width: 50, align: 'center', lineGap: 0 });
                     doc.text(taxText, 445, numY, { width: 45, align: 'center', lineGap: 0 });
                     doc.text(`${currency} ${amount.toFixed(2)}`, 495, numY, { width: 55, align: 'right', lineGap: 0 });
 
@@ -261,11 +261,11 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             } else {
                 doc.rect(40, y, 515, 20).fill('#ffffff');
                 doc.fillColor('#1e293b').font('Helvetica').fontSize(9);
-                doc.text(`Invoice #${invoiceNumber} Services / Products`, 45, y + 5, { width: 250, align: 'left' });
-                doc.text('1', 310, y + 5, { width: 30, align: 'right' });
+                doc.text(`Invoice #${invoiceNumber} Services / Products`, 45, y + 5, { width: 245, align: 'left' });
+                doc.text('1', 295, y + 5, { width: 40, align: 'right' });
                 const amt = parseFloat(invoice?.totalAmount || 0);
-                doc.text(amt.toFixed(2), 345, y + 5, { width: 45, align: 'right' });
-                doc.text('0%', 395, y + 5, { width: 45, align: 'right' });
+                doc.text(amt.toFixed(2), 340, y + 5, { width: 45, align: 'right' });
+                doc.text('0%', 390, y + 5, { width: 50, align: 'center' });
                 doc.text('No VAT', 445, y + 5, { width: 45, align: 'center' });
                 doc.text(`${currency} ${amt.toFixed(2)}`, 495, y + 5, { width: 55, align: 'right' });
                 y += 20;
@@ -280,6 +280,69 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             // Line separator
             doc.moveTo(40, y).lineTo(555, y).strokeColor('#cbd5e1').stroke();
             y += 15;
+
+            // ── Compute payment history FIRST so we can use it in the totals ──
+            const invTotal = parseFloat(invoice?.totalAmount || 0);
+            let rawAllocations = [];
+            if (isCombinedInv && Array.isArray(invoice?.invoices) && invoice.invoices.length > 0) {
+                invoice.invoices.forEach(ci => {
+                    if (Array.isArray(ci.allocations) && ci.allocations.length > 0) {
+                        ci.allocations.forEach(a => rawAllocations.push(a));
+                    } else if (Array.isArray(ci.receipt) && ci.receipt.length > 0) {
+                        ci.receipt.forEach(r => rawAllocations.push({
+                            id: r.id, receiptId: r.id, amount: r.amount,
+                            balanceBeforePayment: r.balanceBeforePayment,
+                            balanceAfterPayment: r.balanceAfterPayment, receipt: r
+                        }));
+                    }
+                });
+            }
+            if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
+                const currentInvId2 = !isNaN(parseInt(invoice.id)) ? parseInt(invoice.id) : null;
+                invoice.allocations.forEach(a => {
+                    if (!isCombinedInv && currentInvId2 && a.invoiceId && a.invoiceId !== currentInvId2) return;
+                    rawAllocations.push(a);
+                });
+            } else if (rawAllocations.length === 0 && Array.isArray(invoice?.receipt) && invoice.receipt.length > 0) {
+                invoice.receipt.forEach(r => {
+                    if (r.balanceAfterPayment !== undefined || (!isCombinedInv && currentInvId && r.invoiceId && parseInt(r.invoiceId) === currentInvId)) {
+                        rawAllocations.push({
+                            id: r.id, receiptId: r.id, amount: r.amount,
+                            balanceBeforePayment: r.balanceBeforePayment,
+                            balanceAfterPayment: r.balanceAfterPayment, receipt: r
+                        });
+                    }
+                });
+            }
+            const pmtGroupMap = new Map();
+            rawAllocations.forEach(item => {
+                const r = item.receipt || item;
+                const key = r.receiptNumber && r.receiptNumber !== '-' ? r.receiptNumber : (r.id ? `ID-${r.id}` : `ITEM-${item.id || Math.random()}`);
+                if (!pmtGroupMap.has(key)) {
+                    pmtGroupMap.set(key, {
+                        id: r.id || item.receiptId,
+                        receiptNumber: r.receiptNumber || (item.receiptId ? `RCV-${item.receiptId}` : '-'),
+                        date: r.date || item.createdAt,
+                        amount: 0,
+                        paymentMode: r.paymentMode || item.paymentMode || 'BANK',
+                        balanceAfterPayment: item.balanceAfterPayment
+                    });
+                }
+                const entry = pmtGroupMap.get(key);
+                entry.amount = parseFloat((entry.amount + (parseFloat(item.amount) || 0)).toFixed(2));
+                if (!entry.date && (r.date || item.createdAt)) entry.date = r.date || item.createdAt;
+            });
+            const sortedHistory = Array.from(pmtGroupMap.values()).sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
+            let rPaid = 0;
+            const finalPaymentHistory = sortedHistory.map(p => {
+                rPaid = parseFloat((rPaid + p.amount).toFixed(2));
+                const calcBal = Math.max(0, parseFloat((invTotal - rPaid).toFixed(2)));
+                let balAfter = calcBal;
+                if (!isCombinedInv && p.balanceAfterPayment !== undefined && p.balanceAfterPayment !== null) {
+                    balAfter = p.balanceAfterPayment;
+                }
+                return { ...p, balanceAfterPayment: balAfter };
+            });
 
             // Summary Totals Box (Right aligned)
             const subtotalVal = parseFloat(invoice?.subtotal || subtotal || 0);
@@ -307,7 +370,18 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
             doc.font('Helvetica').fillColor('#0f172a').text(`${currency} ${taxVal.toFixed(2)}`, 440, y, { align: 'right', width: 115 });
             y += 16;
 
-            if (parseFloat(paid) > 0) {
+            // ── Individual per-payment lines in the totals area ──
+            if (finalPaymentHistory.length > 0) {
+                finalPaymentHistory.forEach(p => {
+                    const pmtD = p.date ? new Date(p.date) : null;
+                    const pmtLabel = pmtD && !isNaN(pmtD.getTime())
+                        ? `Payment on ${String(pmtD.getDate()).padStart(2, '0')}-${String(pmtD.getMonth() + 1).padStart(2, '0')}-${pmtD.getFullYear()}`
+                        : (p.receiptNumber && p.receiptNumber !== '-' ? `Payment (${p.receiptNumber})` : 'Payment');
+                    doc.fontSize(9).font('Helvetica').fillColor('#2563eb').text(pmtLabel, totalsX, y);
+                    doc.fillColor('#16a34a').text(`-${currency} ${Number(p.amount || 0).toFixed(2)}`, 440, y, { align: 'right', width: 115 });
+                    y += 16;
+                });
+            } else if (parseFloat(paid) > 0) {
                 doc.fontSize(9).font('Helvetica-Bold').fillColor('#64748b').text('Paid to Date:', totalsX, y);
                 doc.font('Helvetica').fillColor('#16a34a').text(`-${currency} ${paid}`, 440, y, { align: 'right', width: 115 });
                 y += 16;
@@ -353,83 +427,7 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                 y += 56;
             }
 
-            // Payment History Section (if allocations/receipts exist)
-            const invTotal = parseFloat(invoice?.totalAmount || 0);
-
-            let rawAllocations = [];
-            if (isCombinedInv && Array.isArray(invoice?.invoices) && invoice.invoices.length > 0) {
-                invoice.invoices.forEach(ci => {
-                    if (Array.isArray(ci.allocations) && ci.allocations.length > 0) {
-                        ci.allocations.forEach(a => rawAllocations.push(a));
-                    } else if (Array.isArray(ci.receipt) && ci.receipt.length > 0) {
-                        ci.receipt.forEach(r => rawAllocations.push({
-                            id: r.id,
-                            receiptId: r.id,
-                            amount: r.amount,
-                            balanceBeforePayment: r.balanceBeforePayment,
-                            balanceAfterPayment: r.balanceAfterPayment,
-                            receipt: r
-                        }));
-                    }
-                });
-            }
-
-            if (Array.isArray(invoice?.allocations) && invoice.allocations.length > 0) {
-                const currentInvId = !isNaN(parseInt(invoice.id)) ? parseInt(invoice.id) : null;
-                invoice.allocations.forEach(a => {
-                    if (!isCombinedInv && currentInvId && a.invoiceId && a.invoiceId !== currentInvId) return;
-                    rawAllocations.push(a);
-                });
-            } else if (rawAllocations.length === 0 && Array.isArray(invoice?.receipt) && invoice.receipt.length > 0) {
-                invoice.receipt.forEach(r => {
-                    if (r.balanceAfterPayment !== undefined || (!isCombinedInv && currentInvId && r.invoiceId && parseInt(r.invoiceId) === currentInvId)) {
-                        rawAllocations.push({
-                            id: r.id,
-                            receiptId: r.id,
-                            amount: r.amount,
-                            balanceBeforePayment: r.balanceBeforePayment,
-                            balanceAfterPayment: r.balanceAfterPayment,
-                            receipt: r
-                        });
-                    }
-                });
-            }
-
-            const pmtGroupMap = new Map();
-            rawAllocations.forEach(item => {
-                const r = item.receipt || item;
-                const key = r.receiptNumber && r.receiptNumber !== '-' ? r.receiptNumber : (r.id ? `ID-${r.id}` : `ITEM-${item.id || Math.random()}`);
-                if (!pmtGroupMap.has(key)) {
-                    pmtGroupMap.set(key, {
-                        id: r.id || item.receiptId,
-                        receiptNumber: r.receiptNumber || (item.receiptId ? `RCV-${item.receiptId}` : '-'),
-                        date: r.date || item.createdAt,
-                        amount: 0,
-                        paymentMode: r.paymentMode || item.paymentMode || 'BANK',
-                        balanceAfterPayment: item.balanceAfterPayment
-                    });
-                }
-                const entry = pmtGroupMap.get(key);
-                entry.amount = parseFloat((entry.amount + (parseFloat(item.amount) || 0)).toFixed(2));
-                if (!entry.date && (r.date || item.createdAt)) entry.date = r.date || item.createdAt;
-            });
-
-            const sortedHistory = Array.from(pmtGroupMap.values()).sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0));
-
-            let rPaid = 0;
-            const finalPaymentHistory = sortedHistory.map(p => {
-                rPaid = parseFloat((rPaid + p.amount).toFixed(2));
-                const calcBal = Math.max(0, parseFloat((invTotal - rPaid).toFixed(2)));
-                let balAfter = calcBal;
-                if (!isCombinedInv && p.balanceAfterPayment !== undefined && p.balanceAfterPayment !== null) {
-                    balAfter = p.balanceAfterPayment;
-                }
-                return {
-                    ...p,
-                    balanceAfterPayment: balAfter
-                };
-            });
-
+            /* // ── Payment History Table at bottom (commented out) ──
             if (finalPaymentHistory.length > 0) {
                 const pmtEstHeight = 35 + (finalPaymentHistory.length * 16);
                 if (y + pmtEstHeight > 750) {
@@ -488,6 +486,7 @@ const generateInvoicePdfBuffer = ({ invoice, company }) => {
                     y += 16;
                 });
             }
+            */
 
             // Footer
             doc.fontSize(8).fillColor('#94a3b8').font('Helvetica')
