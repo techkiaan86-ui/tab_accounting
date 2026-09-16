@@ -304,7 +304,7 @@ const testSmtpConnection = async (req, res) => {
             if ((connErr.code === 'EAUTH' || connErr.responseCode === 535 || (connErr.message && connErr.message.includes('BadCredentials'))) && (smtpConfig.host || '').includes('gmail.com')) {
                 errorMessage = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
             } else if (connErr.code === 'ETIMEDOUT' || (connErr.message && connErr.message.toLowerCase().includes('timeout'))) {
-                errorMessage = `Connection timed out connecting to ${smtpConfig.host}:${smtpConfig.port}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. Try switching to Port 587 (TLS), test locally, or request Railway to unblock SMTP.`;
+                errorMessage = `Connection timed out connecting to ${smtpConfig.host}:${smtpConfig.port}. Unable to reach the mail server from your VPS/server. Please check your SMTP settings, port/encryption, or verify if outbound SMTP ports (465/587) are open on your VPS firewall.`;
             }
 
             return res.status(400).json({
@@ -445,7 +445,7 @@ const sendSmtpTestEmail = async (req, res) => {
         if ((error.code === 'EAUTH' || error.responseCode === 535 || (error.message && error.message.includes('BadCredentials'))) && (targetHost || '').includes('gmail.com')) {
             errorMsg = 'Authentication Failed (Invalid Credentials). For Gmail accounts, Google requires a 16-character "App Password" (generated at myaccount.google.com/apppasswords) instead of your regular Gmail account password.';
         } else if (error.code === 'ETIMEDOUT' || (error.message && error.message.toLowerCase().includes('timeout'))) {
-            errorMsg = `Connection timed out connecting to ${targetHost}:${targetPort}. Cloud hosting providers (like Railway) block direct outbound SMTP ports (465/587) by default. To send emails from Railway, please request Railway support to unblock outbound SMTP, or test using your local backend where port 465 is open.`;
+            errorMsg = `Connection timed out connecting to ${targetHost}:${targetPort}. Unable to reach the mail server from your VPS/server. Please check your SMTP settings, port/encryption, or verify if outbound SMTP ports (465/587) are open on your VPS firewall.`;
         }
         return res.status(400).json({
             success: false,

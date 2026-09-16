@@ -184,6 +184,12 @@ async function cleanup() {
         await prisma.dashboardannouncement.deleteMany({});
         console.log('   ✅ dashboardannouncement');
 
+        await prisma.paymentrecord.deleteMany({});
+        console.log('   ✅ paymentrecord (superadmin plan payments)');
+
+        await prisma.planrequest.deleteMany({});
+        console.log('   ✅ planrequest (superadmin plan requests)');
+
         // ─── Verify superadmin is intact ───
         const superadmin = await prisma.user.findFirst({
             where: { role: 'SUPERADMIN' }

@@ -4,7 +4,7 @@ const prisma = require('../config/prisma');
 const { decryptPassword } = require('../utils/cryptoUtils');
 const { generateInvoicePdfBuffer } = require('../utils/pdfGenerator');
 
-// Force IPv4 lookup globally to prevent ENETUNREACH in cloud/container environments (Railway, Docker, etc.)
+// Force IPv4 lookup globally to prevent ENETUNREACH in container/VPS environments
 if (typeof dns.setDefaultResultOrder === 'function') {
     dns.setDefaultResultOrder('ipv4first');
 }
