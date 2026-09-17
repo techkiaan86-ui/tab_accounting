@@ -199,7 +199,8 @@ const sendSmtpTestEmail = async ({ smtpConfig, toEmail, companyName }) => {
 /**
  * Generate Responsive HTML Email Template for Invoices
  */
-const generateInvoiceEmailHtml = ({ invoice, company, customMessage, publicUrl }) => {
+const generateInvoiceEmailHtml = ({ invoice, company, customMessage, downloadUrl, publicUrl }) => {
+    const finalDownloadUrl = downloadUrl || publicUrl;
     const companyName = company?.name || 'Tab Accounts';
     const vatNumber = company?.vatNumber || company?.gstNumber || '';
     const customerName = invoice?.customer?.name || invoice?.customerName || 'Valued Customer';
@@ -244,9 +245,9 @@ const generateInvoiceEmailHtml = ({ invoice, company, customMessage, publicUrl }
         .inv-value { font-weight: 700; color: #0f172a; }
         .total-row { border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px; font-size: 16px; color: #0f172a; }
         .total-row .inv-value { font-size: 18px; font-weight: 800; color: #0f172a; }
-        .cta-container { text-align: center; margin: 24px 0; }
-        .btn-cta { display: inline-block; background: #1e293b; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 4px 8px rgba(30, 41, 59, 0.2); }
-        .btn-cta:hover { background: #334155; }
+        .cta-container { text-align: center; margin: 26px 0; }
+        .btn-cta { display: inline-block; background-color: #1e293b; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.02em; box-shadow: 0 4px 10px rgba(30, 41, 59, 0.22); }
+        .btn-cta:hover { background-color: #334155; }
         .bank-box { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 12px; color: #475569; }
         .bank-title { font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; font-size: 11px; }
         .footer { background: #f8fafc; border-top: 1px solid #f1f5f9; padding: 16px 24px; text-align: center; font-size: 11px; color: #94a3b8; }
@@ -292,9 +293,9 @@ const generateInvoiceEmailHtml = ({ invoice, company, customMessage, publicUrl }
                     </table>
                 </div>
 
-                ${publicUrl ? `
-                <div class="cta-container">
-                    <a href="${publicUrl}" class="btn-cta" target="_blank">View &amp; Pay Invoice Online</a>
+                ${finalDownloadUrl ? `
+                <div class="cta-container" style="text-align: center; margin: 26px 0;">
+                    <a href="${finalDownloadUrl}" class="btn-cta" target="_blank" style="display: inline-block; background-color: #1e293b; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(30, 41, 59, 0.22);">Download Invoice</a>
                 </div>` : ''}
 
                 ${hasBankDetails ? `
@@ -309,8 +310,9 @@ const generateInvoiceEmailHtml = ({ invoice, company, customMessage, publicUrl }
                     <div style="margin-top: 4px; color: #0f172a;"><strong>Payment Reference:</strong> ${invoiceNumber}</div>
                 </div>` : ''}
 
-                <div style="font-size: 13px; color: #64748b; margin-top: 16px;">
-                    If you have any questions or require assistance, please reply directly to this email or contact us at ${company?.email || 'accounts@tabaccounts.com'}.
+                <div style="font-size: 13px; color: #64748b; line-height: 1.5;">
+                    If you have any questions or require assistance, please reply directly to this email or contact us at
+                    <a href="mailto:${company?.email || 'accounts@ceaarchitects.com'}" style="color: #2563eb; text-decoration: underline;">${company?.email || 'accounts@ceaarchitects.com'}</a>.
                 </div>
             </div>
             <div class="footer">
@@ -325,13 +327,14 @@ const generateInvoiceEmailHtml = ({ invoice, company, customMessage, publicUrl }
 };
 
 /**
- * Send Invoice Email using Company-Specific SMTP Configuration
+ * Send an Official Invoice Email with PDF Attachment & Download Button
  * @param {Object} params
  * @param {Object} params.invoice
  * @param {Object} params.company
  * @param {string} params.recipientEmail
  * @param {string} [params.subject]
  * @param {string} [params.customMessage]
+ * @param {string} [params.downloadUrl]
  * @param {string} [params.publicUrl]
  * @param {boolean} [params.attachPdf=true]
  * @param {Buffer} [params.pdfBuffer]
@@ -344,6 +347,7 @@ const sendInvoiceEmail = async ({
     recipientEmail,
     subject,
     customMessage,
+    downloadUrl,
     publicUrl,
     attachPdf = true,
     pdfBuffer,
@@ -385,12 +389,14 @@ const sendInvoiceEmail = async ({
 
         const invoiceNumber = invoice?.invoiceNumber || `INV-${invoice?.id}`;
         const mailSubject = subject || `Invoice #${invoiceNumber} from ${companyName}`;
+        const finalDownloadUrl = downloadUrl || publicUrl;
 
         const htmlContent = generateInvoiceEmailHtml({
             invoice,
             company,
             customMessage,
-            publicUrl
+            downloadUrl: finalDownloadUrl,
+            publicUrl: finalDownloadUrl
         });
 
         const mailOptions = {
@@ -398,7 +404,7 @@ const sendInvoiceEmail = async ({
             to: recipientEmail,
             subject: mailSubject,
             html: htmlContent,
-            text: `Invoice #${invoiceNumber} from ${companyName}\nTotal Amount: ${invoice?.currency || 'EUR'} ${invoice?.totalAmount}\nDue Date: ${invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon receipt'}\n\nView invoice online: ${publicUrl || ''}`
+            text: `Invoice #${invoiceNumber} from ${companyName}\nTotal Amount: ${invoice?.currency || 'EUR'} ${invoice?.totalAmount}\nDue Date: ${invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : 'Upon receipt'}\n\nDownload invoice:\n${finalDownloadUrl || ''}`
         };
 
         if (bccEmail) {
@@ -409,27 +415,56 @@ const sendInvoiceEmail = async ({
         if (attachPdf) {
             let finalBuffer = pdfBuffer;
 
-            if (!finalBuffer && pdfBase64) {
-                const cleanBase64 = pdfBase64.replace(/^data:application\/pdf;base64,/, '');
-                finalBuffer = Buffer.from(cleanBase64, 'base64');
+            // Cleanly parse client-supplied base64 if provided
+            if (!finalBuffer && pdfBase64 && typeof pdfBase64 === 'string') {
+                let cleanBase64 = pdfBase64.trim();
+                // Remove all possible data URI prefixes
+                if (cleanBase64.includes(';base64,')) {
+                    cleanBase64 = cleanBase64.split(';base64,')[1];
+                } else if (cleanBase64.includes(',')) {
+                    cleanBase64 = cleanBase64.split(',')[1];
+                } else if (cleanBase64.startsWith('data:')) {
+                    cleanBase64 = cleanBase64.replace(/^data:[^,]+,/, '');
+                }
+                cleanBase64 = cleanBase64.trim().replace(/\s/g, '');
+
+                try {
+                    const candidateBuffer = Buffer.from(cleanBase64, 'base64');
+                    // Verify PDF magic bytes '%PDF' (0x25, 0x50, 0x44, 0x46)
+                    if (candidateBuffer.length > 50 && candidateBuffer.subarray(0, 4).toString() === '%PDF') {
+                        finalBuffer = candidateBuffer;
+                    } else {
+                        console.warn('[EmailService] Decoded client pdfBase64 is invalid (missing %PDF header). Will generate on server.');
+                    }
+                } catch (decErr) {
+                    console.warn('[EmailService] Failed to decode client pdfBase64:', decErr.message);
+                }
             }
 
+            // Fallback: If client PDF was not provided or was invalid, generate on server
             if (!finalBuffer) {
                 try {
                     finalBuffer = await generateInvoicePdfBuffer({ invoice, company });
                 } catch (pdfErr) {
-                    console.warn('[EmailService] Failed to generate automatic PDF buffer:', pdfErr.message);
+                    console.error('[EmailService] Failed to generate server PDF buffer:', pdfErr.message);
                 }
             }
 
-            if (finalBuffer) {
+            // Ensure the attachment is valid binary PDF data before attaching
+            if (finalBuffer && finalBuffer.length > 50 && finalBuffer.subarray(0, 4).toString() === '%PDF') {
+                const rawInvNum = invoice?.invoiceNumber || invoice?.id || 'document';
+                const cleanInvNum = String(rawInvNum).replace(/^#/, '').replace(/[^\w.-]/g, '_');
+                const filename = `Invoice_${cleanInvNum}.pdf`;
+
                 mailOptions.attachments = [
                     {
-                        filename: `Invoice_${invoiceNumber}.pdf`,
+                        filename,
                         content: finalBuffer,
                         contentType: 'application/pdf'
                     }
                 ];
+            } else {
+                console.error('[EmailService] Could not generate valid PDF attachment for invoice email.');
             }
         }
 

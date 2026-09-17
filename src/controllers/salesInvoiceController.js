@@ -3196,10 +3196,11 @@ const getPublicInvoiceById = async (req, res) => {
 
         if (isCombined) {
             let custId = req.query.customerId ? parseInt(req.query.customerId) : null;
-            if (!custId && rawId.includes('CUST-')) {
-                custId = parseInt(rawId.split('CUST-')[1]);
-            } else if (!custId && rawId.includes('combined-')) {
-                const afterPrefix = rawId.replace(/combined-/i, '');
+            const upperRawId = rawId.toUpperCase();
+            if (!custId && upperRawId.includes('CUST-')) {
+                custId = parseInt(upperRawId.split('CUST-')[1]);
+            } else if (!custId && upperRawId.includes('COMBINED-')) {
+                const afterPrefix = upperRawId.replace('COMBINED-', '');
                 if (!isNaN(parseInt(afterPrefix))) {
                     custId = parseInt(afterPrefix);
                 }
@@ -3307,14 +3308,198 @@ const getPublicInvoiceById = async (req, res) => {
             return res.status(200).json({ success: true, data: combinedInvoice });
         }
 
-        const parsedId = parseInt(id);
-        if (isNaN(parsedId)) {
-            return res.status(400).json({ success: false, message: 'Invalid Invoice ID format' });
+        const invoiceInclude = {
+            salesperson: true,
+            invoiceitem: {
+                include: {
+                    product: true,
+                    service: true,
+                    warehouse: true,
+                    uom: true
+                }
+            },
+            customer: true,
+            salesorder: true,
+            company: true,
+            receipt: {
+                include: {
+                    cashBankAccount: true,
+                    transaction: true
+                }
+            },
+            allocations: {
+                include: {
+                    receipt: {
+                        include: {
+                            cashBankAccount: true,
+                            transaction: true
+                        }
+                    }
+                }
+            }
+        };
+
+        let invoice = null;
+        if (!isNaN(parseInt(id)) && String(parseInt(id)) === String(id).trim()) {
+            invoice = await prisma.invoice.findUnique({
+                where: { id: parseInt(id) },
+                include: invoiceInclude
+            });
         }
 
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: parsedId },
-            include: {
+        if (!invoice) {
+            const cleanInvNum = String(id).trim();
+            invoice = await prisma.invoice.findFirst({
+                where: {
+                    OR: [
+                        { invoiceNumber: cleanInvNum },
+                        { invoiceNumber: `#${cleanInvNum.replace(/^#/, '')}` },
+                        { invoiceNumber: cleanInvNum.replace(/^#/, '') }
+                    ]
+                },
+                include: invoiceInclude
+            });
+        }
+
+        if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+
+        const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(invoice);
+
+        const mappedInvoice = adjustInvoiceWithReturns({
+            ...invoice,
+            receipt: deduplicatedReceipts
+        });
+
+        res.status(200).json({ success: true, data: mappedInvoice });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Download public invoice directly as PDF
+const downloadPublicInvoicePdf = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const rawId = String(id);
+        const isCombined = rawId.toLowerCase().startsWith('combined-') || rawId.toLowerCase().includes('combined');
+
+        let invoice = null;
+        let company = null;
+
+        if (isCombined) {
+            let custId = req.query.customerId ? parseInt(req.query.customerId) : null;
+            const upperRawId = rawId.toUpperCase();
+            if (!custId && upperRawId.includes('CUST-')) {
+                custId = parseInt(upperRawId.split('CUST-')[1]);
+            } else if (!custId && upperRawId.includes('COMBINED-')) {
+                const afterPrefix = upperRawId.replace('COMBINED-', '');
+                if (!isNaN(parseInt(afterPrefix))) {
+                    custId = parseInt(afterPrefix);
+                }
+            }
+
+            let customer = null;
+            if (custId && !isNaN(custId)) {
+                customer = await prisma.customer.findUnique({
+                    where: { id: parseInt(custId) }
+                });
+            }
+
+            let customerInvoices = [];
+            if (custId && !isNaN(custId)) {
+                customerInvoices = await prisma.invoice.findMany({
+                    where: { customerId: parseInt(custId) },
+                    include: {
+                        invoiceitem: {
+                            include: {
+                                product: true,
+                                service: true,
+                                warehouse: true,
+                                uom: true
+                            }
+                        },
+                        allocations: {
+                            include: {
+                                receipt: {
+                                    include: {
+                                        cashBankAccount: { select: { id: true, name: true } },
+                                        transaction: true
+                                    }
+                                }
+                            }
+                        },
+                        receipt: {
+                            include: {
+                                cashBankAccount: { select: { id: true, name: true } },
+                                transaction: true
+                            }
+                        },
+                        company: true
+                    }
+                });
+            }
+
+            if (!customerInvoices || customerInvoices.length === 0) {
+                return res.status(404).json({ success: false, message: 'No invoices found for this customer' });
+            }
+
+            const subtotal = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.subtotal) || 0), 0);
+            const discountAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.discountAmount) || 0), 0);
+            const taxableAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxableAmount) || 0), 0);
+            const taxAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.taxAmount) || 0), 0);
+            const otherCharges = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.otherCharges) || 0), 0);
+            const roundOffAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.roundOffAmount) || 0), 0);
+            const totalAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.totalAmount) || 0), 0);
+            const paidAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.paidAmount) || 0), 0);
+            const balanceAmount = customerInvoices.reduce((sum, inv) => sum + (parseFloat(inv.balanceAmount) || 0), 0);
+
+            const combinedItems = [];
+            customerInvoices.forEach(inv => {
+                (inv.invoiceitem || []).forEach(item => {
+                    combinedItems.push({
+                        ...item,
+                        description: item.description || `Inv #${inv.invoiceNumber || inv.id}: ${item.product?.name || item.service?.name || ''}`
+                    });
+                });
+            });
+
+            const allPaid = balanceAmount <= 0.01 && (totalAmount > 0 || paidAmount > 0);
+            const anyOverdue = customerInvoices.some(i => i.status === 'OVERDUE');
+            const hasPartial = (paidAmount > 0.01 && balanceAmount > 0.01) || customerInvoices.some(i => i.status === 'PARTIAL' || i.status === 'PARTIALLY PAID');
+            const combinedStatus = allPaid ? 'PAID' : (hasPartial ? 'PARTIALLY PAID' : (anyOverdue ? 'OVERDUE' : 'UNPAID'));
+
+            company = customerInvoices[0]?.company || null;
+            const { allAllocations, paymentHistory } = buildCombinedInvoicePayments(customerInvoices, totalAmount);
+
+            invoice = {
+                id: rawId,
+                invoiceNumber: rawId.toUpperCase(),
+                date: new Date(),
+                dueDate: null,
+                subtotal,
+                discountAmount,
+                taxableAmount,
+                taxAmount,
+                otherCharges,
+                roundOffAmount,
+                totalAmount,
+                paidAmount,
+                balanceAmount,
+                status: combinedStatus,
+                manualStatus: false,
+                currency: customerInvoices[0]?.currency || company?.currency || 'EUR',
+                customer: customer || { name: customer?.name || 'Customer' },
+                isCombined: true,
+                invoiceitem: combinedItems,
+                items: combinedItems,
+                invoices: customerInvoices,
+                allocations: allAllocations,
+                receipt: paymentHistory,
+                paymentHistory,
+                company
+            };
+        } else {
+            const invoiceInclude = {
                 salesperson: true,
                 invoiceitem: {
                     include: {
@@ -3343,20 +3528,51 @@ const getPublicInvoiceById = async (req, res) => {
                         }
                     }
                 }
+            };
+
+            if (!isNaN(parseInt(id)) && String(parseInt(id)) === String(id).trim()) {
+                invoice = await prisma.invoice.findUnique({
+                    where: { id: parseInt(id) },
+                    include: invoiceInclude
+                });
             }
-        });
 
-        if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+            if (!invoice) {
+                const cleanInvNum = String(id).trim();
+                invoice = await prisma.invoice.findFirst({
+                    where: {
+                        OR: [
+                            { invoiceNumber: cleanInvNum },
+                            { invoiceNumber: `#${cleanInvNum.replace(/^#/, '')}` },
+                            { invoiceNumber: cleanInvNum.replace(/^#/, '') }
+                        ]
+                    },
+                    include: invoiceInclude
+                });
+            }
 
-        const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(invoice);
+            if (!invoice) return res.status(404).json({ success: false, message: 'Invoice not found' });
+            company = invoice.company;
+            const deduplicatedReceipts = getDeduplicatedInvoiceReceipts(invoice);
+            invoice = adjustInvoiceWithReturns({
+                ...invoice,
+                receipt: deduplicatedReceipts
+            });
+        }
 
-        const mappedInvoice = adjustInvoiceWithReturns({
-            ...invoice,
-            receipt: deduplicatedReceipts
-        });
+        const { generateInvoicePdfBuffer } = require('../utils/pdfGenerator');
+        const pdfBuffer = await generateInvoicePdfBuffer({ invoice, company });
 
-        res.status(200).json({ success: true, data: mappedInvoice });
+        const rawInvNum = invoice.invoiceNumber || invoice.id || 'document';
+        const cleanInvNum = String(rawInvNum).replace(/^#/, '').replace(/[^\w.-]/g, '_');
+        const filename = `Invoice_${cleanInvNum}.pdf`;
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Length', pdfBuffer.length);
+        return res.send(pdfBuffer);
     } catch (error) {
+        console.error('Error downloading public invoice PDF:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -3537,7 +3753,8 @@ const sendInvoiceEmail = async (req, res) => {
             sendBcc = false,
             customerId: bodyCustomerId,
             invoiceNumber: bodyInvoiceNumber,
-            pdfBase64
+            pdfBase64,
+            clientUrl: bodyClientUrl
         } = req.body;
 
         let invoice = null;
@@ -3545,8 +3762,40 @@ const sendInvoiceEmail = async (req, res) => {
         let publicUrl = null;
 
         const emailService = require('../services/emailService');
-        const hostHeader = req.get('host') || 'localhost:5173';
-        const clientHost = hostHeader.includes(':8080') ? hostHeader.replace(':8080', ':5173') : hostHeader;
+
+        // Priority for client frontend URL:
+        // 1. Explicitly passed in request body (e.g. from window.location.origin)
+        // 2. Request Origin header (sent by browsers on CORS requests, e.g. http://localhost:5173)
+        // 3. Request Referer header origin
+        // 4. FRONTEND_URL or CLIENT_URL environment variable
+        // 5. host header fallback (replacing backend port 8080 with 5173)
+        let clientBaseUrl = bodyClientUrl || req.body.frontendUrl;
+        if (!clientBaseUrl) {
+            const reqOrigin = req.get('origin');
+            if (reqOrigin && !reqOrigin.includes(':8080')) {
+                clientBaseUrl = reqOrigin;
+            } else {
+                const reqReferer = req.get('referer');
+                if (reqReferer) {
+                    try {
+                        const parsedRef = new URL(reqReferer);
+                        if (parsedRef.port !== '8080') {
+                            clientBaseUrl = parsedRef.origin;
+                        }
+                    } catch (e) {}
+                }
+            }
+        }
+        if (!clientBaseUrl && process.env.FRONTEND_URL) {
+            clientBaseUrl = process.env.FRONTEND_URL;
+        }
+        if (!clientBaseUrl) {
+            const hostHeader = req.get('host') || 'localhost:5173';
+            const clientHost = hostHeader.includes(':8080') ? hostHeader.replace(':8080', ':5173') : hostHeader;
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+            clientBaseUrl = `${protocol}://${clientHost}`;
+        }
+        clientBaseUrl = clientBaseUrl.replace(/\/+$/, '');
 
         if (isCombined) {
             let custId = bodyCustomerId;
@@ -3636,9 +3885,8 @@ const sendInvoiceEmail = async (req, res) => {
                 paymentHistory
             };
 
-            if (customerInvoices.length > 0) {
-                publicUrl = `${req.protocol}://${clientHost}/public/invoice/${customerInvoices[0].id}`;
-            }
+            const combinedTargetId = bodyInvoiceNumber || rawId;
+            publicUrl = `${clientBaseUrl}/api/public/invoice/${encodeURIComponent(combinedTargetId)}/download`;
         } else {
             const invoiceId = parseInt(rawId);
             if (!invoiceId || isNaN(invoiceId)) {
@@ -3666,7 +3914,8 @@ const sendInvoiceEmail = async (req, res) => {
             }
 
             company = invoice.company || (companyId ? await prisma.company.findUnique({ where: { id: parseInt(companyId) } }) : null);
-            publicUrl = `${req.protocol}://${clientHost}/public/invoice/${invoice.id}`;
+            const targetId = invoice.invoiceNumber ? String(invoice.invoiceNumber).replace(/^#/, '') : invoice.id;
+            publicUrl = `${clientBaseUrl}/api/public/invoice/${encodeURIComponent(targetId)}/download`;
         }
 
         const toEmail = recipientEmail || invoice.customer?.email;
@@ -3680,6 +3929,7 @@ const sendInvoiceEmail = async (req, res) => {
             recipientEmail: toEmail,
             subject,
             customMessage: message,
+            downloadUrl: publicUrl,
             publicUrl,
             attachPdf,
             pdfBase64,
@@ -3798,5 +4048,6 @@ module.exports = {
     unpayInvoice,
     sendInvoiceEmail,
     getInvoiceAuditTrail,
-    buildCombinedInvoicePayments
+    buildCombinedInvoicePayments,
+    downloadPublicInvoicePdf
 };

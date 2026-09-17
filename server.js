@@ -64,6 +64,8 @@ const integrationRoutes = require('./src/routes/integrationRoutes');
 const bankingRoutes = require('./src/routes/bankingRoutes');
 const { startIntegrationSyncWorker } = require('./src/services/integrationSyncWorker');
 const { startRecurringSchedulerWorker } = require('./src/services/recurringSchedulerWorker');
+const salesInvoiceController = require('./src/controllers/salesInvoiceController');
+const posController = require('./src/controllers/posController');
 
 const prisma = require('./src/config/prisma');
 
@@ -209,9 +211,28 @@ app.use('/api/advanced-accounting', advancedAccountingRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/banking', bankingRoutes);
 
+// Public API Endpoints (Strictly Unauthenticated)
+app.get('/api/public/invoice/:id', salesInvoiceController.getPublicInvoiceById);
+app.get('/api/public/invoice/:id/download', salesInvoiceController.downloadPublicInvoicePdf);
+app.get('/public/invoice/:id/download', salesInvoiceController.downloadPublicInvoicePdf);
+app.get('/api/public/pos/:id', posController.getPublicPOSInvoiceById);
+
 // Health Check
 app.get('/', (req, res) => {
     res.send('Accounting Software Backend is running');
+});
+
+// Public Invoice & POS redirection fallbacks (for direct browser hits on backend)
+app.get(['/public/invoice/:id', '/view/invoice/:id'], (req, res) => {
+    const { id } = req.params;
+    const clientBase = process.env.FRONTEND_URL || (req.get('host')?.includes('localhost') || req.get('host')?.includes('127.0.0.1') ? 'http://localhost:5173' : 'http://localhost:5173');
+    return res.redirect(`${clientBase.replace(/\/+$/, '')}/public/invoice/${id}`);
+});
+
+app.get(['/public/pos/:id', '/view/pos/:id'], (req, res) => {
+    const { id } = req.params;
+    const clientBase = process.env.FRONTEND_URL || (req.get('host')?.includes('localhost') || req.get('host')?.includes('127.0.0.1') ? 'http://localhost:5173' : 'http://localhost:5173');
+    return res.redirect(`${clientBase.replace(/\/+$/, '')}/public/pos/${id}`);
 });
 
 // Error Handling Middleware
